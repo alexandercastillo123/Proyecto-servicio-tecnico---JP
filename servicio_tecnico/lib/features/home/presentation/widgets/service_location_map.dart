@@ -2,10 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-class ServiceLocationMap extends StatelessWidget {
-  final String? initialImage;
+import '../../../technicians/domain/models/technician.dart';
 
-  const ServiceLocationMap({super.key, this.initialImage});
+class ServiceLocationMap extends StatelessWidget {
+  final String? userAddress;
+  final List<Technician> technicians;
+
+  const ServiceLocationMap({
+    super.key,
+    this.userAddress,
+    this.technicians = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -29,45 +36,60 @@ class ServiceLocationMap extends StatelessWidget {
               point: center,
               width: 80,
               height: 80,
-              child: Icon(Icons.location_on, color: Colors.red, size: 45),
+              child: Icon(Icons.location_on, color: Colors.blue, size: 45),
             ),
 
-            // Mock Technical Support Marker 1
-            Marker(
-              point: const LatLng(-12.0730, -77.0510),
-              width: 50,
-              height: 50,
-              child: _buildSimpleMarker(Icons.handyman, Colors.blue),
-            ),
+            // Dynamically generate Technician Markers if we had coords in the model
+            // For now, we'll keep some mock markers around the user or use the tech list
+            ...technicians.map((tech) {
+              // Note: Since we don't have lat/lng in the DB yet, we generate random ones near center
+              // In a real app, we would use the tech's address or stored coords
+              final index = technicians.indexOf(tech);
+              final point = LatLng(
+                center.latitude +
+                    (index + 1) * 0.002 * (index % 2 == 0 ? 1 : -1),
+                center.longitude +
+                    (index + 1) * 0.002 * (index % 3 == 0 ? 1 : -1),
+              );
 
-            // Mock Technical Support Marker 2
-            Marker(
-              point: const LatLng(-12.0690, -77.0470),
-              width: 50,
-              height: 50,
-              child: _buildSimpleMarker(Icons.computer, Colors.green),
-            ),
-          ],
-        ),
-
-        // Rich aesthetics: Subtle overlay for map preview branding (optional)
-        Center(
-          child: IgnorePointer(
-            child: Opacity(
-              opacity: 0.1,
-              child: Transform.rotate(
-                angle: -0.5,
-                child: const Text(
-                  'INTERACTIVE MAP',
-                  style: TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
+              return Marker(
+                point: point,
+                width: 50,
+                height: 50,
+                child: GestureDetector(
+                  onTap: () {
+                    // Show a tooltip or navigate
+                  },
+                  child: _buildSimpleMarker(
+                    Icons.handyman,
+                    const Color(0xFF3B28FF),
                   ),
                 ),
+              );
+            }),
+
+            // If tech list is empty, show original mocks
+            if (technicians.isEmpty) ...[
+              Marker(
+                point: const LatLng(-12.0730, -77.0510),
+                width: 50,
+                height: 50,
+                child: _buildSimpleMarker(
+                  Icons.handyman,
+                  const Color(0xFF3B28FF),
+                ),
               ),
-            ),
-          ),
+              Marker(
+                point: const LatLng(-12.0690, -77.0470),
+                width: 50,
+                height: 50,
+                child: _buildSimpleMarker(
+                  Icons.handyman,
+                  const Color(0xFF3B28FF),
+                ),
+              ),
+            ],
+          ],
         ),
       ],
     );

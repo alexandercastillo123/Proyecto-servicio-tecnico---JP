@@ -59,6 +59,7 @@ const register = async (req, res) => {
         );
 
         const userId = userResult.insertId;
+        const isTech = role === 'tech';
 
         // Insert user profile
         await connection.query(
@@ -77,9 +78,46 @@ const register = async (req, res) => {
                 personType === 'natural' ? dni : null,
                 personType === 'juridical' ? companyName : null,
                 personType === 'juridical' ? ruc : null,
-                role === 'tech' ? referenceAddress : null
+                isTech ? referenceAddress : null
             ]
         );
+
+        // Handle Technician Schedules
+        if (isTech) {
+            let schedulesToInsert = [];
+            const { schedules } = req.body;
+
+            if (schedules && Array.isArray(schedules) && schedules.length > 0) {
+                // Use provided schedules
+                schedulesToInsert = schedules.map(s => [
+                    userId,
+                    s.dayOfWeek,
+                    s.startTime,
+                    s.endTime,
+                    s.isActive !== undefined ? s.isActive : true
+                ]);
+            } else if (personType === 'natural') {
+                // Default schedule for natural person technician: Mon-Sat, 9:00 - 18:00
+                const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+                schedulesToInsert = days.map(day => [
+                    userId,
+                    day,
+                    '09:00:00',
+                    '18:00:00',
+                    true
+                ]);
+                // Add Sunday as inactive
+                schedulesToInsert.push([userId, 'Sunday', '00:00:00', '00:00:00', false]);
+            }
+
+            if (schedulesToInsert.length > 0) {
+                await connection.query(
+                    `INSERT INTO technician_schedules (technician_id, day_of_week, start_time, end_time, is_active)
+           VALUES ?`,
+                    [schedulesToInsert]
+                );
+            }
+        }
 
         await connection.commit();
 

@@ -98,7 +98,7 @@ const sendMessage = async (req, res) => {
     let respuesta = new Respuesta();
     try {
         const senderId = req.user.id;
-        const { receiverId, messageText, appointmentId } = req.body;
+        const { receiverId, messageText, appointmentId, messageType = 'text' } = req.body;
 
         // Verify receiver exists
         const recRes = await db.listar('SELECT id FROM users WHERE id = ?', false, [receiverId]);
@@ -111,8 +111,8 @@ const sendMessage = async (req, res) => {
 
         const dbRes = await db.ejecutar(
             `INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id)
-       VALUES (?, ?, ?, 'text', ?)`,
-            [senderId, receiverId, messageText, appointmentId || null]
+       VALUES (?, ?, ?, ?, ?)`,
+            [senderId, receiverId, messageText, messageType, appointmentId || null]
         );
 
         if (!dbRes.exito) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/services/user_service.dart';
 
 class EditDataScreen extends StatefulWidget {
   const EditDataScreen({super.key});
@@ -9,15 +10,113 @@ class EditDataScreen extends StatefulWidget {
 }
 
 class _EditDataScreenState extends State<EditDataScreen> {
-  final _nameController = TextEditingController(text: 'Nombre Técnico');
-  final _dniController = TextEditingController(text: 'DNI/RUC Técnico');
-  final _phoneController = TextEditingController(text: 'Teléfono Técnico');
-  final _locationController = TextEditingController(
-    text: 'Ubicación Cuartel General',
-  );
+  final UserService _userService = UserService();
+  final _nameController = TextEditingController();
+  final _idController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _locationController = TextEditingController();
+
+  bool _isLoading = true;
+  bool _isSaving = false;
+  Map<String, dynamic>? _profileData;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final response = await _userService.getProfile();
+      if (response.success && mounted) {
+        final data = response.data;
+        setState(() {
+          _profileData = data;
+          final bool isNat = (data?['person_type'] ?? '') == 'natural';
+          if (isNat) {
+            _nameController.text =
+                '${data?['names'] ?? ''} ${data?['surnames'] ?? ''}'.trim();
+            _idController.text = data?['dni'] ?? '';
+          } else {
+            _nameController.text = data?['company_name'] ?? '';
+            _idController.text = data?['ruc'] ?? '';
+          }
+          _phoneController.text = data?['phone'] ?? '';
+          _locationController.text =
+              data?['reference_address'] ?? data?['address'] ?? '';
+          _isLoading = false;
+        });
+      } else if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _updateProfile() async {
+    setState(() => _isSaving = true);
+    try {
+      final bool isNatural = (_profileData?['person_type'] ?? '') == 'natural';
+
+      // Basic splitting for names/surnames if natural
+      String? names;
+      String? surnames;
+      if (isNatural) {
+        final parts = _nameController.text.trim().split(' ');
+        if (parts.length > 1) {
+          names = parts[0];
+          surnames = parts.sublist(1).join(' ');
+        } else {
+          names = parts[0];
+          surnames = '';
+        }
+      }
+
+      final response = await _userService.updateProfile(
+        phone: _phoneController.text,
+        names: names,
+        surnames: surnames,
+        dni: isNatural ? _idController.text : null,
+        companyName: !isNatural ? _nameController.text : null,
+        ruc: !isNatural ? _idController.text : null,
+        referenceAddress: _locationController.text,
+      );
+
+      if (mounted) {
+        setState(() => _isSaving = false);
+        if (response.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Datos actualizados con éxito')),
+          );
+          context.pop();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.message ?? 'Error al actualizar')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSaving = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Error de conexión')));
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final isNatural = _profileData?['person_type'] == 'natural';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       body: SafeArea(
@@ -93,11 +192,14 @@ class _EditDataScreenState extends State<EditDataScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Column(
                   children: [
-                    _buildField(_nameController, 'Nombre Técnico'),
+                    _buildField(
+                      _nameController,
+                      isNatural ? 'Nombre Completo' : 'Nombre de Empresa',
+                    ),
                     const SizedBox(height: 16),
-                    _buildField(_dniController, 'DNI/RUC Técnico'),
+                    _buildField(_idController, isNatural ? 'DNI' : 'RUC'),
                     const SizedBox(height: 16),
-                    _buildField(_phoneController, 'Teléfono Técnico'),
+                    _buildField(_phoneController, 'Teléfono'),
                     const SizedBox(height: 16),
                     _buildField(
                       _locationController,
@@ -122,13 +224,23 @@ class _EditDataScreenState extends State<EditDataScreen> {
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
-                  onPressed: () => context.pop(),
-                  child: const Text(
-                    'Actualizar Datos',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
+                  onPressed: _isSaving ? null : _updateProfile,
+                  child: _isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text(
+                          'Actualizar Datos',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
+              const SizedBox(height: 40),
             ],
           ),
         ),

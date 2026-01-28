@@ -3,7 +3,7 @@ class ApiConstants {
   static const String baseUrl = 'http://10.0.2.2:3000/api';
 
   // Your machine's local IP (useful for physical devices)
-  // static const String baseUrl = 'http://192.168.1.72:3000/api';
+  // static const String baseUrl = 'http://192.168.1.57:3000/api';
 
   // Authentication Endpoints
   static const String register = '$baseUrl/auth/register';
@@ -25,6 +25,7 @@ class ApiConstants {
       '$baseUrl/technicians/$id/schedule';
   static const String createSchedule = '$baseUrl/technicians/schedule';
   static String updateSchedule(int id) => '$baseUrl/technicians/schedule/$id';
+  static const String addReview = '$baseUrl/technicians/review';
 
   // Appointment Endpoints
   static const String appointments = '$baseUrl/appointments';

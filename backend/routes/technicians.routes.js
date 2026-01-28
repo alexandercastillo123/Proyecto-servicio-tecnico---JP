@@ -58,4 +58,20 @@ router.put(
     techniciansController.updateSchedule
 );
 
+/**
+ * @route   POST /api/technicians/review
+ * @desc    Add review for a technician
+ * @access  Private
+ */
+router.post(
+    '/review',
+    authenticate,
+    [
+        body('technicianId').isInt().withMessage('Technician ID must be an integer'),
+        body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be between 1 and 5')
+    ],
+    validate,
+    techniciansController.addReview
+);
+
 module.exports = router;

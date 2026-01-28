@@ -90,7 +90,7 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
         ? '${tech['names'] ?? ''} ${tech['surnames'] ?? ''}'.trim()
         : tech['company_name'] ?? 'Técnico';
     final dniRuc = tech['dni'] ?? tech['ruc'] ?? 'N/A';
-    final rating = (tech['rating'] ?? 0.0).toDouble();
+    final rating = double.tryParse(tech['rating']?.toString() ?? '') ?? 0.0;
     final profileImg = tech['profile_image_url'] ?? '';
 
     return Scaffold(
@@ -334,94 +334,138 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
   }
 
   void _showRatingDialog(BuildContext context, String techName) {
+    int selectedStars = 5;
+
     showDialog(
       context: context,
       builder: (context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFFD9D9D9),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Valora tu experiencia con\n$techName',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF3B28FF),
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD9D9D9),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Puntua tu satisfacción con el técnico de 1 a 5 estrellas',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF3B28FF), fontSize: 14),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(5, (index) {
-                    return const Icon(
-                      Icons.star,
-                      color: Color(0xFFFFD700),
-                      size: 40,
-                    );
-                  }),
-                ),
-                const SizedBox(height: 30),
-                Row(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: TextButton.styleFrom(
-                          backgroundColor: const Color(0xFFBDBDBD),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: const Text(
-                          'Cancelar',
-                          style: TextStyle(
-                            color: Color(0xFF3B28FF),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                    Text(
+                      'Valora tu experiencia con\n$techName',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF3B28FF),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        style: TextButton.styleFrom(
-                          backgroundColor: const Color(0xFFD9D9D9),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Puntua tu satisfacción con el técnico de 1 a 5 estrellas',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF3B28FF), fontSize: 14),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return GestureDetector(
+                          onTap: () {
+                            setDialogState(() {
+                              selectedStars = index + 1;
+                            });
+                          },
+                          child: Icon(
+                            Icons.star,
+                            color: index < selectedStars
+                                ? const Color(0xFFFFD700)
+                                : const Color(0xFFBDBDBD),
+                            size: 40,
                           ),
-                          side: const BorderSide(color: Color(0xFFBDBDBD)),
-                        ),
-                        child: const Text(
-                          'Valorar',
-                          style: TextStyle(
-                            color: Color(0xFF3B28FF),
-                            fontWeight: FontWeight.bold,
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 30),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              backgroundColor: const Color(0xFFBDBDBD),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancelar',
+                              style: TextStyle(
+                                color: Color(0xFF3B28FF),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () async {
+                              final techId = _technicianData!['id'];
+                              final response = await _technicianService.addReview(
+                                technicianId: techId,
+                                rating: selectedStars,
+                                comment:
+                                    '', // User didn't ask for comment field yet
+                              );
+
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                if (response.success) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Reseña enviada con éxito'),
+                                    ),
+                                  );
+                                  _fetchDetails(techId); // Refresh profile
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        response.message ??
+                                            'Error al enviar reseña',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            style: TextButton.styleFrom(
+                              backgroundColor: const Color(0xFFEEEEEE),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              side: const BorderSide(color: Color(0xFFBDBDBD)),
+                            ),
+                            child: const Text(
+                              'Valorar',
+                              style: TextStyle(
+                                color: Color(0xFF3B28FF),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );

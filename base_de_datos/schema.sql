@@ -83,3 +83,20 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     FOREIGN KEY (receiver_id) REFERENCES users(id),
     FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL
 );
+
+-- 6. Reseñas / Reviews
+CREATE TABLE IF NOT EXISTS reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    appointment_id INT NOT NULL,
+    client_id INT NOT NULL,
+    technician_id INT NOT NULL,
+    rating TINYINT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
+    FOREIGN KEY (client_id) REFERENCES users(id),
+    FOREIGN KEY (technician_id) REFERENCES users(id)
+);
+
+-- 7. Actualizar tipos de mensaje para incluir citas
+ALTER TABLE chat_messages MODIFY COLUMN message_type ENUM('text', 'offer', 'appointment') DEFAULT 'text';

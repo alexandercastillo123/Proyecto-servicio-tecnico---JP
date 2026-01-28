@@ -695,10 +695,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'Calle Maple, 127, Jesus María, Lima, Perú',
+                  Text(
+                    _referenceAddressController.text.isEmpty
+                        ? 'Dirección no proporcionada'
+                        : _referenceAddressController.text,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.primary,
                       fontWeight: FontWeight.w500,
                     ),

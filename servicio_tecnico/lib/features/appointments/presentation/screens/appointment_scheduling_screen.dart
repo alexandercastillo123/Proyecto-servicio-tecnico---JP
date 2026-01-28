@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/services/technician_service.dart';
+import '../../../../core/services/message_service.dart';
 
 class AppointmentSchedulingScreen extends StatefulWidget {
   const AppointmentSchedulingScreen({super.key});
@@ -64,6 +65,26 @@ class _AppointmentSchedulingScreenState
     }
   }
 
+  final MessageService _messageService = MessageService();
+
+  String _getNextDateForDay(String dayName) {
+    final days = {
+      'Monday': 1,
+      'Tuesday': 2,
+      'Wednesday': 3,
+      'Thursday': 4,
+      'Friday': 5,
+      'Saturday': 6,
+      'Sunday': 7,
+    };
+    final now = DateTime.now();
+    int targetDay = days[dayName] ?? 1;
+    int daysUntil = targetDay - now.weekday;
+    if (daysUntil <= 0) daysUntil += 7;
+    final nextDate = now.add(Duration(days: daysUntil));
+    return "${nextDate.year}-${nextDate.month.toString().padLeft(2, '0')}-${nextDate.day.toString().padLeft(2, '0')}";
+  }
+
   Future<void> _createAppointment() async {
     if (_techInfo == null) return;
 
@@ -80,15 +101,25 @@ class _AppointmentSchedulingScreenState
     ).showSnackBar(const SnackBar(content: Text('Agendando cita...')));
 
     try {
+      final scheduledDate = _getNextDateForDay(_selectedDay);
       final response = await _appointmentService.createAppointment(
         technicianId: _techInfo!['id'],
-        scheduledDate: _selectedDay,
+        scheduledDate: scheduledDate,
         scheduledTime: _timeController.text,
         description: description,
       );
 
       if (mounted) {
         if (response.success) {
+          // Send automatic message to chat
+          await _messageService.sendMessage(
+            receiverId: _techInfo!['id'],
+            messageText:
+                'Cita agendada para $_selectedDay ($scheduledDate) a las ${_timeController.text}',
+            messageType: 'appointment',
+            appointmentId: response.data?['appointmentId'],
+          );
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Cita agendada con éxito')),
           );

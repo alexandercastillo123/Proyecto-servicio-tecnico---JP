@@ -23,6 +23,20 @@ const createAppointment = async (req, res) => {
             return res.status(404).json(respuesta);
         }
 
+        // Check for existing active appointment
+        const activeAppRes = await db.listar(
+            `SELECT id FROM appointments 
+             WHERE client_id = ? AND technician_id = ? AND status IN ('pending', 'confirmed')`,
+            false,
+            [clientId, technicianId]
+        );
+
+        if (activeAppRes.resultado) {
+            respuesta.estado = 400;
+            respuesta.mensaje = 'Ya tienes una cita vigente con este técnico.';
+            return res.status(400).json(respuesta);
+        }
+
         // Create appointment
         const dbRes = await db.ejecutar(
             `INSERT INTO appointments (client_id, technician_id, scheduled_date, scheduled_time, description, status)

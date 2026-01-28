@@ -1,11 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/services/user_service.dart';
 
-class ProviderProfileScreen extends StatelessWidget {
+class ProviderProfileScreen extends StatefulWidget {
   const ProviderProfileScreen({super.key});
 
   @override
+  State<ProviderProfileScreen> createState() => _ProviderProfileScreenState();
+}
+
+class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
+  final UserService _userService = UserService();
+  Map<String, dynamic>? _profileData;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfile();
+  }
+
+  Future<void> _loadProfile() async {
+    try {
+      final response = await _userService.getProfile();
+      if (response.success && mounted) {
+        setState(() {
+          _profileData = response.data;
+          _isLoading = false;
+        });
+      } else if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final Map<String, dynamic> data = _profileData ?? {};
+    final bool isNatural = (data['person_type'] ?? '') == 'natural';
+
+    final String name = isNatural
+        ? '${data['names'] ?? ''} ${data['surnames'] ?? ''}'.trim()
+        : (data['company_name'] ?? 'TECNICO EMPRESA');
+    final String idNumber = isNatural
+        ? (data['dni'] ?? 'DNI')
+        : (data['ruc'] ?? 'RUC');
+    final String phone = data['phone'] ?? 'TELEFONO';
+    final String location =
+        data['reference_address'] ?? data['address'] ?? 'UBICACIÓN';
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       body: SafeArea(
@@ -84,36 +139,41 @@ class ProviderProfileScreen extends StatelessWidget {
               const SizedBox(height: 30),
 
               // Tech Info
-              const Text(
-                'Nombre TECNICO',
-                style: TextStyle(
+              Text(
+                name.toUpperCase(),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
                   color: Color(0xFF3B28FF),
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const Text(
-                'DNI/RUC TECNICO',
-                style: TextStyle(
+              Text(
+                idNumber,
+                style: const TextStyle(
                   color: Color(0xFF3B28FF),
                   fontSize: 20,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const Text(
-                'TELEFONO TECNICO',
-                style: TextStyle(
+              Text(
+                phone,
+                style: const TextStyle(
                   color: Color(0xFF3B28FF),
                   fontSize: 18,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const Text(
-                'UBICACIÓN CUARTEL GENERAL',
-                style: TextStyle(
-                  color: Color(0xFF3B28FF),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  location.toUpperCase(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF3B28FF),
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
 
@@ -136,7 +196,10 @@ class ProviderProfileScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        onPressed: () => context.push('/edit-data'),
+                        onPressed: () async {
+                          await context.push('/edit-data');
+                          if (mounted) _loadProfile(); // Refresh after edit
+                        },
                         child: const Text(
                           'Editar Datos',
                           style: TextStyle(

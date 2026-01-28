@@ -34,8 +34,8 @@ class Technician {
       name: name,
       dniRuc: dniRuc,
       location: json['reference_address'] ?? json['address'] ?? '',
-      rating: (json['rating'] ?? 0.0).toDouble(),
-      reviewsCount: json['reviews_count'] ?? 0,
+      rating: double.tryParse(json['rating']?.toString() ?? '') ?? 0.0,
+      reviewsCount: int.tryParse(json['reviews_count']?.toString() ?? '') ?? 0,
       profileImageUrl: json['profile_image_url'] ?? '',
     );
   }

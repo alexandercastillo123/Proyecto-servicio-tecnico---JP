@@ -65,4 +65,24 @@ class TechnicianService {
       fromJson: (data) => data as Map<String, dynamic>,
     );
   }
+
+  /// Add review for a technician
+  Future<ApiResponse<Map<String, dynamic>>> addReview({
+    required int technicianId,
+    required int rating,
+    String? comment,
+    int? appointmentId,
+  }) async {
+    return await _apiService.post<Map<String, dynamic>>(
+      ApiConstants.addReview,
+      {
+        'technicianId': technicianId,
+        'rating': rating,
+        if (comment != null) 'comment': comment,
+        if (appointmentId != null) 'appointmentId': appointmentId,
+      },
+      requiresAuth: true,
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
 }

@@ -27,12 +27,14 @@ class MessageService {
     required int receiverId,
     required String messageText,
     int? appointmentId,
+    String messageType = 'text',
   }) async {
     return await _apiService.post<Map<String, dynamic>>(
       ApiConstants.sendMessage,
       {
         'receiverId': receiverId,
         'messageText': messageText,
+        'messageType': messageType,
         if (appointmentId != null) 'appointmentId': appointmentId,
       },
       requiresAuth: true,

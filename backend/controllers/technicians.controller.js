@@ -251,10 +251,76 @@ const updateSchedule = async (req, res) => {
     }
 };
 
+/**
+ * Add review for a technician
+ */
+const addReview = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const clientId = req.user.id;
+        const { technicianId, rating, comment, appointmentId } = req.body;
+
+        if (!technicianId || !rating) {
+            respuesta.mensaje = 'Technician ID and rating are required';
+            return res.status(400).json(respuesta);
+        }
+
+        // Verify if client already reviewed this technician
+        const existingRes = await db.listar(
+            'SELECT id FROM reviews WHERE client_id = ? AND technician_id = ?',
+            false,
+            [clientId, technicianId]
+        );
+
+        if (existingRes.resultado) {
+            respuesta.mensaje = 'Ya has calificado a este técnico.';
+            return res.status(400).json(respuesta);
+        }
+
+        // Insert review
+        // Note: appointment_id is now handled as nullable in the implementation logic.
+        // We use null if no specific appointmentId is provided.
+        const dbRes = await db.ejecutar(
+            'INSERT INTO reviews (appointment_id, client_id, technician_id, rating, comment) VALUES (?, ?, ?, ?, ?)',
+            [appointmentId || null, clientId, technicianId, rating, comment || '']
+        );
+
+        if (!dbRes.exito) {
+            return res.status(500).json(dbRes);
+        }
+
+        // Update technician rating and count
+        const statsRes = await db.listar(
+            'SELECT AVG(rating) as avg_rating, COUNT(*) as count FROM reviews WHERE technician_id = ?',
+            false,
+            [technicianId]
+        );
+
+        const newRating = statsRes.resultado ? statsRes.resultado.avg_rating : rating;
+        const newCount = statsRes.resultado ? statsRes.resultado.count : 1;
+
+        await db.ejecutar(
+            'UPDATE user_profiles SET rating = ?, reviews_count = ? WHERE user_id = ?',
+            [newRating, newCount, technicianId]
+        );
+
+        respuesta.exito = true;
+        respuesta.estado = 201;
+        respuesta.mensaje = 'Reseña enviada con éxito';
+        res.status(201).json(respuesta);
+
+    } catch (error) {
+        console.error('Add review error:', error);
+        respuesta.mensaje = 'Error al enviar la reseña: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
 module.exports = {
     getTechnicians,
     getTechnicianById,
     getTechnicianSchedule,
     createSchedule,
-    updateSchedule
+    updateSchedule,
+    addReview
 };
