@@ -1,0 +1,210 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../../core/theme/app_colors.dart';
+
+class VerificationCodeScreen extends StatefulWidget {
+  const VerificationCodeScreen({super.key});
+
+  @override
+  State<VerificationCodeScreen> createState() => _VerificationCodeScreenState();
+}
+
+class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
+  final _codeController = TextEditingController();
+
+  void _showInfoDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(
+              0xFFD9D9D9,
+            ), // Light grey background like Image 4
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Información sobre el\ncódigo de verificación',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'El código de verificación se le enviará al correo electrónico vinculado a la cuenta a la que está tratando de acceder. Servirá para verificar su identidad y evitar que otros obtengan acceso a su cuenta',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: 150,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(
+                      0xFFC4C4C4,
+                    ), // Slightly darker grey for button
+                    foregroundColor: AppColors.primary,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () => context.pop(),
+                  child: const Text('Ok'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leadingWidth: 120,
+        leading: TextButton.icon(
+          onPressed: () => context.pop(),
+          icon: const Icon(Icons.arrow_left, color: AppColors.primary),
+          label: const Text(
+            'Regresar',
+            style: TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.only(left: 8),
+            alignment: Alignment.centerLeft,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(height: 32),
+              // Logo
+              Column(
+                children: [
+                  Text(
+                    'J&P',
+                    style: TextStyle(
+                      fontFamily: 'Inter',
+                      fontSize: 80,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary,
+                      height: 1.0,
+                    ),
+                  ),
+                  Text(
+                    'PERIFÉRICOS S.A.C',
+                    style: TextStyle(
+                      fontSize: 14,
+                      letterSpacing: 2.0,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 100),
+
+              // Code Input with Info Icon
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8E8E8),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _codeController,
+                        textAlign: TextAlign.center,
+                        decoration: const InputDecoration(
+                          hintText: 'Código de Verificación',
+                          border: InputBorder.none,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 16,
+                          ),
+                          hintStyle: TextStyle(
+                            color: Color(0xFF9CA3AF),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.info_outline_rounded),
+                      color: AppColors.primary,
+                      onPressed: _showInfoDialog,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Validate Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE8E8E8),
+                    foregroundColor: AppColors.primary,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    // Logic to validate code (Mock)
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Código validado correctamente'),
+                      ),
+                    );
+                    // Navigate back to login or somewhere else
+                    context.go('/login');
+                  },
+                  child: const Text(
+                    'Validar Código de Verificación',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
