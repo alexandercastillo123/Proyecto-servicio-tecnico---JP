@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
 import '../../../technicians/domain/models/technician.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class ServiceLocationMap extends StatelessWidget {
   final String? userAddress;
@@ -36,7 +37,11 @@ class ServiceLocationMap extends StatelessWidget {
               point: center,
               width: 80,
               height: 80,
-              child: Icon(Icons.location_on, color: Colors.blue, size: 45),
+              child: Icon(
+                Icons.location_on,
+                color: AppColors.primary,
+                size: 45,
+              ),
             ),
 
             // Dynamically generate Technician Markers if we had coords in the model
@@ -60,10 +65,7 @@ class ServiceLocationMap extends StatelessWidget {
                   onTap: () {
                     // Show a tooltip or navigate
                   },
-                  child: _buildSimpleMarker(
-                    Icons.handyman,
-                    const Color(0xFF3B28FF),
-                  ),
+                  child: _buildSimpleMarker(Icons.handyman, AppColors.primary),
                 ),
               );
             }),
@@ -74,19 +76,13 @@ class ServiceLocationMap extends StatelessWidget {
                 point: const LatLng(-12.0730, -77.0510),
                 width: 50,
                 height: 50,
-                child: _buildSimpleMarker(
-                  Icons.handyman,
-                  const Color(0xFF3B28FF),
-                ),
+                child: _buildSimpleMarker(Icons.handyman, AppColors.primary),
               ),
               Marker(
                 point: const LatLng(-12.0690, -77.0470),
                 width: 50,
                 height: 50,
-                child: _buildSimpleMarker(
-                  Icons.handyman,
-                  const Color(0xFF3B28FF),
-                ),
+                child: _buildSimpleMarker(Icons.handyman, AppColors.primary),
               ),
             ],
           ],

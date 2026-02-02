@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/user_service.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -78,11 +79,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   alignment: Alignment.centerLeft,
                   child: TextButton.icon(
                     onPressed: () => context.pop(),
-                    icon: const Icon(Icons.arrow_left, color: Colors.blue),
+                    icon: const Icon(
+                      Icons.arrow_left,
+                      color: AppColors.primary,
+                    ),
                     label: const Text(
                       'Regresar',
                       style: TextStyle(
-                        color: Colors.blue,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -94,7 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: Colors.blue, width: 4),
+                    border: Border.all(color: AppColors.primary, width: 4),
                   ),
                   child: CircleAvatar(
                     radius: 75,
@@ -105,7 +109,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: profileImg.isEmpty
                         ? const Icon(
                             Icons.person_outline,
-                            color: Colors.blue,
+                            color: AppColors.primary,
                             size: 80,
                           )
                         : null,
@@ -115,7 +119,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   name,
                   style: const TextStyle(
-                    color: Colors.blue,
+                    color: AppColors.primary,
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
@@ -123,7 +127,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   dniRuc,
                   style: const TextStyle(
-                    color: Colors.blue,
+                    color: AppColors.primary,
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
                   ),
@@ -131,7 +135,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   email,
                   style: const TextStyle(
-                    color: Colors.blue,
+                    color: AppColors.primary,
                     fontSize: 18,
                     decoration: TextDecoration.underline,
                     fontWeight: FontWeight.w500,
@@ -141,7 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const Text(
                   'Ultimos servicios:',
                   style: TextStyle(
-                    color: Colors.blue,
+                    color: AppColors.primary,
                     fontSize: 20,
                     fontWeight: FontWeight.w500,
                   ),
@@ -163,7 +167,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           onPressed: () {},
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFCDCDCD),
-                            foregroundColor: Colors.blue,
+                            foregroundColor: AppColors.primary,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -190,7 +194,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onPressed: () => context.go('/login'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFCDCDCD),
-                      foregroundColor: Colors.blue,
+                      foregroundColor: AppColors.primary,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -227,11 +231,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              border: Border.all(color: Colors.blue, width: 2),
+              border: Border.all(color: AppColors.primary, width: 2),
             ),
             child: const Icon(
               Icons.person_outline,
-              color: Colors.blue,
+              color: AppColors.primary,
               size: 32,
             ),
           ),
@@ -242,7 +246,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Text(
                 name,
                 style: const TextStyle(
-                  color: Colors.blue,
+                  color: AppColors.primary,
                   fontWeight: FontWeight.bold,
                   fontSize: 16,
                 ),

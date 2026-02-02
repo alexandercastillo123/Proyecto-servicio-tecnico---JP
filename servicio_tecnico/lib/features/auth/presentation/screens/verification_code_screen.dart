@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/constants/assets.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class VerificationCodeScreen extends StatefulWidget {
@@ -104,28 +105,12 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
             children: [
               const SizedBox(height: 32),
               // Logo
-              Column(
-                children: [
-                  Text(
-                    'J&P',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 80,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.primary,
-                      height: 1.0,
-                    ),
-                  ),
-                  Text(
-                    'PERIFÉRICOS S.A.C',
-                    style: TextStyle(
-                      fontSize: 14,
-                      letterSpacing: 2.0,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              Center(
+                child: Image.asset(
+                  AppAssets.logo,
+                  height: 120,
+                  fit: BoxFit.contain,
+                ),
               ),
 
               const SizedBox(height: 100),

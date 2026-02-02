@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:servicio_tecnico_app/core/services/auth_service.dart';
+import '../../../../core/constants/assets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../../shared/widgets/custom_button.dart';
@@ -29,28 +30,12 @@ class _LoginScreenState extends State<LoginScreen> {
             children: [
               const SizedBox(height: 40),
               // Logo
-              Column(
-                children: [
-                  Text(
-                    'J&P',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 100,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.primary,
-                      height: 1.0,
-                    ),
-                  ),
-                  Text(
-                    'PERIFÉRICOS S.A.C',
-                    style: TextStyle(
-                      fontSize: 16,
-                      letterSpacing: 2.0,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
+              Center(
+                child: Image.asset(
+                  AppAssets.logo,
+                  height: 150, // Adjust height as needed
+                  fit: BoxFit.contain,
+                ),
               ),
 
               const SizedBox(height: 60),

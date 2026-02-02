@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/services/message_service.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/services/appointment_service.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -124,10 +125,13 @@ class _ChatScreenState extends State<ChatScreen> {
         leadingWidth: 115,
         leading: TextButton.icon(
           onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_left, color: Colors.blue),
+          icon: const Icon(Icons.arrow_left, color: AppColors.primary),
           label: const Text(
             'Regresar',
-            style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
       ),
@@ -203,7 +207,7 @@ class _ChatScreenState extends State<ChatScreen> {
           padding: const EdgeInsets.all(16),
           width: 280,
           decoration: BoxDecoration(
-            color: isMe ? const Color(0xFF3B28FF) : const Color(0xFFEBEBEB),
+            color: isMe ? AppColors.primary : const Color(0xFFEBEBEB),
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -212,7 +216,7 @@ class _ChatScreenState extends State<ChatScreen> {
               Text(
                 'Cita agendada:',
                 style: TextStyle(
-                  color: isMe ? Colors.white : const Color(0xFF3B28FF),
+                  color: isMe ? Colors.white : AppColors.primary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
@@ -221,7 +225,7 @@ class _ChatScreenState extends State<ChatScreen> {
               Text(
                 message,
                 style: TextStyle(
-                  color: isMe ? Colors.white : Colors.blue,
+                  color: isMe ? Colors.white : AppColors.primary,
                   fontSize: 14,
                 ),
               ),
@@ -253,7 +257,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           },
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(
-                        color: isMe ? Colors.white : const Color(0xFF3B28FF),
+                        color: isMe ? Colors.white : AppColors.primary,
                       ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -263,7 +267,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     child: Text(
                       'Cancelar Cita',
                       style: TextStyle(
-                        color: isMe ? Colors.white : const Color(0xFF3B28FF),
+                        color: isMe ? Colors.white : AppColors.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -309,7 +313,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 const Text(
                   'Precio de servicio',
                   style: TextStyle(
-                    color: Color(0xFF3B28FF),
+                    color: AppColors.primary,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -318,7 +322,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 const Text(
                   'Establezca un precio de servicio para enviarle la propuesta al cliente',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: Color(0xFF3B28FF), fontSize: 14),
+                  style: TextStyle(color: AppColors.primary, fontSize: 14),
                 ),
                 const SizedBox(height: 20),
                 TextField(
@@ -326,7 +330,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   keyboardType: TextInputType.number,
                   textAlign: TextAlign.center,
                   style: const TextStyle(
-                    color: Color(0xFF3B28FF),
+                    color: AppColors.primary,
                     fontSize: 24,
                   ),
                   decoration: InputDecoration(
@@ -356,7 +360,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         child: const Text(
                           'Cancelar',
                           style: TextStyle(
-                            color: Color(0xFF3B28FF),
+                            color: AppColors.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -416,7 +420,7 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           const Icon(
             Icons.sentiment_satisfied_alt,
-            color: Colors.blue,
+            color: AppColors.primary,
             size: 28,
           ),
           if (_userRole == 'tech') ...[
@@ -427,11 +431,11 @@ class _ChatScreenState extends State<ChatScreen> {
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.blue, width: 1.5),
+                  border: Border.all(color: AppColors.primary, width: 1.5),
                 ),
                 child: const Icon(
                   Icons.attach_money,
-                  color: Colors.blue,
+                  color: AppColors.primary,
                   size: 20,
                 ),
               ),
@@ -443,7 +447,7 @@ class _ChatScreenState extends State<ChatScreen> {
               controller: _messageController,
               decoration: const InputDecoration(
                 hintText: 'Escriba un mensaje...',
-                hintStyle: TextStyle(color: Colors.blue, fontSize: 16),
+                hintStyle: TextStyle(color: AppColors.primary, fontSize: 16),
                 border: InputBorder.none,
               ),
               onSubmitted: (_) => _sendMessage(),
@@ -454,7 +458,7 @@ class _ChatScreenState extends State<ChatScreen> {
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: const BoxDecoration(
-                color: Colors.blue,
+                color: AppColors.primary,
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.send, color: Colors.white, size: 20),

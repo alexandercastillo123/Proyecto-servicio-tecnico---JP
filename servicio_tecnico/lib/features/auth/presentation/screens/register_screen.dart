@@ -95,42 +95,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               // Logo
               const SizedBox(height: 10),
-              Column(
-                children: [
-                  Text(
-                    'J&P',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: _currentStep == 0 ? 80 : 40,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF3B28FF),
-                      height: 0.9,
-                    ),
-                  ),
-                  if (_currentStep == 0)
-                    const Text(
-                      'PERIFÉRICOS  S.A.C',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF3B28FF),
-                        letterSpacing: 2,
-                      ),
-                    ),
-                  if (_currentStep != 0)
-                    const Text(
-                      'PERIFÉRICOS S.A.C',
-                      style: TextStyle(
-                        fontFamily: 'Inter',
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF3B28FF),
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                ],
+              Center(
+                child: Image.asset(
+                  AppAssets.logo,
+                  height: 120, // Adjust height as needed
+                  fit: BoxFit.contain,
+                ),
               ),
+              const SizedBox(height: 10),
 
               const SizedBox(height: 30),
 

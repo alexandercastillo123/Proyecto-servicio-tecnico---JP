@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/technician_service.dart';
 import '../../domain/models/technician.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class TechnicianListScreen extends StatefulWidget {
   const TechnicianListScreen({super.key});
@@ -59,16 +60,19 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
         leadingWidth: 115,
         leading: TextButton.icon(
           onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_left, color: Colors.blue),
+          icon: const Icon(Icons.arrow_left, color: AppColors.primary),
           label: const Text(
             'Regresar',
-            style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
         title: const Text(
           'Lista de Técnicos Cercanos',
           style: TextStyle(
-            color: Colors.blue,
+            color: AppColors.primary,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
@@ -86,24 +90,30 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
   }
 
   Widget _buildEmptyState() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text(
-          'No se han encontrado técnicos en su area',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.blue,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            'No se han encontrado técnicos en su area',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.primary,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
           ),
-        ),
-        const SizedBox(height: 20),
-        ElevatedButton(
-          onPressed: _loadTechnicians,
-          child: const Text('Reintentar'),
-        ),
-      ],
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _loadTechnicians,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Reintentar'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -133,7 +143,7 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
             'No se han encontrado más resultados en su area',
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: Colors.blue,
+              color: AppColors.primary,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -142,7 +152,11 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
           const Text(
             'Para solicitar asistencia, puede llamar al 999 999 999\nentre las 8 am y las 10 pm, o puede escribirnos por whatsapp\npara obtener asistencia de un chatbot',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.blue, fontSize: 12, height: 1.4),
+            style: TextStyle(
+              color: AppColors.primary,
+              fontSize: 12,
+              height: 1.4,
+            ),
           ),
           const SizedBox(height: 20),
         ],
@@ -155,10 +169,10 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
       onTap: () => context.push('/technician-profile', extra: tech.id),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
           children: [
@@ -166,16 +180,20 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
               padding: const EdgeInsets.all(2),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.blue, width: 2),
+                border: Border.all(color: AppColors.primary, width: 2),
               ),
               child: CircleAvatar(
-                radius: 17,
+                radius: 24,
                 backgroundColor: Colors.white,
                 backgroundImage: tech.profileImageUrl.isNotEmpty
                     ? NetworkImage(tech.profileImageUrl)
                     : null,
                 child: tech.profileImageUrl.isEmpty
-                    ? const Icon(Icons.person_outline, color: Colors.blue)
+                    ? const Icon(
+                        Icons.person_outline,
+                        color: AppColors.primary,
+                        size: 32,
+                      )
                     : null,
               ),
             ),
@@ -187,36 +205,27 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
                   Text(
                     tech.name,
                     style: const TextStyle(
-                      color: Colors.blue,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 18,
                     ),
                   ),
+                  const SizedBox(height: 4),
                   Row(
-                    children: [
-                      ...List.generate(5, (index) {
-                        return Icon(
-                          index < tech.rating.floor()
-                              ? Icons.star
-                              : Icons.star_border,
-                          color: Colors.yellow[700],
-                          size: 18,
-                        );
-                      }),
-                      const SizedBox(width: 5),
-                      Text(
-                        '(${tech.reviewsCount})',
-                        style: const TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
+                    children: List.generate(5, (index) {
+                      return const Padding(
+                        padding: EdgeInsets.only(right: 2.0),
+                        child: Icon(
+                          Icons.star,
+                          color: Color(0xFFFFD700),
+                          size: 24,
                         ),
-                      ),
-                    ],
+                      );
+                    }),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: Colors.blue),
           ],
         ),
       ),

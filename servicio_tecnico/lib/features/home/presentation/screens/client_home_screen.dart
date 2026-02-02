@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/technician_service.dart';
 import '../../../technicians/domain/models/technician.dart';
+import '../../../../core/constants/assets.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../widgets/service_location_map.dart';
 
 class ClientHomeScreen extends StatefulWidget {
@@ -58,15 +60,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Logo
-                  const Text(
-                    'J&P',
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      color: Color(0xFF3B28FF),
-                      fontSize: 40,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+                  // Logo
+                  Image.asset(AppAssets.logo, height: 50, fit: BoxFit.contain),
 
                   // Profile Icon
                   GestureDetector(
@@ -76,13 +71,13 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: const Color(0xFF3B28FF),
+                          color: AppColors.primary,
                           width: 2.5,
                         ),
                       ),
                       child: const Icon(
                         Icons.person_outline,
-                        color: Color(0xFF3B28FF),
+                        color: AppColors.primary,
                         size: 34,
                       ),
                     ),
@@ -117,7 +112,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                               onPressed: () => context.push('/technician-list'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFF0F0F0),
-                                foregroundColor: const Color(0xFF3B28FF),
+                                foregroundColor: AppColors.primary,
                                 elevation: 0,
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 14,
