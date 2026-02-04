@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/services/message_service.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/services/appointment_service.dart';
+import '../../../../core/services/technician_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -16,6 +17,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final MessageService _messageService = MessageService();
   final UserService _userService = UserService();
   final AppointmentService _appointmentService = AppointmentService();
+  final TechnicianService _technicianService = TechnicianService();
   final TextEditingController _messageController = TextEditingController();
   List<dynamic> _messages = [];
   bool _isLoading = true;
@@ -27,11 +29,43 @@ class _ChatScreenState extends State<ChatScreen> {
     if (timestamp == null) return '';
     try {
       final date = DateTime.parse(timestamp).toLocal();
-      final hour = date.hour.toString().padLeft(2, '0');
+      final hour = date.hour > 12
+          ? date.hour - 12
+          : (date.hour == 0 ? 12 : date.hour);
+      final period = date.hour >= 12 ? 'pm' : 'am';
       final minute = date.minute.toString().padLeft(2, '0');
-      return '$hour:$minute';
+      return '$hour:$minute $period';
     } catch (e) {
       return '';
+    }
+  }
+
+  String _formatDate(String dateStr) {
+    try {
+      // dateStr might be like "2026-02-11" or "Monday (2026-02-11)"
+      // If it contains parenthesis, extract the date part
+      if (dateStr.contains('(')) {
+        final regex = RegExp(r'\(([^)]+)\)');
+        final match = regex.firstMatch(dateStr);
+        if (match != null) {
+          dateStr = match.group(1)!;
+        }
+      }
+
+      final date = DateTime.parse(dateStr);
+      final days = [
+        'Lunes',
+        'Martes',
+        'Miércoles',
+        'Jueves',
+        'Viernes',
+        'Sábado',
+        'Domingo',
+      ];
+      return days[date.weekday -
+          1]; // Simply return the day name as per design, or full date if preferred
+    } catch (e) {
+      return dateStr;
     }
   }
 
@@ -134,6 +168,31 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
         ),
+        actions: [
+          if (_userRole == 'tech' ||
+              _userRole == 'technician' ||
+              _userRole == 'provider')
+            Container(
+              margin: const EdgeInsets.only(right: 16),
+              child: ElevatedButton(
+                onPressed: _showClientRatingDialog,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Reseñar',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -215,6 +274,7 @@ class _ChatScreenState extends State<ChatScreen> {
             children: [
               Text(
                 'Cita agendada:',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   color: isMe ? Colors.white : AppColors.primary,
                   fontSize: 16,
@@ -222,25 +282,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
-                message,
-                style: TextStyle(
-                  color: isMe ? Colors.white : AppColors.primary,
-                  fontSize: 14,
-                ),
-              ),
-              if (description != null && description.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Motivo: $description',
-                  style: TextStyle(
-                    color: isMe
-                        ? Colors.white.withOpacity(0.9)
-                        : Colors.black87,
-                    fontSize: 13,
-                  ),
-                ),
-              ],
+
+              _buildAppointmentDetails(message, description),
+
+              const SizedBox(height: 16),
               const SizedBox(height: 16),
               Center(
                 child: SizedBox(
@@ -288,6 +333,90 @@ class _ChatScreenState extends State<ChatScreen> {
             style: TextStyle(color: Colors.blue.withOpacity(0.6), fontSize: 10),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildAppointmentDetails(String message, String? description) {
+    // message is typically "Cita agendada para 2026-02-11 a las 10:00\nMotivo: ..."
+    // We want to parse this to display nicely as in the design
+    // However, the message might be just text.
+    // Let's try to extract date and time if it follows the pattern.
+
+    // Fallback if parsing fails
+    String datePart = '';
+    String timePart = '';
+
+    if (message.contains('para ') && message.contains(' a las ')) {
+      try {
+        final parts = message.split(' a las ');
+        if (parts.length > 1) {
+          final dateSubParts = parts[0].split('para ');
+          if (dateSubParts.length > 1) {
+            datePart = _formatDate(dateSubParts[1]);
+          }
+          final timeSubParts = parts[1].split('\n');
+          timePart = timeSubParts[0];
+
+          // If description is null, try to extract from text
+          if ((description == null ||
+                  description == 'null' ||
+                  description.isEmpty) &&
+              parts[1].contains('Motivo:')) {
+            try {
+              description = parts[1].split('Motivo:')[1].trim();
+            } catch (e) {
+              // ignore
+            }
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (datePart.isNotEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Align(
+            alignment: Alignment.center,
+            child: Column(
+              children: [
+                Text(
+                  'Dia: $datePart',
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Hora: $timePart',
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Descripción: $description',
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        Text(
+          message,
+          style: const TextStyle(color: Colors.white, fontSize: 14),
+        ),
+        if (description != null &&
+            description.isNotEmpty &&
+            !message.contains('Motivo:'))
+          Text(
+            'Descripción: $description',
+            style: const TextStyle(color: Colors.white, fontSize: 13),
+          ),
       ],
     );
   }
@@ -620,6 +749,143 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  void _showClientRatingDialog() {
+    int selectedStars = 5;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD9D9D9),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Calificar al Cliente',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFF3B28FF),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Puntua tu experiencia con este cliente',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF3B28FF), fontSize: 14),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return GestureDetector(
+                          onTap: () {
+                            setDialogState(() {
+                              selectedStars = index + 1;
+                            });
+                          },
+                          child: Icon(
+                            Icons.star,
+                            color: index < selectedStars
+                                ? const Color(0xFFFFD700)
+                                : const Color(0xFFBDBDBD),
+                            size: 40,
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 30),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              backgroundColor: const Color(0xFFBDBDBD),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancelar',
+                              style: TextStyle(
+                                color: Color(0xFF3B28FF),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () async {
+                              // Use technician review service as placeholder logic for now
+                              // Ideally backend should have a separate endpoint for rating clients
+                              if (_otherUserId != null) {
+                                final response = await _technicianService
+                                    .addReview(
+                                      technicianId: _otherUserId!,
+                                      rating: selectedStars,
+                                      comment: '',
+                                      appointmentId: null, // Now allowed by DB
+                                    );
+
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        response.message ??
+                                            (response.success
+                                                ? 'Reseña enviada con éxito'
+                                                : 'Error al enviar reseña'),
+                                      ),
+                                      backgroundColor: response.success
+                                          ? Colors.green
+                                          : Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            style: TextButton.styleFrom(
+                              backgroundColor: const Color(0xFFEEEEEE),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              side: const BorderSide(color: Color(0xFFBDBDBD)),
+                            ),
+                            child: const Text(
+                              'Valorar',
+                              style: TextStyle(
+                                color: Color(0xFF3B28FF),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

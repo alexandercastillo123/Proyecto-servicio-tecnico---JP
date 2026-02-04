@@ -26,7 +26,8 @@ class _AppointmentSchedulingScreenState
     text: '10:00',
   );
   final TextEditingController _descriptionController = TextEditingController();
-  String _selectedDay = 'Monday';
+  DateTime? _selectedDate;
+  String _dateLabel = 'Seleccionar fecha';
 
   @override
   void didChangeDependencies() {
@@ -67,26 +68,43 @@ class _AppointmentSchedulingScreenState
 
   final MessageService _messageService = MessageService();
 
-  String _getNextDateForDay(String dayName) {
-    final days = {
-      'Monday': 1,
-      'Tuesday': 2,
-      'Wednesday': 3,
-      'Thursday': 4,
-      'Friday': 5,
-      'Saturday': 6,
-      'Sunday': 7,
-    };
-    final now = DateTime.now();
-    int targetDay = days[dayName] ?? 1;
-    int daysUntil = targetDay - now.weekday;
-    if (daysUntil <= 0) daysUntil += 7;
-    final nextDate = now.add(Duration(days: daysUntil));
-    return "${nextDate.year}-${nextDate.month.toString().padLeft(2, '0')}-${nextDate.day.toString().padLeft(2, '0')}";
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF3B28FF),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF3B28FF),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        _dateLabel =
+            "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+      });
+    }
   }
 
   Future<void> _createAppointment() async {
     if (_techInfo == null) return;
+
+    if (_selectedDate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor selecciona una fecha')),
+      );
+      return;
+    }
 
     final description = _descriptionController.text.trim();
     if (description.isEmpty) {
@@ -101,7 +119,33 @@ class _AppointmentSchedulingScreenState
     ).showSnackBar(const SnackBar(content: Text('Agendando cita...')));
 
     try {
-      final scheduledDate = _getNextDateForDay(_selectedDay);
+      // Check for active appointments first
+      final appsResponse = await _appointmentService.getAppointments(
+        status: 'pending',
+      );
+      if (appsResponse.success) {
+        final existingApps = appsResponse.data as List<dynamic>;
+        final hasActive = existingApps.any(
+          (app) =>
+              app['technician_id'] == _techInfo!['id'] &&
+              (app['status'] == 'pending' || app['status'] == 'confirmed'),
+        );
+
+        if (hasActive) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Ya tienes una cita activa con este técnico'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+          return;
+        }
+      }
+
+      final scheduledDate =
+          "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
       final response = await _appointmentService.createAppointment(
         technicianId: _techInfo!['id'],
         scheduledDate: scheduledDate,
@@ -115,7 +159,7 @@ class _AppointmentSchedulingScreenState
           await _messageService.sendMessage(
             receiverId: _techInfo!['id'],
             messageText:
-                'Cita agendada para $_selectedDay ($scheduledDate) a las ${_timeController.text}',
+                'Cita agendada para $scheduledDate a las ${_timeController.text}\nMotivo: $description',
             messageType: 'appointment',
             appointmentId: response.data?['appointmentId'],
           );
@@ -123,7 +167,9 @@ class _AppointmentSchedulingScreenState
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Cita agendada con éxito')),
           );
-          context.pop();
+
+          // Redirect to Chat Screen
+          context.pushReplacement('/chat', extra: _techInfo!['id']);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -159,7 +205,7 @@ class _AppointmentSchedulingScreenState
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leadingWidth: 100,
+        leadingWidth: 115,
         leading: TextButton.icon(
           onPressed: () => context.pop(),
           icon: const Icon(Icons.arrow_left, color: Color(0xFF3B28FF)),
@@ -281,41 +327,35 @@ class _AppointmentSchedulingScreenState
                 children: [
                   _buildFormField(
                     label: 'Dia:',
-                    child: DropdownButtonHideUnderline(
+                    child: GestureDetector(
+                      onTap: () => _selectDate(context),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFE8E8E8),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: DropdownButton<String>(
-                          value: _selectedDay,
-                          isExpanded: true,
-                          items:
-                              <String>[
-                                'Monday',
-                                'Tuesday',
-                                'Wednesday',
-                                'Thursday',
-                                'Friday',
-                                'Saturday',
-                                'Sunday',
-                              ].map((String value) {
-                                return DropdownMenuItem<String>(
-                                  value: value,
-                                  child: Text(
-                                    value,
-                                    style: const TextStyle(
-                                      color: Color(0xFF3B28FF),
-                                    ),
-                                  ),
-                                );
-                              }).toList(),
-                          onChanged: (newValue) {
-                            setState(() {
-                              _selectedDay = newValue!;
-                            });
-                          },
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _dateLabel,
+                              style: TextStyle(
+                                color: _selectedDate == null
+                                    ? Colors.grey[600]
+                                    : const Color(0xFF3B28FF),
+                                fontSize: 16,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.calendar_today,
+                              color: Color(0xFF3B28FF),
+                              size: 20,
+                            ),
+                          ],
                         ),
                       ),
                     ),

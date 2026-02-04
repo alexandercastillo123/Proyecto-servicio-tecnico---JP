@@ -58,6 +58,12 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
           _technicianData = response.data;
           _isLoading = false;
         });
+        setState(() {
+          _technicianData = response.data;
+          _isLoading = false;
+        });
+        // We no longer strictly check for appointments here to allow reviewing freely
+        // _checkEligibleAppointment(id);
       } else {
         setState(() {
           _errorMessage = response.message;
@@ -334,6 +340,19 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
   }
 
   void _showRatingDialog(BuildContext context, String techName) {
+    // Constraint removed as per user request
+    /* if (_validAppointmentId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Debes tener una cita registrada con este técnico para reseñar.',
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    } */
+
     int selectedStars = 5;
 
     showDialog(
@@ -420,6 +439,7 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                                 rating: selectedStars,
                                 comment:
                                     '', // User didn't ask for comment field yet
+                                appointmentId: null,
                               );
 
                               if (context.mounted) {

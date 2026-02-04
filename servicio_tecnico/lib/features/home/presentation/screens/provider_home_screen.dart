@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/services/message_service.dart';
+import '../../../../core/constants/assets.dart';
 
 class ProviderHomeScreen extends StatefulWidget {
   const ProviderHomeScreen({super.key});
@@ -28,7 +29,8 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
   Future<void> _loadData() async {
     try {
       final proposalsRes = await _appointmentService.getAppointments(
-        status: 'pending',
+        status:
+            'pending', // Ensure backend uses 'pending'. If not, we might need to fetch all and filter.
       );
       final completedRes = await _appointmentService.getAppointments(
         status: 'completed',
@@ -40,7 +42,19 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
           setState(() {
             _proposals = proposalsRes.data ?? [];
             _completedJobs = completedRes.data ?? [];
-            _consultations = consultRes.data ?? [];
+
+            // Filter consultations: exclude those who have ANY active/pending proposal
+            final allConsultations = consultRes.data ?? [];
+            final proposalClientIds = _proposals
+                .map((p) => p['client_id'].toString())
+                .toSet();
+
+            // Debugging help: ensure we compare Strings
+            _consultations = allConsultations.where((c) {
+              final otherId = c['other_user_id'].toString();
+              return !proposalClientIds.contains(otherId);
+            }).toList();
+
             _isLoading = false;
           });
         }
@@ -86,25 +100,10 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'J&P',
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 32,
-                                    fontWeight: FontWeight.w900,
-                                    color: Color(0xFF3B28FF),
-                                    height: 1.0,
-                                  ),
-                                ),
-                                Container(
-                                  height: 2,
-                                  width: 40,
-                                  color: const Color(0xFF3B28FF),
-                                ),
-                              ],
+                            Image.asset(
+                              AppAssets.logo,
+                              height: 40,
+                              fit: BoxFit.contain,
                             ),
                             GestureDetector(
                               onTap: () => context.push('/provider-profile'),
@@ -214,8 +213,18 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _buildUserItem(
                       isConsultation
-                          ? (item['names'] ?? item['email'] ?? 'Usuario')
-                          : '${item['client_names'] ?? 'Cliente'}',
+                          ? '${item['names'] ?? ''} ${item['surnames'] ?? ''}'
+                                    .trim()
+                                    .isEmpty
+                                ? (item['email'] ?? 'Usuario')
+                                : '${item['names'] ?? ''} ${item['surnames'] ?? ''}'
+                                      .trim()
+                          : '${item['client_names'] ?? ''} ${item['client_surnames'] ?? ''}'
+                                .trim()
+                                .isEmpty
+                          ? 'Cliente'
+                          : '${item['client_names'] ?? ''} ${item['client_surnames'] ?? ''}'
+                                .trim(),
                       item['rating']?.toInt() ?? 5,
                       unreadCount: isConsultation
                           ? (item['unread_count'] ?? 0)
