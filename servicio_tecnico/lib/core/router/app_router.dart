@@ -8,6 +8,7 @@ import '../../features/home/presentation/screens/client_home_screen.dart';
 import '../../features/technicians/presentation/screens/technician_list_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/presentation/screens/verification_code_screen.dart';
+import '../../features/auth/presentation/screens/reset_password_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/technicians/presentation/screens/technician_profile_screen.dart';
 import '../../features/appointments/presentation/screens/appointment_scheduling_screen.dart';
@@ -28,7 +29,18 @@ final appRouter = GoRouter(
     // ...
     GoRoute(
       path: '/forgot-password/verify',
-      builder: (context, state) => const VerificationCodeScreen(),
+      builder: (context, state) {
+        final email = state.uri.queryParameters['email'] ?? '';
+        return VerificationCodeScreen(email: email);
+      },
+    ),
+    GoRoute(
+      path: '/forgot-password/reset',
+      builder: (context, state) {
+        final email = state.uri.queryParameters['email'] ?? '';
+        final code = state.uri.queryParameters['code'] ?? '';
+        return ResetPasswordScreen(email: email, code: code);
+      },
     ),
     // Register/Role Selection
     GoRoute(

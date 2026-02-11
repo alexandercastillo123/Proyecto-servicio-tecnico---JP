@@ -19,6 +19,7 @@ class AuthService {
     String? referenceAddress,
     String? address,
     String? city,
+    List<Map<String, dynamic>>? schedules,
   }) async {
     final response = await _apiService
         .post<Map<String, dynamic>>(ApiConstants.register, {
@@ -35,6 +36,7 @@ class AuthService {
           if (referenceAddress != null) 'referenceAddress': referenceAddress,
           if (address != null) 'address': address,
           if (city != null) 'city': city,
+          if (schedules != null) 'schedules': schedules,
         }, fromJson: (data) => data as Map<String, dynamic>);
 
     // Save token if registration successful

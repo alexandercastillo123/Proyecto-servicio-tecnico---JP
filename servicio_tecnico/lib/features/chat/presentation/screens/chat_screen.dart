@@ -635,7 +635,9 @@ class _ChatScreenState extends State<ChatScreen> {
               Text(
                 time,
                 style: TextStyle(
-                  color: (isMe ? Colors.white : Colors.blue).withOpacity(0.6),
+                  color: (isMe ? Colors.white : Colors.blue).withValues(
+                    alpha: 0.6,
+                  ),
                   fontSize: 10,
                 ),
               ),
@@ -671,7 +673,9 @@ class _ChatScreenState extends State<ChatScreen> {
               Text(
                 'Tarifa de servicio:',
                 style: TextStyle(
-                  color: (isMe ? Colors.white : Colors.blue).withOpacity(0.4),
+                  color: (isMe ? Colors.white : Colors.blue).withValues(
+                    alpha: 0.4,
+                  ),
                   fontSize: 12,
                 ),
               ),
@@ -711,7 +715,7 @@ class _ChatScreenState extends State<ChatScreen> {
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isCanceled
-                        ? const Color(0xFFBDBDBD).withOpacity(0.5)
+                        ? const Color(0xFFBDBDBD).withValues(alpha: 0.5)
                         : (isMe ? Colors.transparent : const Color(0xFF3B28FF)),
                     disabledBackgroundColor: const Color(
                       0xFFBDBDBD,
@@ -727,7 +731,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     isMe ? 'Cancelar Oferta' : 'Pagar',
                     style: TextStyle(
                       color: isCanceled
-                          ? Colors.white.withOpacity(0.6)
+                          ? Colors.white.withValues(alpha: 0.6)
                           : Colors.white,
                       fontWeight: FontWeight.bold,
                     ),

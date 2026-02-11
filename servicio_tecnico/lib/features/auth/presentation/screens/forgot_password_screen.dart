@@ -101,8 +101,17 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     ),
                   ),
                   onPressed: () {
+                    final email = _emailController.text.trim();
+                    if (email.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Por favor ingrese su correo'),
+                        ),
+                      );
+                      return;
+                    }
                     // Navigate to Verification Code Screen
-                    context.push('/forgot-password/verify');
+                    context.push('/forgot-password/verify?email=$email');
                   },
                   child: const Text(
                     'Enviar Correo de Verificación',

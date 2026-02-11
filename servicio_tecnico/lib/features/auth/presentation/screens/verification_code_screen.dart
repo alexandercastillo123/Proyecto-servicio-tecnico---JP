@@ -4,7 +4,8 @@ import '../../../../core/constants/assets.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class VerificationCodeScreen extends StatefulWidget {
-  const VerificationCodeScreen({super.key});
+  final String email;
+  const VerificationCodeScreen({super.key, required this.email});
 
   @override
   State<VerificationCodeScreen> createState() => _VerificationCodeScreenState();
@@ -171,14 +172,25 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                     ),
                   ),
                   onPressed: () {
+                    final code = _codeController.text.trim();
+                    if (code.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Por favor ingrese el código'),
+                        ),
+                      );
+                      return;
+                    }
                     // Logic to validate code (Mock)
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('Código validado correctamente'),
                       ),
                     );
-                    // Navigate back to login or somewhere else
-                    context.go('/login');
+                    // Navigate to Reset Password Screen
+                    context.push(
+                      '/forgot-password/reset?email=${widget.email}&code=$code',
+                    );
                   },
                   child: const Text(
                     'Validar Código de Verificación',

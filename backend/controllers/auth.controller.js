@@ -45,8 +45,23 @@ const register = async (req, res) => {
         if (existingUsers.length > 0) {
             await connection.rollback();
             respuesta.estado = 409;
-            respuesta.mensaje = 'Email already registered';
+            respuesta.mensaje = 'El correo electrónico ya está registrado';
             return res.status(409).json(respuesta);
+        }
+
+        // Check if DNI/RUC already exists
+        if (dni || ruc) {
+            const [existingProfiles] = await connection.query(
+                'SELECT user_id FROM user_profiles WHERE dni = ? OR ruc = ?',
+                [dni || null, ruc || null]
+            );
+
+            if (existingProfiles.length > 0) {
+                await connection.rollback();
+                respuesta.estado = 409;
+                respuesta.mensaje = `El ${dni ? 'DNI' : 'RUC'} ya está registrado`;
+                return res.status(409).json(respuesta);
+            }
         }
 
         // Hash password
@@ -102,7 +117,7 @@ const register = async (req, res) => {
                 schedulesToInsert = days.map(day => [
                     userId,
                     day,
-                    '09:00:00',
+                    '08:00:00',
                     '18:00:00',
                     true
                 ]);
@@ -284,7 +299,7 @@ const resetPassword = async (req, res) => {
         const passwordHash = await bcrypt.hash(newPassword, 10);
 
         // Update password
-        const [result] = await db.query(
+        const [result] = await db.pool.query(
             'UPDATE users SET password_hash = ? WHERE email = ?',
             [passwordHash, email]
         );

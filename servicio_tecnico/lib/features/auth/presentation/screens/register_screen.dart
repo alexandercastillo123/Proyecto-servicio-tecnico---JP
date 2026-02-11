@@ -1,6 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:servicio_tecnico_app/core/services/auth_service.dart';
+import 'package:servicio_tecnico_app/core/services/camera_service.dart';
+import 'package:camera/camera.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../../shared/widgets/custom_button.dart';
@@ -20,6 +24,134 @@ class _RegisterScreenState extends State<RegisterScreen> {
   int _currentStep = 0;
   bool _isPhotoTaken = false;
 
+  // Schedules for Juridical Technicians
+  final List<Map<String, dynamic>> _schedules = [
+    {
+      'day': 'Lunes',
+      'dayEn': 'Monday',
+      'startH': '08',
+      'startM': '00',
+      'startP': 'AM',
+      'endH': '06',
+      'endM': '00',
+      'endP': 'PM',
+      'isExpanded': false,
+    },
+    {
+      'day': 'Martes',
+      'dayEn': 'Tuesday',
+      'startH': '08',
+      'startM': '00',
+      'startP': 'AM',
+      'endH': '06',
+      'endM': '00',
+      'endP': 'PM',
+      'isExpanded': false,
+    },
+    {
+      'day': 'Miércoles',
+      'dayEn': 'Wednesday',
+      'startH': '08',
+      'startM': '00',
+      'startP': 'AM',
+      'endH': '06',
+      'endM': '00',
+      'endP': 'PM',
+      'isExpanded': false,
+    },
+    {
+      'day': 'Jueves',
+      'dayEn': 'Thursday',
+      'startH': '08',
+      'startM': '00',
+      'startP': 'AM',
+      'endH': '06',
+      'endM': '00',
+      'endP': 'PM',
+      'isExpanded': false,
+    },
+    {
+      'day': 'Viernes',
+      'dayEn': 'Friday',
+      'startH': '08',
+      'startM': '00',
+      'startP': 'AM',
+      'endH': '06',
+      'endM': '00',
+      'endP': 'PM',
+      'isExpanded': false,
+    },
+    {
+      'day': 'Sábado',
+      'dayEn': 'Saturday',
+      'startH': '08',
+      'startM': '00',
+      'startP': 'AM',
+      'endH': '06',
+      'endM': '00',
+      'endP': 'PM',
+      'isExpanded': false,
+    },
+    {
+      'day': 'Domingo',
+      'dayEn': 'Sunday',
+      'startH': '08',
+      'startM': '00',
+      'startP': 'AM',
+      'endH': '06',
+      'endM': '00',
+      'endP': 'PM',
+      'isExpanded': false,
+    },
+  ];
+
+  // Camera
+  CameraController? _cameraController;
+  final CameraService _cameraService = CameraService();
+  bool _isCameraInitialized = false;
+  XFile? _capturedFile;
+
+  @override
+  void dispose() {
+    _cameraController?.dispose();
+    _namesController.dispose();
+    _surnamesController.dispose();
+    _dniController.dispose();
+    _rucController.dispose();
+    _phoneController.dispose();
+    _emailController.dispose();
+    _referenceAddressController.dispose();
+    _userController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _initializeCamera() async {
+    final status = await Permission.camera.request();
+    if (status.isGranted) {
+      final controller = await _cameraService.getController();
+      if (mounted) {
+        setState(() {
+          _cameraController = controller;
+          _isCameraInitialized = controller?.value.isInitialized ?? false;
+        });
+      }
+    } else {
+      if (mounted) _showError('Se requiere permiso de cámara para continuar');
+    }
+  }
+
+  Future<void> _takePicture() async {
+    final file = await _cameraService.takePicture();
+    if (file != null && mounted) {
+      setState(() {
+        _capturedFile = file;
+        _isPhotoTaken = true;
+      });
+    }
+  }
+
   // Controllers Step 1
   final _namesController = TextEditingController();
   final _surnamesController = TextEditingController();
@@ -36,14 +168,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _nextStep() {
     bool isJuridical = widget.personType == 'juridical';
-    int maxStep = isJuridical ? 3 : 2;
+    bool isClient = widget.role == 'client';
+
+    // For clients, max step is 1 (Step 0: Info, Step 1: Account)
+    int maxStep = isClient ? 1 : (isJuridical ? 3 : 2);
 
     if (_currentStep < maxStep) {
-      setState(() {
-        _currentStep++;
-      });
+      if (_validateCurrentStep()) {
+        setState(() {
+          _currentStep++;
+        });
+      }
     } else {
-      context.go(widget.role == 'tech' ? '/home' : '/client-home');
+      // Logic moved to "Registrarme" button in _buildAccountInfoStep for clients
     }
   }
 
@@ -144,6 +281,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   bool _shouldShowContinuar(bool isJuridical) {
+    bool isClient = widget.role == 'client';
+    if (isClient) {
+      if (_currentStep == 1) return false; // Show Registrarme inside the step
+      return true;
+    }
+
     if (isJuridical) {
       if (_currentStep == 3) return false; // Photo step
       return true;
@@ -151,6 +294,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (_currentStep == 2) return false; // Photo step
       return true;
     }
+  }
+
+  bool _validateCurrentStep() {
+    if (_currentStep == 0) {
+      if (widget.personType == 'natural') {
+        if (_namesController.text.isEmpty ||
+            _surnamesController.text.isEmpty ||
+            _dniController.text.isEmpty ||
+            _emailController.text.isEmpty) {
+          _showError('Por favor rellene todos los campos');
+          return false;
+        }
+      } else {
+        if (_namesController.text.isEmpty ||
+            _rucController.text.isEmpty ||
+            _emailController.text.isEmpty) {
+          _showError('Por favor rellene todos los campos');
+          return false;
+        }
+      }
+
+      if (widget.role == 'tech' && _phoneController.text.isEmpty) {
+        _showError('Por favor rellene su teléfono');
+        return false;
+      }
+    } else if (_currentStep == 1) {
+      if (_userController.text.isEmpty ||
+          _passwordController.text.isEmpty ||
+          _confirmPasswordController.text.isEmpty) {
+        _showError('Por favor rellene todos los campos');
+        return false;
+      }
+      if (_passwordController.text != _confirmPasswordController.text) {
+        _showError('Las contraseñas no coinciden');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   Widget _buildPersonalInfoStep(bool isJuridical, bool isProvider) {
@@ -191,13 +378,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
               keyboardType: TextInputType.number,
             ),
           ],
-          const SizedBox(height: 16),
-          CustomTextField(
-            label: 'Teléfono',
-            hint: 'Teléfono',
-            controller: _phoneController,
-            keyboardType: TextInputType.phone,
-          ),
+          if (isProvider) ...[
+            const SizedBox(height: 16),
+            CustomTextField(
+              label: 'Teléfono',
+              hint: 'Teléfono',
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+            ),
+          ],
           const SizedBox(height: 16),
           CustomTextField(
             label: 'Correo Electrónico',
@@ -246,9 +435,77 @@ class _RegisterScreenState extends State<RegisterScreen> {
             controller: _confirmPasswordController,
             isPassword: true,
           ),
+          if (widget.role == 'client') ...[
+            const SizedBox(height: 30),
+            CustomButton(text: 'Registrarme', onPressed: _submitRegistration),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _submitRegistration() async {
+    if (!_validateCurrentStep()) return;
+
+    // Mostrar loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final authService = AuthService();
+      final isJuridical = widget.personType == 'juridical';
+
+      final response = await authService.register(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        role: widget.role ?? 'client',
+        personType: widget.personType ?? 'natural',
+        names: !isJuridical ? _namesController.text : null,
+        surnames: !isJuridical ? _surnamesController.text : null,
+        dni: !isJuridical ? _dniController.text : null,
+        companyName: isJuridical ? _namesController.text : null,
+        ruc: isJuridical ? _rucController.text : null,
+        phone: widget.role == 'tech' ? _phoneController.text : null,
+        referenceAddress: widget.role == 'tech'
+            ? _referenceAddressController.text
+            : null,
+        schedules: (widget.role == 'tech' && isJuridical)
+            ? _schedules
+                  .map(
+                    (s) => {
+                      'dayOfWeek': s['dayEn'],
+                      'startTime': _to24h(
+                        s['startH'],
+                        s['startM'],
+                        s['startP'],
+                      ),
+                      'endTime': _to24h(s['endH'], s['endM'], s['endP']),
+                      'isActive': true,
+                    },
+                  )
+                  .toList()
+            : null,
+      );
+
+      // Cerrar loading
+      if (context.mounted) Navigator.pop(context);
+
+      if (response.success) {
+        if (context.mounted) {
+          final target = widget.role == 'tech' ? '/home' : '/client-home';
+          context.go(target);
+        }
+      } else {
+        if (context.mounted)
+          _showError(response.message ?? 'Error al registrarse');
+      }
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context);
+      if (context.mounted) _showError('Error: ${e.toString()}');
+    }
   }
 
   Widget _buildOperatingHoursStep() {
@@ -274,13 +531,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 15),
-                _buildDayRow('Lunes'),
-                _buildDayRow('Martes'),
-                _buildDayRow('Miércoles'),
-                _buildDayRow('Jueves'),
-                _buildDayRow('Viernes'),
-                _buildDayRow('Sabado'),
-                _buildDaySelectorRow('Domingo'),
+                ..._schedules
+                    .map((schedule) => _buildDayItem(schedule))
+                    .toList(),
               ],
             ),
           ),
@@ -289,135 +542,229 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  Widget _buildDayRow(String day) {
+  Widget _buildDayItem(Map<String, dynamic> schedule) {
+    bool isExpanded = schedule['isExpanded'];
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              schedule['isExpanded'] = !isExpanded;
+            });
+          },
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+            margin: const EdgeInsets.only(bottom: 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      schedule['day'],
+                      style: const TextStyle(
+                        color: Color(0xFF3B28FF),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Icon(
+                      isExpanded
+                          ? Icons.keyboard_arrow_up
+                          : Icons.keyboard_arrow_down,
+                      color: const Color(0xFF3B28FF),
+                    ),
+                  ],
+                ),
+                if (isExpanded) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Text(
+                        'Desde: ',
+                        style: TextStyle(
+                          color: Color(0xFF9E92FF),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      _buildTimeSelector(schedule, true),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Text(
+                        'Hasta:  ',
+                        style: TextStyle(
+                          color: Color(0xFF9E92FF),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      _buildTimeSelector(schedule, false),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimeSelector(Map<String, dynamic> schedule, bool isStart) {
+    String h = isStart ? schedule['startH'] : schedule['endH'];
+    String m = isStart ? schedule['startM'] : schedule['endM'];
+    String p = isStart ? schedule['startP'] : schedule['endP'];
+
+    return Row(
+      children: [
+        _buildResponsiveDropdown(
+          value: h,
+          items: [for (var i = 1; i <= 12; i++) i.toString().padLeft(2, '0')],
+          suffix: 'h',
+          onChanged: (val) {
+            if (val != null) {
+              setState(
+                () =>
+                    isStart ? schedule['startH'] = val : schedule['endH'] = val,
+              );
+            }
+          },
+        ),
+        _buildResponsiveDropdown(
+          value: m,
+          items: ['00', '15', '30', '45'],
+          suffix: 'min',
+          onChanged: (val) {
+            if (val != null) {
+              setState(
+                () =>
+                    isStart ? schedule['startM'] = val : schedule['endM'] = val,
+              );
+            }
+          },
+        ),
+        _buildResponsiveDropdown(
+          value: p,
+          items: ['AM', 'PM'],
+          onChanged: (val) {
+            if (val != null) {
+              setState(
+                () =>
+                    isStart ? schedule['startP'] = val : schedule['endP'] = val,
+              );
+            }
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildResponsiveDropdown({
+    required String value,
+    required List<String> items,
+    String suffix = '',
+    required ValueChanged<String?> onChanged,
+  }) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-      margin: const EdgeInsets.only(bottom: 4),
+      margin: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 4),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        color: const Color(0xFFE0E0E0),
+        borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(
-        day,
-        style: const TextStyle(
-          color: Color(0xFF3B28FF),
-          fontWeight: FontWeight.bold,
-          fontSize: 16,
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          isDense: true,
+          style: const TextStyle(
+            color: Color(0xFF3B28FF),
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
+          items: items.map((String val) {
+            return DropdownMenuItem<String>(
+              value: val,
+              child: Text('$val$suffix'),
+            );
+          }).toList(),
+          onChanged: onChanged,
         ),
       ),
     );
   }
 
-  Widget _buildDaySelectorRow(String day) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            day,
-            style: const TextStyle(
-              color: Color(0xFF3B28FF),
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Text(
-                'Desde: ',
-                style: TextStyle(
-                  color: Color(0xFF9E92FF),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              _buildTimeDropdown('12h'),
-              _buildTimeDropdown('00min'),
-              _buildTimeDropdown('AM'),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              const Text(
-                'Hasta:  ',
-                style: TextStyle(
-                  color: Color(0xFF9E92FF),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              _buildTimeDropdown('5h'),
-              _buildTimeDropdown('00min'),
-              _buildTimeDropdown('PM'),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimeDropdown(String value) {
-    return Container(
-      margin: const EdgeInsets.only(left: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE0E0E0),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            value,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF3B28FF),
-            ),
-          ),
-          const Icon(Icons.arrow_drop_down, size: 18, color: Color(0xFF3B28FF)),
-        ],
-      ),
-    );
+  String _to24h(String h, String m, String p) {
+    int hour = int.parse(h);
+    if (p == 'PM' && hour < 12) hour += 12;
+    if (p == 'AM' && hour == 12) hour = 0;
+    return '${hour.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}:00';
   }
 
   Widget _buildPhotoUploadStep() {
     return Column(
       children: [
         if (!_isPhotoTaken) ...[
-          const SizedBox(height: 100),
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                _isPhotoTaken = true;
-              });
-            },
-            child: Container(
-              padding: const EdgeInsets.all(40),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 15,
-                    spreadRadius: 2,
+          const SizedBox(height: 20),
+          if (!_isCameraInitialized)
+            GestureDetector(
+              onTap: _initializeCamera,
+              child: Container(
+                padding: const EdgeInsets.all(40),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black12,
+                      blurRadius: 15,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.camera_alt_outlined,
+                  size: 80,
+                  color: Color(0xFF3B28FF),
+                ),
+              ),
+            )
+          else
+            Column(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    height: 400,
+                    width: 300,
+                    child: CameraPreview(_cameraController!),
                   ),
-                ],
-              ),
-              child: const Icon(
-                Icons.camera_alt_outlined,
-                size: 80,
-                color: Color(0xFF3B28FF),
-              ),
+                ),
+                const SizedBox(height: 20),
+                GestureDetector(
+                  onTap: _takePicture,
+                  child: Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF3B28FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.camera,
+                      size: 40,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
         ] else ...[
           // Preview state
           const SizedBox(height: 10),
@@ -425,53 +772,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
             alignment: Alignment.bottomCenter,
             children: [
               ClipRRect(
-                child: Image.asset(
-                  AppAssets.providerPhoto,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
                   height: 450,
                   width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    debugPrint('Error loading image: $error');
-                    return Container(
-                      height: 450,
-                      width: double.infinity,
-                      color: Colors.grey[300],
-                      child: const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.error_outline,
-                            size: 60,
-                            color: Colors.red,
-                          ),
-                          SizedBox(height: 10),
-                          Text(
-                            'Error al cargar la imagen',
-                            style: TextStyle(color: Colors.red),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
+                  child: Image.file(
+                    File(_capturedFile!.path),
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               Positioned(
                 bottom: 20,
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.camera_alt_outlined,
-                        size: 40,
-                        color: Color(0xFF3B28FF),
-                      ),
-                    ),
-                    const SizedBox(width: 20),
                     GestureDetector(
                       onTap: () {
                         setState(() {
@@ -501,85 +815,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: CustomButton(
               text: 'Registrarme',
-              onPressed: () async {
-                // Validar que la foto esté tomada
-                if (!_isPhotoTaken) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Por favor tome una foto de perfil'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
-
-                // Mostrar loading
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (context) =>
-                      const Center(child: CircularProgressIndicator()),
-                );
-
-                try {
-                  final authService = AuthService();
-                  final isJuridical = widget.personType == 'juridical';
-
-                  final response = await authService.register(
-                    email: _emailController.text.trim(),
-                    password: _passwordController.text,
-                    role: widget.role ?? 'client',
-                    personType: widget.personType ?? 'natural',
-                    names: !isJuridical ? _namesController.text : null,
-                    surnames: !isJuridical ? _surnamesController.text : null,
-                    dni: !isJuridical ? _dniController.text : null,
-                    companyName: isJuridical ? _namesController.text : null,
-                    ruc: isJuridical ? _rucController.text : null,
-                    phone: _phoneController.text,
-                    referenceAddress: widget.role == 'tech'
-                        ? _referenceAddressController.text
-                        : null,
-                  );
-
-                  // Cerrar loading
-                  if (context.mounted) Navigator.pop(context);
-
-                  if (response.success) {
-                    // Navegar según el rol
-                    if (context.mounted) {
-                      final target = widget.role == 'tech'
-                          ? '/home'
-                          : '/client-home';
-                      context.go(target);
-                    }
-                  } else {
-                    // Mostrar error
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            response.message ?? 'Error al registrarse',
-                          ),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                } catch (e) {
-                  // Cerrar loading
-                  if (context.mounted) Navigator.pop(context);
-
-                  // Mostrar error
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error: ${e.toString()}'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
+              onPressed: _submitRegistration,
             ),
           ),
         ],
