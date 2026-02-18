@@ -219,12 +219,14 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                                 ? (item['email'] ?? 'Usuario')
                                 : '${item['names'] ?? ''} ${item['surnames'] ?? ''}'
                                       .trim()
-                          : '${item['client_names'] ?? ''} ${item['client_surnames'] ?? ''}'
-                                .trim()
+                          : (item['client_username'] ??
+                                    '${item['client_names'] ?? ''} ${item['client_surnames'] ?? ''}'
+                                        .trim())
                                 .isEmpty
                           ? 'Cliente'
-                          : '${item['client_names'] ?? ''} ${item['client_surnames'] ?? ''}'
-                                .trim(),
+                          : (item['client_username'] ??
+                                '${item['client_names'] ?? ''} ${item['client_surnames'] ?? ''}'
+                                    .trim()),
                       item['rating']?.toInt() ?? 5,
                       unreadCount: isConsultation
                           ? (item['unread_count'] ?? 0)

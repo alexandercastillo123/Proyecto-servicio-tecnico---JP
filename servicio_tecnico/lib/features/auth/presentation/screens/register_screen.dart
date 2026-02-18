@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:servicio_tecnico_app/core/services/auth_service.dart';
 import 'package:servicio_tecnico_app/core/services/camera_service.dart';
+import 'package:servicio_tecnico_app/core/services/user_service.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -306,18 +307,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _showError('Por favor rellene todos los campos');
           return false;
         }
-      } else {
+        if (_dniController.text.length != 8) {
+          _showError('El DNI debe tener exactamente 8 dígitos');
+          return false;
+        }
+      } else if (widget.personType == 'juridical') {
         if (_namesController.text.isEmpty ||
             _rucController.text.isEmpty ||
             _emailController.text.isEmpty) {
           _showError('Por favor rellene todos los campos');
           return false;
         }
+        if (_rucController.text.length != 11) {
+          _showError('El RUC debe tener exactamente 11 dígitos');
+          return false;
+        }
       }
 
-      if (widget.role == 'tech' && _phoneController.text.isEmpty) {
-        _showError('Por favor rellene su teléfono');
-        return false;
+      if (widget.role == 'tech') {
+        if (_phoneController.text.isEmpty) {
+          _showError('Por favor rellene su teléfono');
+          return false;
+        }
+        if (_phoneController.text.length != 9) {
+          _showError('El teléfono debe tener exactamente 9 dígitos');
+          return false;
+        }
       }
     } else if (_currentStep == 1) {
       if (_userController.text.isEmpty ||
@@ -460,6 +475,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       final response = await authService.register(
         email: _emailController.text.trim(),
+        username: _userController.text.trim(), // Nuevo campo
         password: _passwordController.text,
         role: widget.role ?? 'client',
         personType: widget.personType ?? 'natural',
@@ -494,6 +510,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (context.mounted) Navigator.pop(context);
 
       if (response.success) {
+        // Subir foto si existe
+        if (_capturedFile != null) {
+          await UserService().uploadPhoto(_capturedFile!.path);
+        }
+
         if (context.mounted) {
           final target = widget.role == 'tech' ? '/home' : '/client-home';
           context.go(target);

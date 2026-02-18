@@ -10,6 +10,7 @@ class AuthService {
     required String password,
     required String role,
     required String personType,
+    String? username, // Nuevo campo
     String? names,
     String? surnames,
     String? dni,
@@ -21,23 +22,27 @@ class AuthService {
     String? city,
     List<Map<String, dynamic>>? schedules,
   }) async {
-    final response = await _apiService
-        .post<Map<String, dynamic>>(ApiConstants.register, {
-          'email': email,
-          'password': password,
-          'role': role,
-          'personType': personType,
-          if (names != null) 'names': names,
-          if (surnames != null) 'surnames': surnames,
-          if (dni != null) 'dni': dni,
-          if (companyName != null) 'companyName': companyName,
-          if (ruc != null) 'ruc': ruc,
-          if (phone != null) 'phone': phone,
-          if (referenceAddress != null) 'referenceAddress': referenceAddress,
-          if (address != null) 'address': address,
-          if (city != null) 'city': city,
-          if (schedules != null) 'schedules': schedules,
-        }, fromJson: (data) => data as Map<String, dynamic>);
+    final response = await _apiService.post<Map<String, dynamic>>(
+      ApiConstants.register,
+      {
+        'email': email,
+        'username': username, // Nuevo campo
+        'password': password,
+        'role': role,
+        'personType': personType,
+        if (names != null) 'names': names,
+        if (surnames != null) 'surnames': surnames,
+        if (dni != null) 'dni': dni,
+        if (companyName != null) 'companyName': companyName,
+        if (ruc != null) 'ruc': ruc,
+        if (phone != null) 'phone': phone,
+        if (referenceAddress != null) 'referenceAddress': referenceAddress,
+        if (address != null) 'address': address,
+        if (city != null) 'city': city,
+        if (schedules != null) 'schedules': schedules,
+      },
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
 
     // Save token if registration successful
     if (response.success && response.data?['token'] != null) {

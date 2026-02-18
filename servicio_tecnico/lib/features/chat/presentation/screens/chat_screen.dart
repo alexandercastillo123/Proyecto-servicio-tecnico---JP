@@ -215,31 +215,114 @@ class _ChatScreenState extends State<ChatScreen> {
 
                       final time = _formatTime(msg['created_at']);
 
+                      // Date separator logic
+                      bool showDateSeparator = false;
+                      String dateLabel = '';
+
+                      if (msg['created_at'] != null) {
+                        try {
+                          final DateTime currentDate = DateTime.parse(
+                            msg['created_at'],
+                          ).toLocal();
+                          final DateTime pureDate = DateTime(
+                            currentDate.year,
+                            currentDate.month,
+                            currentDate.day,
+                          );
+
+                          if (index == 0) {
+                            showDateSeparator = true;
+                          } else {
+                            final prevMsg = _messages[index - 1];
+                            if (prevMsg['created_at'] != null) {
+                              final DateTime prevDate = DateTime.parse(
+                                prevMsg['created_at'],
+                              ).toLocal();
+                              final DateTime purePrevDate = DateTime(
+                                prevDate.year,
+                                prevDate.month,
+                                prevDate.day,
+                              );
+                              if (pureDate.isAfter(purePrevDate)) {
+                                showDateSeparator = true;
+                              }
+                            }
+                          }
+
+                          if (showDateSeparator) {
+                            final now = DateTime.now();
+                            final today = DateTime(
+                              now.year,
+                              now.month,
+                              now.day,
+                            );
+                            final yesterday = today.subtract(
+                              const Duration(days: 1),
+                            );
+
+                            if (pureDate == today) {
+                              dateLabel = 'Hoy';
+                            } else if (pureDate == yesterday) {
+                              dateLabel = 'Ayer';
+                            } else {
+                              final months = [
+                                'Enero',
+                                'Febrero',
+                                'Marzo',
+                                'Abril',
+                                'Mayo',
+                                'Junio',
+                                'Julio',
+                                'Agosto',
+                                'Septiembre',
+                                'Octubre',
+                                'Noviembre',
+                                'Diciembre',
+                              ];
+                              dateLabel =
+                                  '${pureDate.day} de ${months[pureDate.month - 1]}';
+                              if (pureDate.year != now.year) {
+                                dateLabel += ' de ${pureDate.year}';
+                              }
+                            }
+                          }
+                        } catch (e) {
+                          // Ignore parsing errors for separator
+                        }
+                      }
+
+                      Widget bubble;
                       if (msg['message_type'] == 'offer') {
-                        return _buildOfferBubble(
+                        bubble = _buildOfferBubble(
                           messageId: msg['id'],
                           price: msg['offer_price'].toString(),
                           isCanceled: msg['offer_status'] == 'cancelled',
                           time: time,
                           isMe: isMe,
                         );
-                      }
-
-                      if (msg['message_type'] == 'appointment') {
-                        return _buildAppointmentBubble(
+                      } else if (msg['message_type'] == 'appointment') {
+                        bubble = _buildAppointmentBubble(
                           appointmentId: msg['appointment_id'],
                           message: msg['message_text'] ?? '',
                           description: msg['appointment_description'],
                           time: time,
                           isMe: isMe,
+                          appointmentStatus: msg['appointment_status'],
+                        );
+                      } else {
+                        bubble = _buildMessageBubble(
+                          message: msg['message_text'] ?? '',
+                          time: time,
+                          isMe: isMe,
                         );
                       }
 
-                      return _buildMessageBubble(
-                        message: msg['message_text'] ?? '',
-                        time: time,
-                        isMe: isMe,
-                      );
+                      if (showDateSeparator) {
+                        return Column(
+                          children: [_buildDateSeparator(dateLabel), bubble],
+                        );
+                      }
+                      return bubble;
                     },
                   ),
                 ),
@@ -255,11 +338,15 @@ class _ChatScreenState extends State<ChatScreen> {
     String? description,
     required String time,
     required bool isMe,
+    String? appointmentStatus,
   }) {
+    // Las citas se alinean según el remitente
+    bool shouldAlignLeft = !isMe;
+
     return Column(
-      crossAxisAlignment: isMe
-          ? CrossAxisAlignment.end
-          : CrossAxisAlignment.start,
+      crossAxisAlignment: shouldAlignLeft
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.end,
       children: [
         Container(
           margin: const EdgeInsets.symmetric(vertical: 8),
@@ -274,16 +361,21 @@ class _ChatScreenState extends State<ChatScreen> {
             children: [
               Text(
                 'Cita agendada:',
-                textAlign: TextAlign.center,
                 style: TextStyle(
                   color: isMe ? Colors.white : AppColors.primary,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
+                  decoration:
+                      (appointmentId == -1 ||
+                          appointmentId == null ||
+                          appointmentStatus == 'cancelled')
+                      ? TextDecoration.lineThrough
+                      : null,
                 ),
               ),
               const SizedBox(height: 8),
 
-              _buildAppointmentDetails(message, description),
+              _buildAppointmentDetails(message, description, isMe),
 
               const SizedBox(height: 16),
               const SizedBox(height: 16),
@@ -337,11 +429,35 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildAppointmentDetails(String message, String? description) {
-    // message is typically "Cita agendada para 2026-02-11 a las 10:00\nMotivo: ..."
-    // We want to parse this to display nicely as in the design
-    // However, the message might be just text.
-    // Let's try to extract date and time if it follows the pattern.
+  Widget _buildDateSeparator(String label) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 20),
+      child: Row(
+        children: [
+          Expanded(child: Divider(color: Colors.grey.withOpacity(0.3))),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey.withOpacity(0.7),
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          Expanded(child: Divider(color: Colors.grey.withOpacity(0.3))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAppointmentDetails(
+    String message,
+    String? description,
+    bool isMe,
+  ) {
+    final textColor = isMe ? Colors.white : AppColors.primary;
 
     // Fallback if parsing fails
     String datePart = '';
@@ -358,47 +474,35 @@ class _ChatScreenState extends State<ChatScreen> {
           final timeSubParts = parts[1].split('\n');
           timePart = timeSubParts[0];
 
-          // If description is null, try to extract from text
           if ((description == null ||
                   description == 'null' ||
                   description.isEmpty) &&
               parts[1].contains('Motivo:')) {
             try {
               description = parts[1].split('Motivo:')[1].trim();
-            } catch (e) {
-              // ignore
-            }
+            } catch (e) {}
           }
         }
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
     }
 
     if (datePart.isNotEmpty) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Align(
-            alignment: Alignment.center,
-            child: Column(
-              children: [
-                Text(
-                  'Dia: $datePart',
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Hora: $timePart',
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Descripción: $description',
-                  style: const TextStyle(color: Colors.white, fontSize: 14),
-                ),
-              ],
-            ),
+          Text(
+            'Dia: $datePart',
+            style: TextStyle(color: textColor, fontSize: 14),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Hora: $timePart',
+            style: TextStyle(color: textColor, fontSize: 14),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Descripción: $description',
+            style: TextStyle(color: textColor, fontSize: 14),
           ),
         ],
       );
@@ -406,16 +510,13 @@ class _ChatScreenState extends State<ChatScreen> {
 
     return Column(
       children: [
-        Text(
-          message,
-          style: const TextStyle(color: Colors.white, fontSize: 14),
-        ),
+        Text(message, style: TextStyle(color: textColor, fontSize: 14)),
         if (description != null &&
             description.isNotEmpty &&
             !message.contains('Motivo:'))
           Text(
             'Descripción: $description',
-            style: const TextStyle(color: Colors.white, fontSize: 13),
+            style: TextStyle(color: textColor, fontSize: 13),
           ),
       ],
     );

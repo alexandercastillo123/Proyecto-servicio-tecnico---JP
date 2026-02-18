@@ -5,43 +5,33 @@ USE servicio_tecnico_db;
 -- 1. Usuarios (Autenticación)
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('client', 'tech') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Perfiles (Detalles extendidos)
--- Se agregaron restricciones de unicidad para DNI y RUC y campos de dirección fiscal.
+-- 2. Perfiles de Usuario (Información Personal/Corporativa)
 CREATE TABLE IF NOT EXISTS user_profiles (
     user_id INT PRIMARY KEY,
     phone VARCHAR(20),
     profile_image_url VARCHAR(255),
-    address TEXT, -- Dirección física/fiscal general
+    address TEXT,
     city VARCHAR(100),
-    
-    -- Tipo de Persona
     person_type ENUM('natural', 'juridical') NOT NULL,
-    
-    -- Campos Persona Natural (Client o Tech)
-    names VARCHAR(100),
-    surnames VARCHAR(100),
-    dni VARCHAR(20) UNIQUE,
-    
-    -- Campos Persona Jurídica (Empresa)
-    company_name VARCHAR(150),
-    ruc VARCHAR(20) UNIQUE,
-    
-    -- Atributos específicos del Técnico
-    reference_address VARCHAR(255),
-    rating DECIMAL(3, 2) DEFAULT 0.00,
+    names VARCHAR(100),        -- Para persona natural
+    surnames VARCHAR(100),     -- Para persona natural
+    dni VARCHAR(20) UNIQUE,    -- Para persona natural
+    company_name VARCHAR(255), -- Para persona jurídica
+    ruc VARCHAR(20) UNIQUE,    -- Para persona jurídica
+    reference_address TEXT,    -- Para técnicos
+    rating DECIMAL(2,1) DEFAULT 0,
     reviews_count INT DEFAULT 0,
-    
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- 3. Horarios del Técnico
--- Cambiado VARCHAR por ENUM para evitar errores de escritura y facilitar filtros.
+-- 3. Horarios de Técnicos
 CREATE TABLE IF NOT EXISTS technician_schedules (
     id INT AUTO_INCREMENT PRIMARY KEY,
     technician_id INT NOT NULL,
@@ -61,42 +51,42 @@ CREATE TABLE IF NOT EXISTS appointments (
     scheduled_time TIME NOT NULL,
     description TEXT,
     status ENUM('pending', 'confirmed', 'completed', 'cancelled') DEFAULT 'pending',
+    cancelled_by INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (client_id) REFERENCES users(id),
-    FOREIGN KEY (technician_id) REFERENCES users(id)
+    FOREIGN KEY (technician_id) REFERENCES users(id),
+    FOREIGN KEY (cancelled_by) REFERENCES users(id)
 );
 
 -- 5. Chat y Ofertas
--- Se añadió 'appointment_id' para vincular una oferta económica a una cita específica.
 CREATE TABLE IF NOT EXISTS chat_messages (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sender_id INT NOT NULL,
     receiver_id INT NOT NULL,
-    appointment_id INT DEFAULT NULL, -- Relación opcional si el mensaje es una oferta para una cita
+    appointment_id INT DEFAULT NULL,
     message_text TEXT,
-    message_type ENUM('text', 'offer') DEFAULT 'text',
+    message_type ENUM('text', 'offer', 'appointment') DEFAULT 'text',
     offer_price DECIMAL(10, 2),
     offer_status ENUM('pending', 'accepted', 'rejected', 'cancelled') DEFAULT 'pending',
+    cancelled_by INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_read BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (sender_id) REFERENCES users(id),
     FOREIGN KEY (receiver_id) REFERENCES users(id),
-    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
+    FOREIGN KEY (cancelled_by) REFERENCES users(id)
 );
 
 -- 6. Reseñas / Reviews
 CREATE TABLE IF NOT EXISTS reviews (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    appointment_id INT NOT NULL,
+    appointment_id INT DEFAULT NULL,
     client_id INT NOT NULL,
     technician_id INT NOT NULL,
     rating TINYINT NOT NULL CHECK (rating >= 1 AND rating <= 5),
     comment TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE CASCADE,
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
     FOREIGN KEY (client_id) REFERENCES users(id),
     FOREIGN KEY (technician_id) REFERENCES users(id)
 );
-
--- 7. Actualizar tipos de mensaje para incluir citas
-ALTER TABLE chat_messages MODIFY COLUMN message_type ENUM('text', 'offer', 'appointment') DEFAULT 'text';

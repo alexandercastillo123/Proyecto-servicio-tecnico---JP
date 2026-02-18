@@ -186,7 +186,11 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
                 radius: 24,
                 backgroundColor: Colors.white,
                 backgroundImage: tech.profileImageUrl.isNotEmpty
-                    ? NetworkImage(tech.profileImageUrl)
+                    ? NetworkImage(
+                        tech.profileImageUrl.startsWith('http')
+                            ? tech.profileImageUrl
+                            : 'http://10.0.2.2:3000${tech.profileImageUrl.startsWith('/') ? '' : '/'}${tech.profileImageUrl}',
+                      )
                     : null,
                 child: tech.profileImageUrl.isEmpty
                     ? const Icon(
@@ -213,11 +217,15 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
                   const SizedBox(height: 4),
                   Row(
                     children: List.generate(5, (index) {
-                      return const Padding(
-                        padding: EdgeInsets.only(right: 2.0),
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 2.0),
                         child: Icon(
-                          Icons.star,
-                          color: Color(0xFFFFD700),
+                          index < tech.rating.floor()
+                              ? Icons.star
+                              : (index < tech.rating
+                                    ? Icons.star_half
+                                    : Icons.star_border),
+                          color: const Color(0xFFFFD700),
                           size: 24,
                         ),
                       );

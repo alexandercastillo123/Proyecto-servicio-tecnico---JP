@@ -114,7 +114,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     context.push('/forgot-password/verify?email=$email');
                   },
                   child: const Text(
-                    'Enviar Correo de Verificación',
+                    'Enviar Correo',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),

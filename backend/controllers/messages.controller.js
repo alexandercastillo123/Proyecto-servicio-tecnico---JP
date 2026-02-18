@@ -43,7 +43,7 @@ const getConversations = async (req, res) => {
 
     } catch (error) {
         console.error('Get conversations error:', error);
-        respuesta.mensaje = 'Failed to retrieve conversations: ' + error.message;
+        respuesta.mensaje = 'Error al obtener las conversaciones: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -60,12 +60,14 @@ const getMessages = async (req, res) => {
         const dbRes = await db.listar(
             `SELECT 
         cm.id, cm.sender_id, cm.receiver_id, cm.message_text,
-        cm.message_type, cm.offer_price, cm.offer_status,
-        cm.created_at, cm.is_read, cm.appointment_id
+        cm.message_type, cm.offer_price, cm.offer_status, cm.cancelled_by,
+        cm.created_at, cm.is_read, cm.appointment_id,
+        a.status as appointment_status
       FROM chat_messages cm
-      WHERE (sender_id = ? AND receiver_id = ?)
-         OR (sender_id = ? AND receiver_id = ?)
-      ORDER BY created_at ASC`,
+      LEFT JOIN appointments a ON cm.appointment_id = a.id
+      WHERE (cm.sender_id = ? AND cm.receiver_id = ?)
+         OR (cm.sender_id = ? AND cm.receiver_id = ?)
+      ORDER BY cm.created_at ASC`,
             true,
             [userId, otherUserId, otherUserId, userId]
         );
@@ -86,7 +88,7 @@ const getMessages = async (req, res) => {
 
     } catch (error) {
         console.error('Get messages error:', error);
-        respuesta.mensaje = 'Failed to retrieve messages: ' + error.message;
+        respuesta.mensaje = 'Error al obtener los mensajes: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -105,7 +107,7 @@ const sendMessage = async (req, res) => {
 
         if (!recRes.exito || !recRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Receiver not found';
+            respuesta.mensaje = 'Destinatario no encontrado';
             return res.status(404).json(respuesta);
         }
 
@@ -121,7 +123,7 @@ const sendMessage = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 201;
-        respuesta.mensaje = 'Message sent successfully';
+        respuesta.mensaje = 'Mensaje enviado con éxito';
         respuesta.resultado = {
             messageId: dbRes.resultado.insertId
         };
@@ -130,7 +132,7 @@ const sendMessage = async (req, res) => {
 
     } catch (error) {
         console.error('Send message error:', error);
-        respuesta.mensaje = 'Failed to send message: ' + error.message;
+        respuesta.mensaje = 'Error al enviar el mensaje: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -153,7 +155,7 @@ const sendOffer = async (req, res) => {
 
         if (!userRes.exito || !userRes.resultado || userRes.resultado.role !== 'tech') {
             respuesta.estado = 403;
-            respuesta.mensaje = 'Only technicians can send offers';
+            respuesta.mensaje = 'Solo los técnicos pueden enviar ofertas';
             return res.status(403).json(respuesta);
         }
 
@@ -171,7 +173,7 @@ const sendOffer = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 201;
-        respuesta.mensaje = 'Offer sent successfully';
+        respuesta.mensaje = 'Oferta enviada con éxito';
         respuesta.resultado = {
             offerId: dbRes.resultado.insertId
         };
@@ -180,7 +182,7 @@ const sendOffer = async (req, res) => {
 
     } catch (error) {
         console.error('Send offer error:', error);
-        respuesta.mensaje = 'Failed to send offer: ' + error.message;
+        respuesta.mensaje = 'Error al enviar la oferta: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -203,19 +205,19 @@ const acceptOffer = async (req, res) => {
 
         if (!offerRes.exito || !offerRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Offer not found';
+            respuesta.mensaje = 'Oferta no encontrada';
             return res.status(404).json(respuesta);
         }
 
         if (offerRes.resultado.receiver_id !== userId) {
             respuesta.estado = 403;
-            respuesta.mensaje = 'Unauthorized to accept this offer';
+            respuesta.mensaje = 'No autorizado para aceptar esta oferta';
             return res.status(403).json(respuesta);
         }
 
         if (offerRes.resultado.offer_status !== 'pending') {
             respuesta.estado = 400;
-            respuesta.mensaje = 'Offer is no longer pending';
+            respuesta.mensaje = 'La oferta ya no está pendiente';
             return res.status(400).json(respuesta);
         }
 
@@ -226,12 +228,12 @@ const acceptOffer = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Offer accepted successfully';
+        respuesta.mensaje = 'Oferta aceptada con éxito';
         res.json(respuesta);
 
     } catch (error) {
         console.error('Accept offer error:', error);
-        respuesta.mensaje = 'Failed to accept offer: ' + error.message;
+        respuesta.mensaje = 'Error al aceptar la oferta: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -252,18 +254,18 @@ const rejectOffer = async (req, res) => {
 
         if (!dbRes.exito || dbRes.resultado.affectedRows === 0) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Offer not found or unauthorized';
+            respuesta.mensaje = 'Oferta no encontrada o no autorizada';
             return res.status(404).json(respuesta);
         }
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Offer rejected successfully';
+        respuesta.mensaje = 'Oferta rechazada con éxito';
         res.json(respuesta);
 
     } catch (error) {
         console.error('Reject offer error:', error);
-        respuesta.mensaje = 'Failed to reject offer: ' + error.message;
+        respuesta.mensaje = 'Error al rechazar la oferta: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -278,24 +280,24 @@ const cancelOffer = async (req, res) => {
         const { id } = req.params;
 
         const dbRes = await db.ejecutar(
-            'UPDATE chat_messages SET offer_status = "cancelled" WHERE id = ? AND sender_id = ? AND message_type = "offer"',
-            [id, userId]
+            'UPDATE chat_messages SET offer_status = "cancelled", cancelled_by = ? WHERE id = ? AND sender_id = ? AND message_type = "offer"',
+            [userId, id, userId]
         );
 
         if (!dbRes.exito || dbRes.resultado.affectedRows === 0) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Offer not found or unauthorized';
+            respuesta.mensaje = 'Oferta no encontrada o no autorizada';
             return res.status(404).json(respuesta);
         }
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Offer cancelled successfully';
+        respuesta.mensaje = 'Oferta cancelada con éxito';
         res.json(respuesta);
 
     } catch (error) {
         console.error('Cancel offer error:', error);
-        respuesta.mensaje = 'Failed to cancel offer: ' + error.message;
+        respuesta.mensaje = 'Error al cancelar la oferta: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -316,18 +318,18 @@ const markAsRead = async (req, res) => {
 
         if (!dbRes.exito || dbRes.resultado.affectedRows === 0) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Message not found or unauthorized';
+            respuesta.mensaje = 'Mensaje no encontrado o no autorizado';
             return res.status(404).json(respuesta);
         }
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Message marked as read';
+        respuesta.mensaje = 'Mensaje marcado como leído';
         res.json(respuesta);
 
     } catch (error) {
         console.error('Mark as read error:', error);
-        respuesta.mensaje = 'Failed to mark message as read: ' + error.message;
+        respuesta.mensaje = 'Error al marcar como leído: ' + error.message;
         res.status(500).json(respuesta);
     }
 };

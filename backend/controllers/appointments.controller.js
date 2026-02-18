@@ -19,14 +19,17 @@ const createAppointment = async (req, res) => {
 
         if (!techRes.exito || !techRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Technician not found';
+            respuesta.mensaje = 'Técnico no encontrado';
             return res.status(404).json(respuesta);
         }
 
-        // Check for existing active appointment
+        // Check for existing active appointment (ignoring expired ones)
+        // A appointment is "vigente" if it's pending/confirmed AND (date is future OR (date is today AND time is future))
         const activeAppRes = await db.listar(
             `SELECT id FROM appointments 
-             WHERE client_id = ? AND technician_id = ? AND status IN ('pending', 'confirmed')`,
+             WHERE client_id = ? AND technician_id = ? 
+             AND status IN ('pending', 'confirmed')
+             AND (scheduled_date > CURDATE() OR (scheduled_date = CURDATE() AND scheduled_time > CURTIME()))`,
             false,
             [clientId, technicianId]
         );
@@ -50,7 +53,7 @@ const createAppointment = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 201;
-        respuesta.mensaje = 'Appointment created successfully';
+        respuesta.mensaje = 'Cita creada con éxito';
         respuesta.resultado = {
             appointmentId: dbRes.resultado.insertId
         };
@@ -59,7 +62,7 @@ const createAppointment = async (req, res) => {
 
     } catch (error) {
         console.error('Create appointment error:', error);
-        respuesta.mensaje = 'Failed to create appointment: ' + error.message;
+        respuesta.mensaje = 'Error al crear la cita: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -76,7 +79,7 @@ const getAppointments = async (req, res) => {
         let query = `
       SELECT 
         a.id, a.scheduled_date, a.scheduled_time, a.description, a.status, a.created_at,
-        client.id as client_id, client_profile.names as client_names, 
+        client.id as client_id, client.username as client_username, client_profile.names as client_names, 
         client_profile.surnames as client_surnames, client_profile.phone as client_phone,
         tech.id as technician_id, tech_profile.names as tech_names,
         tech_profile.surnames as tech_surnames, tech_profile.company_name as tech_company,
@@ -109,7 +112,7 @@ const getAppointments = async (req, res) => {
 
     } catch (error) {
         console.error('Get appointments error:', error);
-        respuesta.mensaje = 'Failed to retrieve appointments: ' + error.message;
+        respuesta.mensaje = 'Error al obtener las citas: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -126,7 +129,7 @@ const getAppointmentById = async (req, res) => {
         const dbRes = await db.listar(
             `SELECT 
         a.id, a.scheduled_date, a.scheduled_time, a.description, a.status, a.created_at,
-        client.id as client_id, client.email as client_email,
+        client.id as client_id, client.email as client_email, client.username as client_username,
         client_profile.names as client_names, client_profile.surnames as client_surnames,
         client_profile.phone as client_phone, client_profile.address as client_address,
         tech.id as technician_id, tech.email as tech_email,
@@ -145,7 +148,7 @@ const getAppointmentById = async (req, res) => {
 
         if (!dbRes.exito || !dbRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Appointment not found or unauthorized';
+            respuesta.mensaje = 'Cita no encontrada o no autorizada';
             return res.status(404).json(respuesta);
         }
 
@@ -158,7 +161,7 @@ const getAppointmentById = async (req, res) => {
 
     } catch (error) {
         console.error('Get appointment by ID error:', error);
-        respuesta.mensaje = 'Failed to retrieve appointment: ' + error.message;
+        respuesta.mensaje = 'Error al obtener la cita: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -182,14 +185,14 @@ const updateAppointmentStatus = async (req, res) => {
 
         if (!appRes.exito || !appRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Appointment not found';
+            respuesta.mensaje = 'Cita no encontrada';
             return res.status(404).json(respuesta);
         }
 
         const appointment = appRes.resultado;
         if (appointment.client_id !== userId && appointment.technician_id !== userId) {
             respuesta.estado = 403;
-            respuesta.mensaje = 'Unauthorized to update this appointment';
+            respuesta.mensaje = 'No autorizado para actualizar esta cita';
             return res.status(403).json(respuesta);
         }
 
@@ -201,12 +204,12 @@ const updateAppointmentStatus = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Appointment status updated successfully';
+        respuesta.mensaje = 'Estado de la cita actualizado con éxito';
         res.json(respuesta);
 
     } catch (error) {
         console.error('Update appointment status error:', error);
-        respuesta.mensaje = 'Failed to update appointment: ' + error.message;
+        respuesta.mensaje = 'Error al actualizar la cita: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -222,25 +225,25 @@ const cancelAppointment = async (req, res) => {
 
         // Update to cancelled status instead of deleting
         const dbRes = await db.ejecutar(
-            `UPDATE appointments SET status = 'cancelled'
+            `UPDATE appointments SET status = 'cancelled', cancelled_by = ?
        WHERE id = ? AND (client_id = ? OR technician_id = ?)`,
-            [id, userId, userId]
+            [userId, id, userId, userId]
         );
 
         if (!dbRes.exito || dbRes.resultado.affectedRows === 0) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Appointment not found or unauthorized';
+            respuesta.mensaje = 'Cita no encontrada o no autorizada';
             return res.status(404).json(respuesta);
         }
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Appointment cancelled successfully';
+        respuesta.mensaje = 'Cita cancelada con éxito';
         res.json(respuesta);
 
     } catch (error) {
         console.error('Cancel appointment error:', error);
-        respuesta.mensaje = 'Failed to cancel appointment: ' + error.message;
+        respuesta.mensaje = 'Error al cancelar la cita: ' + error.message;
         res.status(500).json(respuesta);
     }
 };

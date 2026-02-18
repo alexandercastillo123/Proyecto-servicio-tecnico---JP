@@ -95,7 +95,7 @@ const getTechnicianById = async (req, res) => {
         const dbRes = await db.listar(
             `SELECT 
         u.id, u.email,
-        up.phone, up.profile_image_url, up.address, up.city,
+        up.username, up.phone, up.profile_image_url, up.address, up.city,
         up.person_type, up.names, up.surnames, up.dni,
         up.company_name, up.ruc, up.reference_address,
         up.rating, up.reviews_count

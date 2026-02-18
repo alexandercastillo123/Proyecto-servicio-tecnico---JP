@@ -16,6 +16,7 @@ const register = async (req, res) => {
 
         const {
             email,
+            username, // Nuevo campo
             password,
             role, // 'client' or 'tech'
             personType, // 'natural' or 'juridical'
@@ -32,7 +33,7 @@ const register = async (req, res) => {
 
         // Validate email
         if (!isValidEmail(email)) {
-            respuesta.mensaje = 'Invalid email format';
+            respuesta.mensaje = 'Formato de correo inválido';
             return res.status(400).json(respuesta);
         }
 
@@ -47,6 +48,21 @@ const register = async (req, res) => {
             respuesta.estado = 409;
             respuesta.mensaje = 'El correo electrónico ya está registrado';
             return res.status(409).json(respuesta);
+        }
+
+        // Check if username already exists
+        if (username) {
+            const [existingUsernames] = await connection.query(
+                'SELECT id FROM users WHERE username = ?',
+                [username]
+            );
+
+            if (existingUsernames.length > 0) {
+                await connection.rollback();
+                respuesta.estado = 409;
+                respuesta.mensaje = 'El nombre de usuario ya está registrado';
+                return res.status(409).json(respuesta);
+            }
         }
 
         // Check if DNI/RUC already exists
@@ -69,8 +85,8 @@ const register = async (req, res) => {
 
         // Insert user
         const [userResult] = await connection.query(
-            'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)',
-            [email, passwordHash, role]
+            'INSERT INTO users (email, username, password_hash, role) VALUES (?, ?, ?, ?)',
+            [email, username || null, passwordHash, role]
         );
 
         const userId = userResult.insertId;
@@ -79,11 +95,12 @@ const register = async (req, res) => {
         // Insert user profile
         await connection.query(
             `INSERT INTO user_profiles (
-        user_id, phone, address, city, person_type,
+        user_id, username, phone, address, city, person_type,
         names, surnames, dni, company_name, ruc, reference_address
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 userId,
+                username || null,
                 phone || null,
                 address || null,
                 city || null,
@@ -140,15 +157,17 @@ const register = async (req, res) => {
         const token = generateToken({
             id: userId,
             email: email,
+            username: username,
             role: role
         });
 
         respuesta.exito = true;
         respuesta.estado = 201;
-        respuesta.mensaje = 'User registered successfully';
+        respuesta.mensaje = 'Usuario registrado con éxito';
         respuesta.resultado = {
             userId,
             email,
+            username,
             role,
             token
         };
@@ -158,7 +177,7 @@ const register = async (req, res) => {
     } catch (error) {
         await connection.rollback();
         console.error('Registration error:', error);
-        respuesta.mensaje = 'Registration failed: ' + error.message;
+        respuesta.mensaje = 'Error en el registro: ' + error.message;
         res.status(500).json(respuesta);
     } finally {
         connection.release();
@@ -177,7 +196,7 @@ const login = async (req, res) => {
 
         if (!dbRes.exito || !dbRes.resultado) {
             respuesta.estado = 401;
-            respuesta.mensaje = 'Invalid email or password';
+            respuesta.mensaje = 'Correo o contraseña inválidos';
             return res.status(401).json(respuesta);
         }
 
@@ -188,7 +207,7 @@ const login = async (req, res) => {
 
         if (!isPasswordValid) {
             respuesta.estado = 401;
-            respuesta.mensaje = 'Invalid email or password';
+            respuesta.mensaje = 'Correo o contraseña inválidos';
             return res.status(401).json(respuesta);
         }
 
@@ -196,15 +215,17 @@ const login = async (req, res) => {
         const token = generateToken({
             id: user.id,
             email: user.email,
+            username: user.username,
             role: user.role
         });
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Login successful';
+        respuesta.mensaje = 'Inicio de sesión exitoso';
         respuesta.resultado = {
             userId: user.id,
             email: user.email,
+            username: user.username,
             role: user.role,
             token
         };
@@ -213,7 +234,7 @@ const login = async (req, res) => {
 
     } catch (error) {
         console.error('Login error:', error);
-        respuesta.mensaje = 'Login failed: ' + error.message;
+        respuesta.mensaje = 'Error al iniciar sesión: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -234,7 +255,7 @@ const forgotPassword = async (req, res) => {
         if (users.length === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'No account found with this email'
+                message: 'No se encontró cuenta con este correo'
             });
         }
 
@@ -246,7 +267,7 @@ const forgotPassword = async (req, res) => {
 
         res.json({
             success: true,
-            message: 'Verification code sent to email',
+            message: 'Código de verificación enviado al correo',
             // ONLY FOR DEVELOPMENT - Remove in production
             devCode: verificationCode
         });
@@ -273,7 +294,7 @@ const verifyCode = async (req, res) => {
 
         res.json({
             success: true,
-            message: 'Code verified successfully'
+            message: 'Código verificado con éxito'
         });
 
     } catch (error) {
@@ -307,13 +328,13 @@ const resetPassword = async (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({
                 success: false,
-                message: 'User not found'
+                message: 'Usuario no encontrado'
             });
         }
 
         res.json({
             success: true,
-            message: 'Password reset successfully'
+            message: 'Contraseña restablecida con éxito'
         });
 
     } catch (error) {

@@ -1,3 +1,5 @@
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../services/api_service.dart';
 import '../constants/api_constants.dart';
 
@@ -52,5 +54,25 @@ class UserService {
   }
 
   // Note: Photo upload requires multipart/form-data
-  // Will need a separate implementation with http.MultipartRequest
+  Future<ApiResponse<dynamic>> uploadPhoto(String filePath) async {
+    try {
+      final file = await http.MultipartFile.fromPath(
+        'photo',
+        filePath,
+        contentType: MediaType('image', 'jpeg'), // Ajustar según sea necesario
+      );
+
+      return await _apiService.postMultipart<dynamic>(
+        ApiConstants.uploadPhoto,
+        {},
+        file,
+        requiresAuth: true,
+      );
+    } catch (e) {
+      return ApiResponse(
+        success: false,
+        message: 'Error al preparar la foto: ${e.toString()}',
+      );
+    }
+  }
 }

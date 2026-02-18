@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -12,6 +13,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService();
+  final ImagePicker _picker = ImagePicker();
   Map<String, dynamic>? _userData;
   bool _isLoading = true;
   String? _errorMessage;
@@ -20,6 +22,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadProfile();
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 70, // Optimizar tamaño
+      );
+
+      if (image == null) return;
+
+      // Mostrar loading
+      setState(() => _isLoading = true);
+
+      final response = await _userService.uploadPhoto(image.path);
+
+      if (response.success) {
+        // Recargar perfil para ver la nueva foto
+        await _loadProfile();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto actualizada correctamente')),
+          );
+        }
+      } else {
+        setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response.message ?? 'Error al subir foto')),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
+    }
   }
 
   Future<void> _loadProfile() async {
@@ -44,6 +86,121 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _showEditDialog() {
+    if (_userData == null) return;
+    final phoneController = TextEditingController(text: _userData!['phone']);
+    final addressController = TextEditingController(
+      text: _userData!['address'],
+    );
+    final cityController = TextEditingController(text: _userData!['city']);
+    final namesController = TextEditingController(text: _userData!['names']);
+    final surnamesController = TextEditingController(
+      text: _userData!['surnames'],
+    );
+    final companyNameController = TextEditingController(
+      text: _userData!['company_name'],
+    );
+    final dniRucController = TextEditingController(
+      text: _userData!['dni'] ?? _userData!['ruc'],
+    );
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          'Editar Perfil',
+          style: TextStyle(color: AppColors.primary),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: dniRucController,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'DNI / RUC (No editable)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (_userData!['person_type'] == 'natural') ...[
+                TextField(
+                  controller: namesController,
+                  decoration: const InputDecoration(labelText: 'Nombres'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: surnamesController,
+                  decoration: const InputDecoration(labelText: 'Apellidos'),
+                ),
+              ] else ...[
+                TextField(
+                  controller: companyNameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nombre de Empresa',
+                  ),
+                ),
+              ],
+              const SizedBox(height: 12),
+              TextField(
+                controller: phoneController,
+                decoration: const InputDecoration(labelText: 'Teléfono'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: addressController,
+                decoration: const InputDecoration(labelText: 'Dirección'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: cityController,
+                decoration: const InputDecoration(labelText: 'Ciudad'),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              setState(() => _isLoading = true);
+              final response = await _userService.updateProfile(
+                phone: phoneController.text,
+                address: addressController.text,
+                city: cityController.text,
+                names: _userData!['person_type'] == 'natural'
+                    ? namesController.text
+                    : null,
+                surnames: _userData!['person_type'] == 'natural'
+                    ? surnamesController.text
+                    : null,
+                companyName: _userData!['person_type'] != 'natural'
+                    ? companyNameController.text
+                    : null,
+              );
+              if (response.success)
+                await _loadProfile();
+              else {
+                setState(() => _isLoading = false);
+                if (mounted)
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(response.message ?? 'Error al actualizar'),
+                    ),
+                  );
+              }
+            },
+            child: const Text('Guardar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -58,9 +215,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     final user = _userData!;
-    final name = user['person_type'] == 'natural'
-        ? '${user['names'] ?? ''} ${user['surnames'] ?? ''}'.trim()
-        : user['company_name'] ?? 'Usuario';
+    final name =
+        (user['username'] != null && user['username'].toString().isNotEmpty)
+        ? user['username'].toString()
+        : (user['person_type'] == 'natural'
+              ? '${user['names'] ?? ''} ${user['surnames'] ?? ''}'.trim()
+              : user['company_name'] ?? 'Usuario');
     final dniRuc = user['dni'] ?? user['ruc'] ?? 'N/A';
     final email = user['email'] ?? 'N/A';
     final profileImg = user['profile_image_url'] ?? '';
@@ -94,26 +254,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.primary, width: 4),
-                  ),
-                  child: CircleAvatar(
-                    radius: 75,
-                    backgroundColor: Colors.white,
-                    backgroundImage: profileImg.isNotEmpty
-                        ? NetworkImage(profileImg)
-                        : null,
-                    child: profileImg.isEmpty
-                        ? const Icon(
-                            Icons.person_outline,
+                Stack(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.primary, width: 4),
+                      ),
+                      child: CircleAvatar(
+                        radius: 75,
+                        backgroundColor: Colors.white,
+                        backgroundImage: profileImg.isNotEmpty
+                            ? NetworkImage(
+                                profileImg.startsWith('http')
+                                    ? profileImg
+                                    : 'http://10.0.2.2:3000$profileImg',
+                              )
+                            : null,
+                        child: profileImg.isEmpty
+                            ? const Icon(
+                                Icons.person_outline,
+                                color: AppColors.primary,
+                                size: 80,
+                              )
+                            : null,
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: GestureDetector(
+                        onTap: _pickAndUploadImage,
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: const BoxDecoration(
                             color: AppColors.primary,
-                            size: 80,
-                          )
-                        : null,
-                  ),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 24),
                 Text(
@@ -187,6 +374,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 60),
+                SizedBox(
+                  width: double.infinity,
+                  height: 60,
+                  child: ElevatedButton(
+                    onPressed: _showEditDialog,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFCDCDCD),
+                      foregroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Editar Datos',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   height: 60,

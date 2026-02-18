@@ -96,6 +96,32 @@ class _AppointmentSchedulingScreenState
     }
   }
 
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF3B28FF),
+              onPrimary: Colors.white,
+              onSurface: Color(0xFF3B28FF),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() {
+        final String hour = picked.hour.toString().padLeft(2, '0');
+        final String minute = picked.minute.toString().padLeft(2, '0');
+        _timeController.text = '$hour:$minute';
+      });
+    }
+  }
+
   Future<void> _createAppointment() async {
     if (_techInfo == null) return;
 
@@ -363,9 +389,35 @@ class _AppointmentSchedulingScreenState
                   const SizedBox(height: 16),
                   _buildFormField(
                     label: 'Hora:',
-                    child: _buildTextField(
-                      '10:00',
-                      controller: _timeController,
+                    child: GestureDetector(
+                      onTap: () => _selectTime(context),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8E8E8),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _timeController.text,
+                              style: const TextStyle(
+                                color: Color(0xFF3B28FF),
+                                fontSize: 16,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.access_time,
+                              color: Color(0xFF3B28FF),
+                              size: 20,
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),

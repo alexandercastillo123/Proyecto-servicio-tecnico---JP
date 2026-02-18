@@ -25,7 +25,7 @@ const getProfile = async (req, res) => {
 
         if (!dbRes.exito || !dbRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'User not found';
+            respuesta.mensaje = 'Usuario no encontrado';
             return res.status(404).json(respuesta);
         }
 
@@ -38,7 +38,7 @@ const getProfile = async (req, res) => {
 
     } catch (error) {
         console.error('Get profile error:', error);
-        respuesta.mensaje = 'Failed to retrieve profile: ' + error.message;
+        respuesta.mensaje = 'Error al obtener el perfil: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -79,18 +79,18 @@ const updateProfile = async (req, res) => {
 
         if (!dbRes.exito || dbRes.resultado.affectedRows === 0) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Profile not found or update failed';
+            respuesta.mensaje = 'Perfil no encontrado o error al actualizar';
             return res.status(404).json(respuesta);
         }
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Profile updated successfully';
+        respuesta.mensaje = 'Perfil actualizado con éxito';
         res.json(respuesta);
 
     } catch (error) {
         console.error('Update profile error:', error);
-        respuesta.mensaje = 'Failed to update profile: ' + error.message;
+        respuesta.mensaje = 'Error al actualizar perfil: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -104,7 +104,7 @@ const uploadPhoto = async (req, res) => {
         const userId = req.user.id;
 
         if (!req.file) {
-            respuesta.mensaje = 'No file uploaded';
+            respuesta.mensaje = 'No se ha subido ningún archivo';
             return res.status(400).json(respuesta);
         }
 
@@ -116,19 +116,19 @@ const uploadPhoto = async (req, res) => {
         );
 
         if (!dbRes.exito) {
-            respuesta.mensaje = 'Failed to update image path';
+            respuesta.mensaje = 'Error al actualizar la ruta de la imagen';
             return res.status(500).json(respuesta);
         }
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Photo uploaded successfully';
+        respuesta.mensaje = 'Foto subida con éxito';
         respuesta.resultado = { imageUrl };
         res.json(respuesta);
 
     } catch (error) {
         console.error('Upload photo error:', error);
-        respuesta.mensaje = 'Failed to upload photo: ' + error.message;
+        respuesta.mensaje = 'Error al subir foto: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -157,7 +157,7 @@ const getUserById = async (req, res) => {
 
         if (!dbRes.exito || !dbRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'User not found';
+            respuesta.mensaje = 'Usuario no encontrado';
             return res.status(404).json(respuesta);
         }
 
@@ -173,7 +173,7 @@ const getUserById = async (req, res) => {
 
     } catch (error) {
         console.error('Get user by ID error:', error);
-        respuesta.mensaje = 'Failed to retrieve user: ' + error.message;
+        respuesta.mensaje = 'Error al obtener usuario: ' + error.message;
         res.status(500).json(respuesta);
     }
 };

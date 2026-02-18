@@ -92,9 +92,12 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
     }
 
     final tech = _technicianData!;
-    final name = tech['person_type'] == 'natural'
-        ? '${tech['names'] ?? ''} ${tech['surnames'] ?? ''}'.trim()
-        : tech['company_name'] ?? 'Técnico';
+    final name =
+        (tech['username'] != null && tech['username'].toString().isNotEmpty)
+        ? tech['username'].toString()
+        : (tech['person_type'] == 'natural'
+              ? '${tech['names'] ?? ''} ${tech['surnames'] ?? ''}'.trim()
+              : tech['company_name'] ?? 'Técnico');
     final dniRuc = tech['dni'] ?? tech['ruc'] ?? 'N/A';
     final rating = double.tryParse(tech['rating']?.toString() ?? '') ?? 0.0;
     final profileImg = tech['profile_image_url'] ?? '';
@@ -132,7 +135,11 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                   radius: 60,
                   backgroundColor: Colors.white,
                   backgroundImage: profileImg.isNotEmpty
-                      ? NetworkImage(profileImg)
+                      ? NetworkImage(
+                          profileImg.startsWith('http')
+                              ? profileImg
+                              : 'http://10.0.2.2:3000${profileImg.startsWith('/') ? '' : '/'}$profileImg',
+                        )
                       : null,
                   child: profileImg.isEmpty
                       ? const Icon(

@@ -132,6 +132,41 @@ class ApiService {
     }
   }
 
+  Future<ApiResponse<T>> postMultipart<T>(
+    String url,
+    Map<String, String> fields,
+    http.MultipartFile file, {
+    bool requiresAuth = false,
+    T Function(dynamic)? fromJson,
+  }) async {
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse(url));
+
+      // Add headers
+      final headers = _getHeaders(includeAuth: requiresAuth);
+      headers.remove(
+        'Content-Type',
+      ); // http.MultipartRequest sets this automatically
+      request.headers.addAll(headers);
+
+      // Add fields
+      request.fields.addAll(fields);
+
+      // Add file
+      request.files.add(file);
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      return _handleResponse<T>(response, fromJson);
+    } catch (e) {
+      return ApiResponse(
+        success: false,
+        message: 'Error al subir archivo: ${e.toString()}',
+      );
+    }
+  }
+
   ApiResponse<T> _handleResponse<T>(
     http.Response response,
     T Function(dynamic)? fromJson,
