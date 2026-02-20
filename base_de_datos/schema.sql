@@ -28,6 +28,8 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     reference_address TEXT,    -- Para técnicos
     rating DECIMAL(2,1) DEFAULT 0,
     reviews_count INT DEFAULT 0,
+    latitude DECIMAL(10, 8) DEFAULT NULL,  -- Coordenadas del técnico (geocodificadas)
+    longitude DECIMAL(11, 8) DEFAULT NULL, -- Permite valores del -180 al 180
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

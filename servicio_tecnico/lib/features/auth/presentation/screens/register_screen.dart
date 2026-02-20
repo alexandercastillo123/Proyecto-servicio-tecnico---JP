@@ -1,6 +1,10 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:servicio_tecnico_app/core/services/auth_service.dart';
 import 'package:servicio_tecnico_app/core/services/camera_service.dart';
 import 'package:servicio_tecnico_app/core/services/user_service.dart';
@@ -24,6 +28,9 @@ class RegisterScreen extends StatefulWidget {
 class _RegisterScreenState extends State<RegisterScreen> {
   int _currentStep = 0;
   bool _isPhotoTaken = false;
+  double? _techLat;
+  double? _techLng;
+  bool _isGeocoding = false;
 
   // Schedules for Juridical Technicians
   final List<Map<String, dynamic>> _schedules = [
@@ -261,6 +268,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 40),
                   child: CustomButton(
                     text: 'Continuar',
+                    isLoading: _isGeocoding,
                     onPressed: () {
                       if (_currentStep == 0 && isProvider) {
                         _showAddressConfirmationDialog();
@@ -488,6 +496,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         referenceAddress: widget.role == 'tech'
             ? _referenceAddressController.text
             : null,
+        latitude: widget.role == 'tech' ? _techLat : null,
+        longitude: widget.role == 'tech' ? _techLng : null,
         schedules: (widget.role == 'tech' && isJuridical)
             ? _schedules
                   .map(
@@ -876,115 +886,155 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  void _showAddressConfirmationDialog() {
-    // Usamos Future.delayed(Duration.zero) para asegurar que la UI esté lista antes de abrir el diálogo
-    Future.delayed(Duration.zero, () {
-      if (!mounted) return;
-      showDialog(
-        context: context,
-        barrierDismissible: false, // Forzar a que usen los botones
-        builder: (context) {
-          return AlertDialog(
-            backgroundColor: const Color(0xFFD9D9D9),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+  Future<void> _showAddressConfirmationDialog() async {
+    final address = _referenceAddressController.text.trim();
+    if (address.isEmpty) {
+      _showError('Por favor ingrese una dirección de referencia');
+      return;
+    }
+
+    setState(() => _isGeocoding = true);
+
+    try {
+      // Nominatim Geocoding API (Free)
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(address)}&format=json&limit=1',
+      );
+      final response = await http
+          .get(
+            url,
+            headers: {
+              'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        if (data.isNotEmpty) {
+          final lat = double.parse(data[0]['lat']);
+          final lon = double.parse(data[0]['lon']);
+
+          if (mounted) {
+            _showMapDialog(LatLng(lat, lon));
+          }
+        } else {
+          _showError(
+            'No se pudo encontrar la ubicación exacta. Por favor sea más específico.',
+          );
+        }
+      } else {
+        _showError(
+          'Error en el servicio de mapas (Status: ${response.statusCode})',
+        );
+      }
+    } catch (e) {
+      _showError('Error al validar dirección: ${e.toString()}');
+    } finally {
+      if (mounted) setState(() => _isGeocoding = false);
+    }
+  }
+
+  void _showMapDialog(LatLng coordinates) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFFD9D9D9),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: const Text(
+            '¿Es correcta esta ubicación?',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.primary,
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
             ),
-            title: const Text(
-              '¿Su dirección completa es la\nque aparece a continuación?',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-              ),
-            ),
-            content: Container(
-              width: 300, // Ancho fijo para evitar problemas de layout
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: Container(
-                      height: 150,
-                      width: double.infinity,
-                      color: Colors.grey[400],
-                      child: Image.asset(
-                        AppAssets.mapPlaceholder,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Center(
-                              child: Icon(
-                                Icons.map,
-                                size: 50,
-                                color: Colors.white,
-                              ),
-                            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: SizedBox(
+                  height: 200,
+                  width: double.infinity,
+                  child: FlutterMap(
+                    options: MapOptions(
+                      initialCenter: coordinates,
+                      initialZoom: 16.0,
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate:
+                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName:
+                            'com.jp.serviciotecnico.servicio_tecnico_app',
                       ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _referenceAddressController.text.isEmpty
-                        ? 'Dirección no proporcionada'
-                        : _referenceAddressController.text,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            actionsAlignment: MainAxisAlignment.spaceEvenly,
-            actions: [
-              SizedBox(
-                width: 100,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFC4C4C4),
-                    foregroundColor: AppColors.primary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'No',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                      MarkerLayer(
+                        markers: [
+                          Marker(
+                            point: coordinates,
+                            width: 60,
+                            height: 60,
+                            child: const Icon(
+                              Icons.location_on,
+                              color: Colors.red,
+                              size: 40,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ),
-              SizedBox(
-                width: 100,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFC4C4C4),
-                    foregroundColor: AppColors.primary,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context); // Close dialog
-                    setState(() {
-                      _currentStep = 1;
-                    });
-                  },
-                  child: const Text(
-                    'Sí',
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
+              const SizedBox(height: 12),
+              Text(
+                _referenceAddressController.text,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.primary, fontSize: 13),
               ),
             ],
-          );
-        },
-      );
-    });
+          ),
+          actionsAlignment: MainAxisAlignment.spaceEvenly,
+          actions: [
+            SizedBox(
+              width: 100,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFC4C4C4),
+                  foregroundColor: AppColors.primary,
+                ),
+                onPressed: () => Navigator.pop(context),
+                child: const Text('No'),
+              ),
+            ),
+            SizedBox(
+              width: 100,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _techLat = coordinates.latitude;
+                    _techLng = coordinates.longitude;
+                  });
+                  Navigator.pop(context); // Close dialog
+                  _nextStep(); // Proceder al paso 1 (Account Info)
+                },
+                child: const Text('Sí'),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Widget _buildLoginLink() {

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/services/technician_service.dart';
-import '../../../technicians/domain/models/technician.dart';
 import '../../../../core/constants/assets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/service_location_map.dart';
@@ -14,36 +12,12 @@ class ClientHomeScreen extends StatefulWidget {
 }
 
 class _ClientHomeScreenState extends State<ClientHomeScreen> {
-  final TechnicianService _technicianService = TechnicianService();
-  List<Technician> _technicians = [];
-  bool _isLoading = true;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadNearbyTechnicians();
-  }
-
-  Future<void> _loadNearbyTechnicians() async {
-    try {
-      final response = await _technicianService.getTechnicians();
-      if (response.success && mounted) {
-        setState(() {
-          _technicians = response.data ?? [];
-          _isLoading = false;
-        });
-      } else if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
+    // El mapa ahora se encarga de cargar sus propios técnicos
   }
 
   @override
@@ -94,46 +68,11 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                   borderRadius: BorderRadius.circular(30),
                   child: Stack(
                     children: [
-                      // The Map Widget
-                      ServiceLocationMap(technicians: _technicians),
+                      // The Map Widget (nuevo widget auto-gestionado)
+                      const ServiceLocationMap(),
 
                       if (_isLoading)
                         const Center(child: CircularProgressIndicator()),
-
-                      // 3. Search Button inside the Map Card
-                      Positioned(
-                        bottom: 24,
-                        left: 20,
-                        right: 20,
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 280),
-                            child: ElevatedButton(
-                              onPressed: () => context.push('/technician-list'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFF0F0F0),
-                                foregroundColor: AppColors.primary,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              child: const Center(
-                                child: Text(
-                                  'Buscar Técnicos',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),

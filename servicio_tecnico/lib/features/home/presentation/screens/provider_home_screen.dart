@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/services/message_service.dart';
+import '../../../../core/services/user_service.dart';
 import '../../../../core/constants/assets.dart';
+import '../../../../core/constants/api_constants.dart';
 
 class ProviderHomeScreen extends StatefulWidget {
   const ProviderHomeScreen({super.key});
@@ -14,6 +16,8 @@ class ProviderHomeScreen extends StatefulWidget {
 class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
   final AppointmentService _appointmentService = AppointmentService();
   final MessageService _messageService = MessageService();
+  final UserService _userService = UserService();
+  Map<String, dynamic>? _profile;
   List<dynamic> _proposals = [];
   List<dynamic> _completedJobs = [];
   List<dynamic> _consultations = [];
@@ -29,27 +33,29 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
   Future<void> _loadData() async {
     try {
       final proposalsRes = await _appointmentService.getAppointments(
-        status:
-            'pending', // Ensure backend uses 'pending'. If not, we might need to fetch all and filter.
+        status: 'pending',
       );
       final completedRes = await _appointmentService.getAppointments(
         status: 'completed',
       );
       final consultRes = await _messageService.getConversations();
+      final profileRes = await _userService.getProfile();
 
       if (proposalsRes.success && completedRes.success && consultRes.success) {
         if (mounted) {
           setState(() {
+            if (profileRes.success) {
+              _profile = profileRes.data;
+            }
             _proposals = proposalsRes.data ?? [];
             _completedJobs = completedRes.data ?? [];
 
-            // Filter consultations: exclude those who have ANY active/pending proposal
+            // Excluir de consultas a quienes ya tienen propuesta activa
             final allConsultations = consultRes.data ?? [];
             final proposalClientIds = _proposals
                 .map((p) => p['client_id'].toString())
                 .toSet();
 
-            // Debugging help: ensure we compare Strings
             _consultations = allConsultations.where((c) {
               final otherId = c['other_user_id'].toString();
               return !proposalClientIds.contains(otherId);
@@ -79,6 +85,27 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
     }
   }
 
+  /// Extrae el nombre a mostrar según el tipo de item
+  /// [isConsultation]: true = getConversations (usa 'username')
+  ///                   false = getAppointments (usa 'client_username')
+  String _getDisplayName(dynamic item, bool isConsultation) {
+    if (isConsultation) {
+      final username = item['username']?.toString().trim();
+      if (username != null && username.isNotEmpty) return username;
+      final email = item['email']?.toString().trim();
+      return (email != null && email.isNotEmpty) ? email : 'Usuario';
+    } else {
+      final clientUsername = item['client_username']?.toString().trim();
+      if (clientUsername != null && clientUsername.isNotEmpty) {
+        return clientUsername;
+      }
+      final names =
+          '${item['client_names'] ?? ''} ${item['client_surnames'] ?? ''}'
+              .trim();
+      return names.isNotEmpty ? names : 'Cliente';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -94,7 +121,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                     children: [
-                      // Header
+                      // ── Header ──────────────────────────────────────────
                       Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: Row(
@@ -105,10 +132,12 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                               height: 40,
                               fit: BoxFit.contain,
                             ),
+                            // Avatar del técnico (toca para ir al perfil)
                             GestureDetector(
                               onTap: () => context.push('/provider-profile'),
                               child: Container(
-                                padding: const EdgeInsets.all(2),
+                                width: 50,
+                                height: 50,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
@@ -116,11 +145,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                                     width: 2,
                                   ),
                                 ),
-                                child: const Icon(
-                                  Icons.person_outline,
-                                  size: 40,
-                                  color: Color(0xFF3B28FF),
-                                ),
+                                child: ClipOval(child: _buildProfileImage()),
                               ),
                             ),
                           ],
@@ -129,12 +154,19 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
 
                       const SizedBox(height: 10),
 
-                      const Text(
-                        'Consultas de Clientes:',
-                        style: TextStyle(
-                          color: Color(0xFF3B28FF),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
+                      // ── Consultas de Clientes ────────────────────────────
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Consultas de Clientes:',
+                            style: TextStyle(
+                              color: Color(0xFF3B28FF),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -146,35 +178,50 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
 
                       const SizedBox(height: 20),
 
-                      const Text(
-                        'Propuestas de Chamba:',
-                        style: TextStyle(
-                          color: Color(0xFF3B28FF),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
+                      // ── Propuestas de Chamba ─────────────────────────────
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Propuestas de Chamba:',
+                            style: TextStyle(
+                              color: Color(0xFF3B28FF),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
-                      _buildSection(_proposals, 'No hay propuestas pendientes'),
+                      _buildSection(
+                        _proposals,
+                        'No hay propuestas pendientes',
+                        isConsultation: false,
+                      ),
 
                       const SizedBox(height: 30),
 
-                      const Text(
-                        'Trabajos Completados',
-                        style: TextStyle(
-                          color: Color(0xFF3B28FF),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
+                      // ── Trabajos Completados ─────────────────────────────
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 20),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Trabajos Completados',
+                            style: TextStyle(
+                              color: Color(0xFF3B28FF),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
                       _buildSection(
                         _completedJobs,
                         'No hay trabajos completados',
+                        isConsultation: false,
                       ),
 
                       const SizedBox(height: 20),
@@ -183,6 +230,29 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                 ),
               ),
       ),
+    );
+  }
+
+  /// Construye la imagen de perfil del técnico con fallback al ícono
+  Widget _buildProfileImage() {
+    final rawUrl = _profile?['profile_image_url']?.toString().trim();
+    if (rawUrl == null || rawUrl.isEmpty) {
+      return const Icon(
+        Icons.person_outline,
+        size: 35,
+        color: Color(0xFF3B28FF),
+      );
+    }
+    final url = rawUrl.startsWith('http')
+        ? rawUrl
+        : '${ApiConstants.baseUrl}${rawUrl.startsWith('/') ? '' : '/'}$rawUrl';
+    return Image.network(
+      url,
+      width: 50,
+      height: 50,
+      fit: BoxFit.cover,
+      errorBuilder: (_, __, ___) =>
+          const Icon(Icons.person_outline, size: 35, color: Color(0xFF3B28FF)),
     );
   }
 
@@ -212,21 +282,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                   (item) => Padding(
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _buildUserItem(
-                      isConsultation
-                          ? '${item['names'] ?? ''} ${item['surnames'] ?? ''}'
-                                    .trim()
-                                    .isEmpty
-                                ? (item['email'] ?? 'Usuario')
-                                : '${item['names'] ?? ''} ${item['surnames'] ?? ''}'
-                                      .trim()
-                          : (item['client_username'] ??
-                                    '${item['client_names'] ?? ''} ${item['client_surnames'] ?? ''}'
-                                        .trim())
-                                .isEmpty
-                          ? 'Cliente'
-                          : (item['client_username'] ??
-                                '${item['client_names'] ?? ''} ${item['client_surnames'] ?? ''}'
-                                    .trim()),
+                      _getDisplayName(item, isConsultation),
                       item['rating']?.toInt() ?? 5,
                       unreadCount: isConsultation
                           ? (item['unread_count'] ?? 0)

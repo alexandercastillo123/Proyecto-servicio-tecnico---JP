@@ -16,10 +16,10 @@ const register = async (req, res) => {
 
         const {
             email,
-            username, // Nuevo campo
+            username,
             password,
-            role, // 'client' or 'tech'
-            personType, // 'natural' or 'juridical'
+            role,
+            personType,
             names,
             surnames,
             dni,
@@ -28,7 +28,9 @@ const register = async (req, res) => {
             phone,
             referenceAddress,
             address,
-            city
+            city,
+            latitude,   // Coordenadas del técnico (geocodificadas en el app)
+            longitude
         } = req.body;
 
         // Validate email
@@ -95,12 +97,12 @@ const register = async (req, res) => {
         // Insert user profile
         await connection.query(
             `INSERT INTO user_profiles (
-        user_id, username, phone, address, city, person_type,
-        names, surnames, dni, company_name, ruc, reference_address
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        user_id, phone, address, city, person_type,
+        names, surnames, dni, company_name, ruc, reference_address,
+        latitude, longitude
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 userId,
-                username || null,
                 phone || null,
                 address || null,
                 city || null,
@@ -110,7 +112,9 @@ const register = async (req, res) => {
                 personType === 'natural' ? dni : null,
                 personType === 'juridical' ? companyName : null,
                 personType === 'juridical' ? ruc : null,
-                isTech ? referenceAddress : null
+                isTech ? referenceAddress : null,
+                isTech && latitude ? parseFloat(latitude) : null,
+                isTech && longitude ? parseFloat(longitude) : null
             ]
         );
 

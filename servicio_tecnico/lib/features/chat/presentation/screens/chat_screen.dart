@@ -19,6 +19,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final AppointmentService _appointmentService = AppointmentService();
   final TechnicianService _technicianService = TechnicianService();
   final TextEditingController _messageController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
   List<dynamic> _messages = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -106,6 +107,7 @@ class _ChatScreenState extends State<ChatScreen> {
           _messages = response.data ?? [];
           _isLoading = false;
         });
+        _scrollToBottom();
       } else {
         setState(() {
           _errorMessage = response.message;
@@ -147,6 +149,18 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (e) {
       // Handle error
     }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
@@ -202,6 +216,7 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 Expanded(
                   child: ListView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(16),
                     itemCount: _messages.length,
                     itemBuilder: (context, index) {
@@ -308,6 +323,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           time: time,
                           isMe: isMe,
                           appointmentStatus: msg['appointment_status'],
+                          cancellerRole: msg['canceller_role'],
                         );
                       } else {
                         bubble = _buildMessageBubble(
@@ -339,93 +355,113 @@ class _ChatScreenState extends State<ChatScreen> {
     required String time,
     required bool isMe,
     String? appointmentStatus,
+    String? cancellerRole,
   }) {
-    // Las citas se alinean según el remitente
-    bool shouldAlignLeft = !isMe;
-
-    return Column(
-      crossAxisAlignment: shouldAlignLeft
-          ? CrossAxisAlignment.start
-          : CrossAxisAlignment.end,
-      children: [
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          padding: const EdgeInsets.all(16),
-          width: 280,
-          decoration: BoxDecoration(
-            color: isMe ? AppColors.primary : const Color(0xFFEBEBEB),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Cita agendada:',
-                style: TextStyle(
-                  color: isMe ? Colors.white : AppColors.primary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  decoration:
-                      (appointmentId == -1 ||
-                          appointmentId == null ||
-                          appointmentStatus == 'cancelled')
-                      ? TextDecoration.lineThrough
-                      : null,
+    final String cancelText = cancellerRole != null
+        ? ' - Cancelado por ${cancellerRole == 'client' ? 'Cliente' : 'Técnico'}'
+        : '';
+    return Align(
+      alignment: !isMe ? Alignment.centerLeft : Alignment.centerRight,
+      child: Column(
+        crossAxisAlignment: !isMe
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.end,
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.all(16),
+            width: 280,
+            decoration: BoxDecoration(
+              color: isMe ? AppColors.primary : const Color(0xFFEBEBEB),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Cita agendada${appointmentStatus == 'cancelled' ? cancelText : ''}:',
+                  style: TextStyle(
+                    color: isMe ? Colors.white : AppColors.primary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    decoration:
+                        (appointmentId == -1 ||
+                            appointmentId == null ||
+                            appointmentStatus == 'cancelled')
+                        ? TextDecoration.lineThrough
+                        : null,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-
-              _buildAppointmentDetails(message, description, isMe),
-
-              const SizedBox(height: 16),
-              const SizedBox(height: 16),
-              Center(
-                child: SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    onPressed: appointmentId == null
-                        ? null
-                        : () async {
-                            final response = await _appointmentService
-                                .cancelAppointment(appointmentId);
-                            if (response.success) {
-                              _loadMessages(_otherUserId!);
-                            }
-                          },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                        color: isMe ? Colors.white : AppColors.primary,
+                const SizedBox(height: 8),
+                _buildAppointmentDetails(message, description, isMe),
+                const SizedBox(height: 16),
+                Center(
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed:
+                          (appointmentId == null ||
+                              appointmentStatus == 'cancelled')
+                          ? null
+                          : () async {
+                              final response = await _appointmentService
+                                  .cancelAppointment(appointmentId);
+                              if (response.success) {
+                                _loadMessages(_otherUserId!);
+                              }
+                            },
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(
+                          color: (isMe ? Colors.white : AppColors.primary)
+                              .withOpacity(
+                                (appointmentId == null ||
+                                        appointmentStatus == 'cancelled')
+                                    ? 0.3
+                                    : 1.0,
+                              ),
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: Text(
-                      'Cancelar Cita',
-                      style: TextStyle(
-                        color: isMe ? Colors.white : AppColors.primary,
-                        fontWeight: FontWeight.bold,
+                      child: Text(
+                        appointmentStatus == 'cancelled'
+                            ? 'Cita Cancelada'
+                            : 'Cancelar Cita',
+                        style: TextStyle(
+                          color: (isMe ? Colors.white : AppColors.primary)
+                              .withOpacity(
+                                (appointmentId == null ||
+                                        appointmentStatus == 'cancelled')
+                                    ? 0.3
+                                    : 1.0,
+                              ),
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.only(
+              right: isMe ? 8 : 0,
+              left: isMe ? 0 : 8,
+              bottom: 8,
+            ),
+            child: Text(
+              time,
+              style: TextStyle(
+                color: Colors.blue.withOpacity(0.6),
+                fontSize: 10,
               ),
-            ],
+            ),
           ),
-        ),
-        Padding(
-          padding: EdgeInsets.only(
-            right: isMe ? 8 : 0,
-            left: isMe ? 0 : 8,
-            bottom: 8,
-          ),
-          child: Text(
-            time,
-            style: TextStyle(color: Colors.blue.withOpacity(0.6), fontSize: 10),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -704,48 +740,51 @@ class _ChatScreenState extends State<ChatScreen> {
     required String time,
     required bool isMe,
   }) {
-    return Column(
-      crossAxisAlignment: isMe
-          ? CrossAxisAlignment.end
-          : CrossAxisAlignment.start,
-      children: [
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          constraints: const BoxConstraints(maxWidth: 280),
-          decoration: BoxDecoration(
-            color: isMe ? const Color(0xFF3B28FF) : const Color(0xFFEBEBEB),
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(12),
-              topRight: const Radius.circular(12),
-              bottomLeft: isMe ? const Radius.circular(12) : Radius.zero,
-              bottomRight: isMe ? Radius.zero : const Radius.circular(12),
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Column(
+        crossAxisAlignment: isMe
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            constraints: const BoxConstraints(maxWidth: 280),
+            decoration: BoxDecoration(
+              color: isMe ? const Color(0xFF3B28FF) : const Color(0xFFEBEBEB),
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(12),
+                topRight: const Radius.circular(12),
+                bottomLeft: isMe ? const Radius.circular(12) : Radius.zero,
+                bottomRight: isMe ? Radius.zero : const Radius.circular(12),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: TextStyle(
+                    color: isMe ? Colors.white : Colors.blue,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  time,
+                  style: TextStyle(
+                    color: (isMe ? Colors.white : Colors.blue).withValues(
+                      alpha: 0.6,
+                    ),
+                    fontSize: 10,
+                  ),
+                ),
+              ],
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                message,
-                style: TextStyle(
-                  color: isMe ? Colors.white : Colors.blue,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                time,
-                style: TextStyle(
-                  color: (isMe ? Colors.white : Colors.blue).withValues(
-                    alpha: 0.6,
-                  ),
-                  fontSize: 10,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -756,104 +795,110 @@ class _ChatScreenState extends State<ChatScreen> {
     required String time,
     required bool isMe,
   }) {
-    return Column(
-      crossAxisAlignment: isMe
-          ? CrossAxisAlignment.end
-          : CrossAxisAlignment.start,
-      children: [
-        Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          padding: const EdgeInsets.all(16),
-          width: 200,
-          decoration: BoxDecoration(
-            color: isMe ? const Color(0xFF3B28FF) : const Color(0xFFEBEBEB),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: [
-              Text(
-                'Tarifa de servicio:',
-                style: TextStyle(
-                  color: (isMe ? Colors.white : Colors.blue).withValues(
-                    alpha: 0.4,
+    return Align(
+      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      child: Column(
+        crossAxisAlignment: isMe
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.all(16),
+            width: 200,
+            decoration: BoxDecoration(
+              color: isMe ? const Color(0xFF3B28FF) : const Color(0xFFEBEBEB),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                Text(
+                  'Tarifa de servicio:',
+                  style: TextStyle(
+                    color: (isMe ? Colors.white : Colors.blue).withValues(
+                      alpha: 0.4,
+                    ),
+                    fontSize: 12,
                   ),
-                  fontSize: 12,
                 ),
-              ),
-              Text(
-                'S/.$price',
-                style: TextStyle(
-                  color: isMe ? Colors.white : Colors.blue,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w300,
-                  decoration: isCanceled ? TextDecoration.lineThrough : null,
+                Text(
+                  'S/.$price',
+                  style: TextStyle(
+                    color: isMe ? Colors.white : Colors.blue,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w300,
+                    decoration: isCanceled ? TextDecoration.lineThrough : null,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: (isCanceled || (isMe && messageId == null))
-                      ? null
-                      : () async {
-                          if (isMe) {
-                            // Cancelar Oferta
-                            final response = await _messageService.cancelOffer(
-                              messageId!,
-                            );
-                            if (response.success) {
-                              _loadMessages(_otherUserId!);
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: (isCanceled || (isMe && messageId == null))
+                        ? null
+                        : () async {
+                            if (isMe) {
+                              // Cancelar Oferta
+                              final response = await _messageService
+                                  .cancelOffer(messageId!);
+                              if (response.success) {
+                                _loadMessages(_otherUserId!);
+                              }
+                            } else {
+                              // Pagar (Accept)
+                              final response = await _messageService
+                                  .acceptOffer(messageId!);
+                              if (response.success) {
+                                _loadMessages(_otherUserId!);
+                              }
                             }
-                          } else {
-                            // Pagar (Accept)
-                            final response = await _messageService.acceptOffer(
-                              messageId!,
-                            );
-                            if (response.success) {
-                              _loadMessages(_otherUserId!);
-                            }
-                          }
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isCanceled
-                        ? const Color(0xFFBDBDBD).withValues(alpha: 0.5)
-                        : (isMe ? Colors.transparent : const Color(0xFF3B28FF)),
-                    disabledBackgroundColor: const Color(
-                      0xFFBDBDBD,
-                    ).withOpacity(0.5),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: isMe && !isCanceled
-                          ? const BorderSide(color: Colors.white)
-                          : BorderSide.none,
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isCanceled
+                          ? const Color(0xFFBDBDBD).withValues(alpha: 0.5)
+                          : (isMe
+                                ? Colors.transparent
+                                : const Color(0xFF3B28FF)),
+                      disabledBackgroundColor: const Color(
+                        0xFFBDBDBD,
+                      ).withOpacity(0.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: isMe && !isCanceled
+                            ? const BorderSide(color: Colors.white)
+                            : BorderSide.none,
+                      ),
+                    ),
+                    child: Text(
+                      isMe ? 'Cancelar Oferta' : 'Pagar',
+                      style: TextStyle(
+                        color: isCanceled
+                            ? Colors.white.withValues(alpha: 0.6)
+                            : Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                  child: Text(
-                    isMe ? 'Cancelar Oferta' : 'Pagar',
-                    style: TextStyle(
-                      color: isCanceled
-                          ? Colors.white.withValues(alpha: 0.6)
-                          : Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                 ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.only(
+              right: isMe ? 8 : 0,
+              left: isMe ? 0 : 8,
+              bottom: 8,
+            ),
+            child: Text(
+              isCanceled ? 'El técnico ha cancelado esta oferta\n$time' : time,
+              style: TextStyle(
+                color: Colors.blue.withOpacity(0.6),
+                fontSize: 10,
               ),
-            ],
+            ),
           ),
-        ),
-        Padding(
-          padding: EdgeInsets.only(
-            right: isMe ? 8 : 0,
-            left: isMe ? 0 : 8,
-            bottom: 8,
-          ),
-          child: Text(
-            isCanceled ? 'El técnico ha cancelado esta oferta\n$time' : time,
-            style: TextStyle(color: Colors.blue.withOpacity(0.6), fontSize: 10),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
