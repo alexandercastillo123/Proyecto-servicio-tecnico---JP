@@ -12,11 +12,12 @@ const getTechnicians = async (req, res) => {
 
         let query = `
       SELECT 
-        u.id, u.email,
+        u.id, u.email, u.username,
         up.phone, up.profile_image_url, up.address, up.city,
         up.person_type, up.names, up.surnames, up.dni,
         up.company_name, up.ruc, up.reference_address,
-        up.rating, up.reviews_count
+        up.rating, up.reviews_count,
+        up.latitude, up.longitude
       FROM users u
       INNER JOIN user_profiles up ON u.id = up.user_id
       WHERE u.role = 'tech'
@@ -94,11 +95,12 @@ const getTechnicianById = async (req, res) => {
         // Get technician profile
         const dbRes = await db.listar(
             `SELECT 
-        u.id, u.email,
-        up.username, up.phone, up.profile_image_url, up.address, up.city,
+        u.id, u.email, u.username,
+        up.phone, up.profile_image_url, up.address, up.city,
         up.person_type, up.names, up.surnames, up.dni,
         up.company_name, up.ruc, up.reference_address,
-        up.rating, up.reviews_count
+        up.rating, up.reviews_count,
+        up.latitude, up.longitude
       FROM users u
       INNER JOIN user_profiles up ON u.id = up.user_id
       WHERE u.id = ? AND u.role = 'tech'`,
@@ -135,6 +137,72 @@ const getTechnicianById = async (req, res) => {
     } catch (error) {
         console.error('Get technician by ID error:', error);
         respuesta.mensaje = 'Failed to retrieve technician: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * Get technicians near a location using Haversine formula
+ * Query params: lat, lng, radius (km, default 5)
+ */
+const getNearbyTechnicians = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { lat, lng, radius = 5 } = req.query;
+
+        if (!lat || !lng) {
+            respuesta.mensaje = 'Se requieren los parámetros lat y lng';
+            return res.status(400).json(respuesta);
+        }
+
+        const latF = parseFloat(lat);
+        const lngF = parseFloat(lng);
+        const radiusF = parseFloat(radius);
+
+        if (isNaN(latF) || isNaN(lngF) || isNaN(radiusF)) {
+            respuesta.mensaje = 'Los parámetros lat, lng y radius deben ser números válidos';
+            return res.status(400).json(respuesta);
+        }
+
+        // Haversine formula in SQL - returns distance in km
+        const query = `
+            SELECT 
+                u.id, u.email, u.username,
+                up.phone, up.profile_image_url, up.address, up.city,
+                up.person_type, up.names, up.surnames, up.company_name,
+                up.rating, up.reviews_count,
+                up.latitude, up.longitude,
+                (
+                    6371 * ACOS(
+                        GREATEST(-1, LEAST(1,
+                            COS(RADIANS(?)) * COS(RADIANS(up.latitude)) *
+                            COS(RADIANS(up.longitude) - RADIANS(?)) +
+                            SIN(RADIANS(?)) * SIN(RADIANS(up.latitude))
+                        ))
+                    )
+                ) AS distance_km
+            FROM users u
+            INNER JOIN user_profiles up ON u.id = up.user_id
+            WHERE u.role = 'tech'
+              AND up.latitude IS NOT NULL
+              AND up.longitude IS NOT NULL
+            HAVING distance_km <= ?
+            ORDER BY distance_km ASC
+            LIMIT 50
+        `;
+
+        const dbRes = await db.listar(query, true, [latF, lngF, latF, radiusF]);
+
+        respuesta.exito = true;
+        respuesta.estado = 200;
+        respuesta.mensaje = 'Técnicos cercanos obtenidos';
+        respuesta.resultado = dbRes.resultado || [];
+
+        res.json(respuesta);
+
+    } catch (error) {
+        console.error('Get nearby technicians error:', error);
+        respuesta.mensaje = 'Error al obtener técnicos cercanos: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -277,9 +345,6 @@ const addReview = async (req, res) => {
             return res.status(400).json(respuesta);
         }
 
-        // Insert review
-        // Note: appointment_id is now handled as nullable in the implementation logic.
-        // We use null if no specific appointmentId is provided.
         const dbRes = await db.ejecutar(
             'INSERT INTO reviews (appointment_id, client_id, technician_id, rating, comment) VALUES (?, ?, ?, ?, ?)',
             [appointmentId || null, clientId, technicianId, rating, comment || '']
@@ -319,6 +384,7 @@ const addReview = async (req, res) => {
 module.exports = {
     getTechnicians,
     getTechnicianById,
+    getNearbyTechnicians,
     getTechnicianSchedule,
     createSchedule,
     updateSchedule,

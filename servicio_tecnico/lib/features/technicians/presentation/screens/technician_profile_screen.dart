@@ -93,11 +93,17 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
 
     final tech = _technicianData!;
     final name =
-        (tech['username'] != null && tech['username'].toString().isNotEmpty)
-        ? tech['username'].toString()
-        : (tech['person_type'] == 'natural'
-              ? '${tech['names'] ?? ''} ${tech['surnames'] ?? ''}'.trim()
-              : tech['company_name'] ?? 'Técnico');
+        ((tech['username'] != null &&
+            tech['username'].toString().trim().isNotEmpty)
+        ? tech['username'].toString().trim()
+        : (tech['company_name'] != null &&
+                  tech['company_name'].toString().trim().isNotEmpty
+              ? tech['company_name'].toString().trim()
+              : '${tech['names'] ?? ''} ${tech['surnames'] ?? ''}'
+                    .trim()
+                    .isEmpty
+              ? 'Técnico'
+              : '${tech['names'] ?? ''} ${tech['surnames'] ?? ''}'.trim()));
     final dniRuc = tech['dni'] ?? tech['ruc'] ?? 'N/A';
     final rating = double.tryParse(tech['rating']?.toString() ?? '') ?? 0.0;
     final profileImg = tech['profile_image_url'] ?? '';
@@ -131,24 +137,32 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                   shape: BoxShape.circle,
                   border: Border.all(color: const Color(0xFF3B28FF), width: 4),
                 ),
-                child: CircleAvatar(
-                  radius: 60,
-                  backgroundColor: Colors.white,
-                  backgroundImage: profileImg.isNotEmpty
-                      ? NetworkImage(
+                child: profileImg.isNotEmpty
+                    ? ClipOval(
+                        child: Image.network(
                           profileImg.startsWith('http')
                               ? profileImg
                               : 'http://10.0.2.2:3000${profileImg.startsWith('/') ? '' : '/'}$profileImg',
-                        )
-                      : null,
-                  child: profileImg.isEmpty
-                      ? const Icon(
-                          Icons.person_outline,
-                          size: 80,
-                          color: Color(0xFF3B28FF),
-                        )
-                      : null,
-                ),
+                          fit: BoxFit.cover,
+                          width: 120,
+                          height: 120,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: const Color(0xFFF0F0F0),
+                              child: const Icon(
+                                Icons.person_outline,
+                                size: 80,
+                                color: Color(0xFF3B28FF),
+                              ),
+                            );
+                          },
+                        ),
+                      )
+                    : const Icon(
+                        Icons.person_outline,
+                        size: 80,
+                        color: Color(0xFF3B28FF),
+                      ),
               ),
             ),
             const SizedBox(height: 16),

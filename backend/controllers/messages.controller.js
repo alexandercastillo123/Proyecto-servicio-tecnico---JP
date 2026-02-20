@@ -15,7 +15,7 @@ const getConversations = async (req, res) => {
           WHEN sender_id = ? THEN receiver_id
           ELSE sender_id
         END as other_user_id,
-        u.email,
+        u.email, u.username,
         up.names, up.surnames, up.company_name, up.profile_image_url,
         MAX(cm.created_at) as last_message_time,
         COUNT(CASE WHEN cm.receiver_id = ? AND cm.is_read = FALSE THEN 1 END) as unread_count
@@ -28,7 +28,7 @@ const getConversations = async (req, res) => {
       )
       LEFT JOIN user_profiles up ON u.id = up.user_id
       WHERE sender_id = ? OR receiver_id = ?
-      GROUP BY other_user_id, u.email, up.names, up.surnames, up.company_name, up.profile_image_url
+      GROUP BY other_user_id, u.email, u.username, up.names, up.surnames, up.company_name, up.profile_image_url
       ORDER BY last_message_time DESC`,
             true,
             [userId, userId, userId, userId, userId]
@@ -62,7 +62,9 @@ const getMessages = async (req, res) => {
         cm.id, cm.sender_id, cm.receiver_id, cm.message_text,
         cm.message_type, cm.offer_price, cm.offer_status, cm.cancelled_by,
         cm.created_at, cm.is_read, cm.appointment_id,
-        a.status as appointment_status
+        a.status as appointment_status,
+        a.cancelled_by as app_cancelled_by,
+        (SELECT role FROM users WHERE id = a.cancelled_by) as canceller_role
       FROM chat_messages cm
       LEFT JOIN appointments a ON cm.appointment_id = a.id
       WHERE (cm.sender_id = ? AND cm.receiver_id = ?)
