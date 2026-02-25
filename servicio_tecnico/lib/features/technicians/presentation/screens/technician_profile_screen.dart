@@ -39,12 +39,27 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
     super.didChangeDependencies();
     if (_isLoading && _technicianData == null) {
       final extra = GoRouterState.of(context).extra;
-      if (extra != null && extra is String) {
-        _fetchDetails(int.parse(extra));
+      int? techId;
+
+      if (extra is int) {
+        techId = extra;
+      } else if (extra is String) {
+        techId = int.tryParse(extra);
+      } else if (extra is Map<String, dynamic>) {
+        // En caso de que se pase un mapa, intentamos extraer el id
+        final id = extra['id'];
+        if (id is int)
+          techId = id;
+        else if (id is String)
+          techId = int.tryParse(id);
+      }
+
+      if (techId != null) {
+        _fetchDetails(techId);
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'ID de técnico no proporcionado';
+          _errorMessage = 'ID de técnico no proporcionado o inválido';
         });
       }
     }

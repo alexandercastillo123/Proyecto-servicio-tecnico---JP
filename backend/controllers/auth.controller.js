@@ -3,6 +3,7 @@ const db = require('../config/database');
 const { generateToken } = require('../utils/jwt');
 const { isValidEmail } = require('../utils/validators');
 const Respuesta = require('../utils/Respuesta');
+const { sendResetCode } = require('../utils/email.service');
 
 /**
  * Register new user
@@ -251,37 +252,55 @@ const forgotPassword = async (req, res) => {
         const { email } = req.body;
 
         // Check if user exists
-        const [users] = await db.query(
+        const [users] = await db.pool.query(
             'SELECT id FROM users WHERE email = ?',
             [email]
         );
 
         if (users.length === 0) {
             return res.status(404).json({
-                success: false,
-                message: 'No se encontró cuenta con este correo'
+                exito: false,
+                estado: 404,
+                mensaje: 'No se encontró cuenta con este correo'
             });
         }
 
-        // Generate 6-digit code (in production, send via email)
+        // Generate 6-digit code
         const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes from now
 
-        // In a real app, you'd store this code in DB with expiration
-        // and send it via email service
+        // Delete any existing codes for this email to avoid clutter
+        await db.ejecutar('DELETE FROM password_resets WHERE email = ?', [email]);
+
+        // Save code to DB
+        await db.ejecutar(
+            'INSERT INTO password_resets (email, code, expires_at) VALUES (?, ?, ?)',
+            [email, verificationCode, expiresAt]
+        );
+
+        // Send email via SMTP
+        const emailSent = await sendResetCode(email, verificationCode);
+
+        if (!emailSent) {
+            return res.status(500).json({
+                exito: false,
+                estado: 500,
+                mensaje: 'No se pudo enviar el correo de recuperación. Inténtalo más tarde.'
+            });
+        }
 
         res.json({
-            success: true,
-            message: 'Código de verificación enviado al correo',
-            // ONLY FOR DEVELOPMENT - Remove in production
-            devCode: verificationCode
+            exito: true,
+            estado: 200,
+            mensaje: 'Código de verificación enviado al correo'
         });
 
     } catch (error) {
         console.error('Forgot password error:', error);
         res.status(500).json({
-            success: false,
-            message: 'Failed to process request',
-            error: error.message
+            exito: false,
+            estado: 500,
+            mensaje: 'Error al enviar correo de recuperación'
         });
     }
 };
@@ -293,20 +312,31 @@ const verifyCode = async (req, res) => {
     try {
         const { email, code } = req.body;
 
-        // In real implementation, verify code from database
-        // For now, we'll just validate format
+        const [results] = await db.pool.query(
+            'SELECT id FROM password_resets WHERE email = ? AND code = ? AND expires_at > NOW()',
+            [email, code]
+        );
+
+        if (results.length === 0) {
+            return res.status(400).json({
+                exito: false,
+                estado: 400,
+                mensaje: 'Código inválido o expirado'
+            });
+        }
 
         res.json({
-            success: true,
-            message: 'Código verificado con éxito'
+            exito: true,
+            estado: 200,
+            mensaje: 'Código verificado con éxito'
         });
 
     } catch (error) {
         console.error('Verify code error:', error);
         res.status(500).json({
-            success: false,
-            message: 'Verification failed',
-            error: error.message
+            exito: false,
+            estado: 500,
+            mensaje: 'Error al verificar el código'
         });
     }
 };
@@ -318,7 +348,19 @@ const resetPassword = async (req, res) => {
     try {
         const { email, code, newPassword } = req.body;
 
-        // In real implementation, verify code first
+        // Verify code again before resetting
+        const [results] = await db.pool.query(
+            'SELECT id FROM password_resets WHERE email = ? AND code = ? AND expires_at > NOW()',
+            [email, code]
+        );
+
+        if (results.length === 0) {
+            return res.status(400).json({
+                exito: false,
+                estado: 400,
+                mensaje: 'Código inválido o expirado'
+            });
+        }
 
         // Hash new password
         const passwordHash = await bcrypt.hash(newPassword, 10);
@@ -331,22 +373,27 @@ const resetPassword = async (req, res) => {
 
         if (result.affectedRows === 0) {
             return res.status(404).json({
-                success: false,
-                message: 'Usuario no encontrado'
+                exito: false,
+                estado: 404,
+                mensaje: 'Usuario no encontrado'
             });
         }
 
+        // Clean up: delete the used code
+        await db.ejecutar('DELETE FROM password_resets WHERE email = ?', [email]);
+
         res.json({
-            success: true,
-            message: 'Contraseña restablecida con éxito'
+            exito: true,
+            estado: 200,
+            mensaje: 'Contraseña restablecida con éxito'
         });
 
     } catch (error) {
         console.error('Reset password error:', error);
         res.status(500).json({
-            success: false,
-            message: 'Password reset failed',
-            error: error.message
+            exito: false,
+            estado: 500,
+            mensaje: 'Error al restablecer la contraseña'
         });
     }
 };

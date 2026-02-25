@@ -22,7 +22,8 @@ const isValidRUC = (ruc) => {
  * @returns {Boolean}
  */
 const isValidEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // Regex más estricto: requiere usuario, @, dominio y extensión (TLD) de al menos 2 caracteres
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     return emailRegex.test(email);
 };
 

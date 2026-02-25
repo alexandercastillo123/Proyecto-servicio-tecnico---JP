@@ -315,6 +315,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _showError('Por favor rellene todos los campos');
           return false;
         }
+
+        // Email validation
+        final emailRegex = RegExp(
+          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+        );
+        if (!emailRegex.hasMatch(_emailController.text)) {
+          _showError('Por favor ingrese un correo electrónico válido');
+          return false;
+        }
+
         if (_dniController.text.length != 8) {
           _showError('El DNI debe tener exactamente 8 dígitos');
           return false;
@@ -326,6 +336,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
           _showError('Por favor rellene todos los campos');
           return false;
         }
+
+        // Email validation
+        final emailRegex = RegExp(
+          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+        );
+        if (!emailRegex.hasMatch(_emailController.text)) {
+          _showError('Por favor ingrese un correo electrónico válido');
+          return false;
+        }
+
         if (_rucController.text.length != 11) {
           _showError('El RUC debe tener exactamente 11 dígitos');
           return false;
@@ -919,9 +939,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
             _showMapDialog(LatLng(lat, lon));
           }
         } else {
-          _showError(
-            'No se pudo encontrar la ubicación exacta. Por favor sea más específico.',
-          );
+          // Si no se encuentra la dirección exacta, abrimos el mapa en Lima
+          // pero indicamos que es aproximado para que el usuario lo mueva.
+          if (mounted) {
+            _showMapDialog(
+              const LatLng(-12.0464, -77.0428),
+              isApproximate: true,
+            );
+          }
         }
       } else {
         _showError(
@@ -935,103 +960,143 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _showMapDialog(LatLng coordinates) {
+  void _showMapDialog(LatLng initialCoordinates, {bool isApproximate = false}) {
+    LatLng currentMarker = initialCoordinates;
+
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFFD9D9D9),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: const Text(
-            '¿Es correcta esta ubicación?',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: SizedBox(
-                  height: 200,
-                  width: double.infinity,
-                  child: FlutterMap(
-                    options: MapOptions(
-                      initialCenter: coordinates,
-                      initialZoom: 16.0,
-                    ),
-                    children: [
-                      TileLayer(
-                        urlTemplate:
-                            'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        userAgentPackageName:
-                            'com.jp.serviciotecnico.servicio_tecnico_app',
-                      ),
-                      MarkerLayer(
-                        markers: [
-                          Marker(
-                            point: coordinates,
-                            width: 60,
-                            height: 60,
-                            child: const Icon(
-                              Icons.location_on,
-                              color: Colors.red,
-                              size: 40,
-                            ),
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFFD9D9D9),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              title: Text(
+                isApproximate
+                    ? 'No encontramos la dirección exacta.\n¿Donde se ubica aproximadamente?'
+                    : '¿Es correcta esta ubicación?',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              content: SizedBox(
+                width: 320, // Definir ancho para evitar error de renderizado
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isApproximate)
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 10),
+                        child: Text(
+                          'Toca el mapa para mover el marcador a tu ubicación real.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.red,
+                            fontWeight: FontWeight.w500,
                           ),
-                        ],
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                    ],
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(15),
+                      child: SizedBox(
+                        height: 250,
+                        width: double.infinity,
+                        child: FlutterMap(
+                          options: MapOptions(
+                            initialCenter: initialCoordinates,
+                            initialZoom: 15.0,
+                            onTap: (tapPosition, latLng) {
+                              setDialogState(() {
+                                currentMarker = latLng;
+                              });
+                            },
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate:
+                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName:
+                                  'com.jp.serviciotecnico.servicio_tecnico_app',
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: currentMarker,
+                                  width: 50,
+                                  height: 50,
+                                  child: const Icon(
+                                    Icons.location_on,
+                                    color: Colors.red,
+                                    size: 40,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _referenceAddressController.text,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actionsAlignment: MainAxisAlignment.spaceEvenly,
+              actions: [
+                SizedBox(
+                  width: 115,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFC4C4C4),
+                      foregroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancelar'),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                _referenceAddressController.text,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.primary, fontSize: 13),
-              ),
-            ],
-          ),
-          actionsAlignment: MainAxisAlignment.spaceEvenly,
-          actions: [
-            SizedBox(
-              width: 100,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFC4C4C4),
-                  foregroundColor: AppColors.primary,
+                SizedBox(
+                  width: 125,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _techLat = currentMarker.latitude;
+                        _techLng = currentMarker.longitude;
+                      });
+                      Navigator.pop(context); // Close dialog
+                      _nextStep(); // Proceed to next step
+                    },
+                    child: const Text('Confirmar'),
+                  ),
                 ),
-                onPressed: () => Navigator.pop(context),
-                child: const Text('No'),
-              ),
-            ),
-            SizedBox(
-              width: 100,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _techLat = coordinates.latitude;
-                    _techLng = coordinates.longitude;
-                  });
-                  Navigator.pop(context); // Close dialog
-                  _nextStep(); // Proceder al paso 1 (Account Info)
-                },
-                child: const Text('Sí'),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );
