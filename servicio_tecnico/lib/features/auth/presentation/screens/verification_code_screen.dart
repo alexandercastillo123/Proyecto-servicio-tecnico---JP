@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:servicio_tecnico_app/core/services/auth_service.dart';
 import '../../../../core/constants/assets.dart';
 import '../../../../core/theme/app_colors.dart';
 
@@ -13,6 +14,7 @@ class VerificationCodeScreen extends StatefulWidget {
 
 class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
   final _codeController = TextEditingController();
+  bool _isLoading = false;
 
   void _showInfoDialog() {
     showDialog(
@@ -171,7 +173,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () {
+                  onPressed: () async {
                     final code = _codeController.text.trim();
                     if (code.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -181,21 +183,64 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                       );
                       return;
                     }
-                    // Logic to validate code (Mock)
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Código validado correctamente'),
-                      ),
-                    );
-                    // Navigate to Reset Password Screen
-                    context.push(
-                      '/forgot-password/reset?email=${widget.email}&code=$code',
-                    );
+
+                    setState(() => _isLoading = true);
+
+                    try {
+                      final authService = AuthService();
+                      final response = await authService.verifyCode(
+                        email: widget.email,
+                        code: code,
+                      );
+
+                      if (mounted) {
+                        if (response.success) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Código validado correctamente'),
+                            ),
+                          );
+                          // Navigate to Reset Password Screen
+                          context.push(
+                            '/forgot-password/reset?email=${widget.email}&code=$code',
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                response.message ??
+                                    'Código inválido o expirado',
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Error: ${e.toString()}')),
+                        );
+                      }
+                    } finally {
+                      if (mounted) setState(() => _isLoading = false);
+                    }
                   },
-                  child: const Text(
-                    'Validar Código de Verificación',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.primary,
+                          ),
+                        )
+                      : const Text(
+                          'Validar Código de Verificación',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                 ),
               ),
             ],

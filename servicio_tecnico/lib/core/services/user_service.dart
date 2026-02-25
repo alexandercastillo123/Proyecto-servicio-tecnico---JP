@@ -17,6 +17,7 @@ class UserService {
 
   /// Update user profile
   Future<ApiResponse<Map<String, dynamic>>> updateProfile({
+    String? username,
     String? phone,
     String? address,
     String? city,
@@ -30,6 +31,7 @@ class UserService {
     return await _apiService.put<Map<String, dynamic>>(
       ApiConstants.updateProfile,
       {
+        if (username != null) 'username': username,
         if (phone != null) 'phone': phone,
         if (address != null) 'address': address,
         if (city != null) 'city': city,

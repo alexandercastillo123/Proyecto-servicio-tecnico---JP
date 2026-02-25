@@ -93,6 +93,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       text: _userData!['address'],
     );
     final cityController = TextEditingController(text: _userData!['city']);
+    final usernameController = TextEditingController(
+      text: _userData!['username'],
+    );
     final namesController = TextEditingController(text: _userData!['names']);
     final surnamesController = TextEditingController(
       text: _userData!['surnames'],
@@ -143,6 +146,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
               const SizedBox(height: 12),
               TextField(
+                controller: usernameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre de Usuario',
+                  hintText: 'Ej: alex_peralta',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
                 controller: phoneController,
                 decoration: const InputDecoration(labelText: 'Teléfono'),
               ),
@@ -169,6 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Navigator.pop(context);
               setState(() => _isLoading = true);
               final response = await _userService.updateProfile(
+                username: usernameController.text,
                 phone: phoneController.text,
                 address: addressController.text,
                 city: cityController.text,

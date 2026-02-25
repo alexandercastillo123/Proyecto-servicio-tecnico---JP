@@ -11,7 +11,7 @@ const getProfile = async (req, res) => {
 
         const dbRes = await db.listar(
             `SELECT 
-        u.id, u.email, u.role, u.created_at,
+        u.id, u.email, u.username, u.role, u.created_at,
         up.phone, up.profile_image_url, up.address, up.city,
         up.person_type, up.names, up.surnames, up.dni,
         up.company_name, up.ruc, up.reference_address,
@@ -51,6 +51,7 @@ const updateProfile = async (req, res) => {
     try {
         const userId = req.user.id;
         const {
+            username,
             phone,
             address,
             city,
@@ -61,6 +62,26 @@ const updateProfile = async (req, res) => {
             ruc,
             referenceAddress
         } = req.body;
+
+        // If username is being updated, check if it's already taken by another user
+        if (username) {
+            const [existing] = await db.pool.query(
+                'SELECT id FROM users WHERE username = ? AND id != ?',
+                [username, userId]
+            );
+
+            if (existing.length > 0) {
+                respuesta.estado = 409;
+                respuesta.mensaje = 'El nombre de usuario ya está en uso por otra persona';
+                return res.status(409).json(respuesta);
+            }
+
+            // Update username in users table
+            await db.ejecutar(
+                'UPDATE users SET username = ? WHERE id = ?',
+                [username, userId]
+            );
+        }
 
         const dbRes = await db.ejecutar(
             `UPDATE user_profiles SET
@@ -77,11 +98,14 @@ const updateProfile = async (req, res) => {
             [phone, address, city, names, surnames, dni, companyName, ruc, referenceAddress, userId]
         );
 
-        if (!dbRes.exito || dbRes.resultado.affectedRows === 0) {
-            respuesta.estado = 404;
-            respuesta.mensaje = 'Perfil no encontrado o error al actualizar';
-            return res.status(404).json(respuesta);
+        if (!dbRes.exito) {
+            respuesta.estado = 500;
+            respuesta.mensaje = 'Error interno al actualizar perfil';
+            return res.status(500).json(respuesta);
         }
+
+        // Even if affectedRows is 0 (no profile fields changed), 
+        // if the profile exists or we updated the username, it's a success.
 
         respuesta.exito = true;
         respuesta.estado = 200;
@@ -143,7 +167,7 @@ const getUserById = async (req, res) => {
 
         const dbRes = await db.listar(
             `SELECT 
-        u.id, u.email, u.role,
+        u.id, u.email, u.username, u.role,
         up.phone, up.profile_image_url, up.address, up.city,
         up.person_type, up.names, up.surnames, up.dni,
         up.company_name, up.ruc, up.reference_address,

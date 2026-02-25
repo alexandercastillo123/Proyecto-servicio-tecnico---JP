@@ -12,6 +12,7 @@ class EditDataScreen extends StatefulWidget {
 class _EditDataScreenState extends State<EditDataScreen> {
   final UserService _userService = UserService();
   final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _idController = TextEditingController();
   final _phoneController = TextEditingController();
   final _locationController = TextEditingController();
@@ -43,6 +44,7 @@ class _EditDataScreenState extends State<EditDataScreen> {
             _idController.text = data?['ruc'] ?? '';
           }
           _phoneController.text = data?['phone'] ?? '';
+          _usernameController.text = data?['username'] ?? '';
           _locationController.text =
               data?['reference_address'] ?? data?['address'] ?? '';
           _isLoading = false;
@@ -58,6 +60,11 @@ class _EditDataScreenState extends State<EditDataScreen> {
   }
 
   Future<void> _updateProfile() async {
+    if (_usernameController.text.trim().isEmpty) {
+      _showError('El nombre de usuario no puede estar vacío');
+      return;
+    }
+
     setState(() => _isSaving = true);
     try {
       final bool isNatural = (_profileData?['person_type'] ?? '') == 'natural';
@@ -77,6 +84,7 @@ class _EditDataScreenState extends State<EditDataScreen> {
       }
 
       final response = await _userService.updateProfile(
+        username: _usernameController.text.trim(),
         phone: _phoneController.text,
         names: names,
         surnames: surnames,
@@ -102,11 +110,15 @@ class _EditDataScreenState extends State<EditDataScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isSaving = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Error de conexión')));
+        _showError('Error de conexión');
       }
     }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
+    );
   }
 
   @override
@@ -192,6 +204,8 @@ class _EditDataScreenState extends State<EditDataScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 40),
                 child: Column(
                   children: [
+                    _buildField(_usernameController, 'Nombre de Usuario'),
+                    const SizedBox(height: 16),
                     _buildField(
                       _nameController,
                       isNatural ? 'Nombre Completo' : 'Nombre de Empresa',

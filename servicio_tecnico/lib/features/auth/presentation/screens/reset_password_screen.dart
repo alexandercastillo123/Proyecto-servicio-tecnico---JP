@@ -25,6 +25,62 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
 
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFFD9D9D9),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.check_circle_outline,
+                color: AppColors.primary,
+                size: 80,
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Tu contraseña ha sido\nactualizada con éxito',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: 150,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFC4C4C4),
+                    foregroundColor: AppColors.primary,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: () {
+                    context.pop(); // Close dialog
+                    context.go('/login');
+                  },
+                  child: const Text('Ok'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleResetPassword() async {
     if (_passwordController.text.isEmpty ||
         _confirmPasswordController.text.isEmpty) {
@@ -53,12 +109,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
       if (mounted) {
         if (response.success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Contraseña actualizada correctamente'),
-            ),
-          );
-          context.go('/login');
+          _showSuccessDialog();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
