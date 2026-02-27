@@ -121,6 +121,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
+    _cameraService.dispose();
     _cameraController?.dispose();
     _namesController.dispose();
     _surnamesController.dispose();
@@ -136,6 +137,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _initializeCamera() async {
+    if (_cameraController != null && _cameraController!.value.isInitialized)
+      return;
+
     final status = await Permission.camera.request();
     if (status.isGranted) {
       final controller = await _cameraService.getController();
@@ -151,11 +155,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _takePicture() async {
+    if (_cameraController == null || !_cameraController!.value.isInitialized)
+      return;
+
     final file = await _cameraService.takePicture();
     if (file != null && mounted) {
       setState(() {
         _capturedFile = file;
         _isPhotoTaken = true;
+      });
+      // Detener cámara después de tomar la foto para liberar recursos
+      _cameraService.dispose();
+      setState(() {
+        _isCameraInitialized = false;
+        _cameraController = null;
       });
     }
   }
@@ -174,7 +187,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  void _nextStep() {
+  Future<void> _nextStep() async {
     bool isJuridical = widget.personType == 'juridical';
     bool isClient = widget.role == 'client';
 
@@ -182,13 +195,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
     int maxStep = isClient ? 1 : (isJuridical ? 3 : 2);
 
     if (_currentStep < maxStep) {
-      if (_validateCurrentStep()) {
-        setState(() {
-          _currentStep++;
-        });
+      if (_validateLocalFields()) {
+        // Validacion asincrona contra el servidor
+        setState(() => _isGeocoding = true); // Usar el mismo loading
+        try {
+          final authService = AuthService();
+          if (_currentStep == 0) {
+            final res = await authService.validateEmail(
+              _emailController.text.trim(),
+            );
+            if (!res.success) {
+              if (mounted)
+                _showError(res.message ?? 'Email inválido o ya registrado');
+              return;
+            }
+          } else if (_currentStep == 1) {
+            final res = await authService.validateUsername(
+              _userController.text.trim(),
+            );
+            if (!res.success) {
+              if (mounted) _showError(res.message ?? 'Usuario no disponible');
+              return;
+            }
+            // Validar password minimo 6 caracteres
+            if (_passwordController.text.length < 6) {
+              if (mounted)
+                _showError('La contraseña debe tener al menos 6 caracteres');
+              return;
+            }
+          }
+
+          if (mounted) {
+            setState(() {
+              _currentStep++;
+            });
+          }
+        } catch (e) {
+          if (mounted) _showError('Error de conexión al validar');
+        } finally {
+          if (mounted) setState(() => _isGeocoding = false);
+        }
       }
-    } else {
-      // Logic moved to "Registrarme" button in _buildAccountInfoStep for clients
     }
   }
 
@@ -305,68 +352,59 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  bool _validateCurrentStep() {
+  bool _validateLocalFields() {
     if (_currentStep == 0) {
       if (widget.personType == 'natural') {
-        if (_namesController.text.isEmpty ||
-            _surnamesController.text.isEmpty ||
-            _dniController.text.isEmpty ||
-            _emailController.text.isEmpty) {
-          _showError('Por favor rellene todos los campos');
+        if (_namesController.text.trim().isEmpty ||
+            _surnamesController.text.trim().isEmpty ||
+            _dniController.text.trim().isEmpty ||
+            _emailController.text.trim().isEmpty) {
+          _showError('Por favor rellene todos los campos personales');
           return false;
         }
 
-        // Email validation
-        final emailRegex = RegExp(
-          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-        );
-        if (!emailRegex.hasMatch(_emailController.text)) {
-          _showError('Por favor ingrese un correo electrónico válido');
-          return false;
-        }
-
-        if (_dniController.text.length != 8) {
+        if (_dniController.text.trim().length != 8) {
           _showError('El DNI debe tener exactamente 8 dígitos');
           return false;
         }
       } else if (widget.personType == 'juridical') {
-        if (_namesController.text.isEmpty ||
-            _rucController.text.isEmpty ||
-            _emailController.text.isEmpty) {
-          _showError('Por favor rellene todos los campos');
+        if (_namesController.text.trim().isEmpty ||
+            _rucController.text.trim().isEmpty ||
+            _emailController.text.trim().isEmpty) {
+          _showError('Por favor rellene los datos de la empresa');
           return false;
         }
 
-        // Email validation
-        final emailRegex = RegExp(
-          r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-        );
-        if (!emailRegex.hasMatch(_emailController.text)) {
-          _showError('Por favor ingrese un correo electrónico válido');
-          return false;
-        }
-
-        if (_rucController.text.length != 11) {
+        if (_rucController.text.trim().length != 11) {
           _showError('El RUC debe tener exactamente 11 dígitos');
           return false;
         }
       }
 
+      // Email format
+      final emailRegex = RegExp(
+        r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+      );
+      if (!emailRegex.hasMatch(_emailController.text.trim())) {
+        _showError('Formato de correo electrónico inválido');
+        return false;
+      }
+
       if (widget.role == 'tech') {
-        if (_phoneController.text.isEmpty) {
+        if (_phoneController.text.trim().isEmpty) {
           _showError('Por favor rellene su teléfono');
           return false;
         }
-        if (_phoneController.text.length != 9) {
+        if (_phoneController.text.trim().length != 9) {
           _showError('El teléfono debe tener exactamente 9 dígitos');
           return false;
         }
       }
     } else if (_currentStep == 1) {
-      if (_userController.text.isEmpty ||
+      if (_userController.text.trim().isEmpty ||
           _passwordController.text.isEmpty ||
           _confirmPasswordController.text.isEmpty) {
-        _showError('Por favor rellene todos los campos');
+        _showError('Por favor complete los datos de acceso');
         return false;
       }
       if (_passwordController.text != _confirmPasswordController.text) {
@@ -488,7 +526,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _submitRegistration() async {
-    if (!_validateCurrentStep()) return;
+    if (!_validateLocalFields()) return;
 
     // Mostrar loading
     showDialog(
@@ -790,25 +828,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
           else
             Column(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    height: 400,
-                    width: 300,
-                    child: CameraPreview(_cameraController!),
+                const SizedBox(height: 20),
+                const Text(
+                  'Tomar Foto de Perfil',
+                  style: TextStyle(
+                    color: Color(0xFF3B28FF),
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 20),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(30),
+                    child: Container(
+                      height: 380, // Slightly smaller for better balance
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: const Color(0xFF3B28FF),
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      child: CameraPreview(_cameraController!),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 30),
                 GestureDetector(
                   onTap: _takePicture,
                   child: Container(
                     padding: const EdgeInsets.all(20),
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF3B28FF),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF3B28FF),
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF3B28FF).withOpacity(0.3),
+                          blurRadius: 15,
+                          spreadRadius: 2,
+                        ),
+                      ],
                     ),
                     child: const Icon(
-                      Icons.camera,
+                      Icons.camera_alt,
                       size: 40,
                       color: Colors.white,
                     ),
@@ -818,48 +883,68 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
         ] else ...[
           // Preview state
-          const SizedBox(height: 10),
-          Stack(
-            alignment: Alignment.bottomCenter,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  height: 450,
-                  width: double.infinity,
-                  child: Image.file(
-                    File(_capturedFile!.path),
-                    fit: BoxFit.cover,
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Stack(
+              alignment: Alignment.bottomCenter,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(30),
+                  child: Container(
+                    height: 420,
+                    width: double.infinity,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: const Color(0xFF3B28FF),
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(30),
+                    ),
+                    child: Image.file(
+                      File(_capturedFile!.path),
+                      fit: BoxFit.cover,
+                    ),
                   ),
                 ),
-              ),
-              Positioned(
-                bottom: 20,
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _isPhotoTaken = false;
-                        });
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.sync_alt,
-                          size: 30,
-                          color: Color(0xFF3B28FF),
-                        ),
+                Positioned(
+                  bottom: 20,
+                  child: GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isPhotoTaken = false;
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(25),
+                        boxShadow: const [
+                          BoxShadow(color: Colors.black26, blurRadius: 10),
+                        ],
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.refresh, color: Color(0xFF3B28FF)),
+                          SizedBox(width: 8),
+                          Text(
+                            'Cambiar Foto',
+                            style: TextStyle(
+                              color: Color(0xFF3B28FF),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 30),
           Padding(

@@ -108,6 +108,26 @@ class AuthService {
     );
   }
 
+  /// Validate email existence and availability
+  Future<ApiResponse<Map<String, dynamic>>> validateEmail(String email) async {
+    return await _apiService.post<Map<String, dynamic>>(
+      ApiConstants.validateEmail,
+      {'email': email},
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  /// Validate username availability
+  Future<ApiResponse<Map<String, dynamic>>> validateUsername(
+    String username,
+  ) async {
+    return await _apiService.post<Map<String, dynamic>>(
+      ApiConstants.validateUsername,
+      {'username': username},
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
   /// Logout (clear token)
   void logout() {
     _apiService.clearToken();

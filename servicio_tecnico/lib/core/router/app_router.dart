@@ -16,6 +16,7 @@ import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/profile/presentation/screens/provider_profile_screen.dart';
 import '../../features/profile/presentation/screens/change_photo_screen.dart';
 import '../../features/profile/presentation/screens/edit_data_screen.dart';
+import '../../features/appointments/presentation/screens/appointment_details_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login', // Login is now the start
@@ -96,6 +97,13 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/appointment-scheduling',
       builder: (context, state) => const AppointmentSchedulingScreen(),
+    ),
+    GoRoute(
+      path: '/appointment-details/:id',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
+        return AppointmentDetailsScreen(appointmentId: id);
+      },
     ),
     GoRoute(path: '/chat', builder: (context, state) => const ChatScreen()),
   ],

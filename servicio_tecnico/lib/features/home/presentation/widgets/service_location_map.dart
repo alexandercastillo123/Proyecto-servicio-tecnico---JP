@@ -259,7 +259,18 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
                       ),
                       onTap: () {
                         Navigator.pop(context);
-                        context.push('/technician-profile', extra: tech['id']);
+                        final point = _servicePoint ?? _clientLocation;
+                        context.push(
+                          '/technician-profile',
+                          extra: {
+                            'techId': tech['id'],
+                            'serviceLat': point?.latitude,
+                            'serviceLng': point?.longitude,
+                            'serviceAddress': point != null
+                                ? 'Lat: ${point.latitude.toStringAsFixed(5)}, Lng: ${point.longitude.toStringAsFixed(5)}'
+                                : null,
+                          },
+                        );
                       },
                     );
                   },
@@ -520,10 +531,20 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      onPressed: () => context.push(
-                        '/technician-profile',
-                        extra: _selectedTech['id'],
-                      ),
+                      onPressed: () {
+                        final point = _servicePoint ?? _clientLocation;
+                        context.push(
+                          '/technician-profile',
+                          extra: {
+                            'techId': _selectedTech['id'],
+                            'serviceLat': point?.latitude,
+                            'serviceLng': point?.longitude,
+                            'serviceAddress': point != null
+                                ? 'Lat: ${point.latitude.toStringAsFixed(5)}, Lng: ${point.longitude.toStringAsFixed(5)}'
+                                : null,
+                          },
+                        );
+                      },
                       child: const Text('Ver Perfil'),
                     ),
                   ],

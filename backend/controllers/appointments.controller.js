@@ -8,7 +8,7 @@ const createAppointment = async (req, res) => {
     let respuesta = new Respuesta();
     try {
         const clientId = req.user.id;
-        const { technicianId, scheduledDate, scheduledTime, description } = req.body;
+        const { technicianId, scheduledDate, scheduledTime, description, serviceLat, serviceLng, serviceAddress } = req.body;
 
         // Verify technician exists
         const techRes = await db.listar(
@@ -42,9 +42,9 @@ const createAppointment = async (req, res) => {
 
         // Create appointment
         const dbRes = await db.ejecutar(
-            `INSERT INTO appointments (client_id, technician_id, scheduled_date, scheduled_time, description, status)
-       VALUES (?, ?, ?, ?, ?, 'pending')`,
-            [clientId, technicianId, scheduledDate, scheduledTime, description]
+            `INSERT INTO appointments (client_id, technician_id, scheduled_date, scheduled_time, description, status, service_lat, service_lng, service_address)
+       VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
+            [clientId, technicianId, scheduledDate, scheduledTime, description, serviceLat || null, serviceLng || null, serviceAddress || null]
         );
 
         if (!dbRes.exito) {
@@ -79,6 +79,7 @@ const getAppointments = async (req, res) => {
         let query = `
       SELECT 
         a.id, a.scheduled_date, a.scheduled_time, a.description, a.status, a.created_at,
+        a.price, a.payment_method, a.payment_status, a.payment_confirmed_at,
         client.id as client_id, client.username as client_username, client_profile.names as client_names, 
         client_profile.surnames as client_surnames, client_profile.phone as client_phone,
         tech.id as technician_id, tech_profile.names as tech_names,
@@ -129,6 +130,8 @@ const getAppointmentById = async (req, res) => {
         const dbRes = await db.listar(
             `SELECT 
         a.id, a.scheduled_date, a.scheduled_time, a.description, a.status, a.created_at,
+        a.price, a.payment_method, a.payment_status, a.payment_confirmed_at,
+        a.service_lat, a.service_lng, a.service_address,
         client.id as client_id, client.email as client_email, client.username as client_username,
         client_profile.names as client_names, client_profile.surnames as client_surnames,
         client_profile.phone as client_phone, client_profile.address as client_address,
@@ -223,6 +226,19 @@ const cancelAppointment = async (req, res) => {
         const { id } = req.params;
         const userId = req.user.id;
 
+        // Check if appointment is already paid
+        const isPaidRes = await db.listar(
+            'SELECT payment_status FROM appointments WHERE id = ?',
+            false,
+            [id]
+        );
+
+        if (isPaidRes.resultado && isPaidRes.resultado.payment_status === 'paid') {
+            respuesta.estado = 400;
+            respuesta.mensaje = 'No se puede cancelar una cita que ya ha sido pagada.';
+            return res.status(400).json(respuesta);
+        }
+
         // Update to cancelled status instead of deleting
         const dbRes = await db.ejecutar(
             `UPDATE appointments SET status = 'cancelled', cancelled_by = ?
@@ -248,10 +264,147 @@ const cancelAppointment = async (req, res) => {
     }
 };
 
+/**
+ * Set appointment price (By Technician)
+ */
+const setAppointmentPrice = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+        const { price } = req.body;
+        const userId = req.user.id;
+
+        const appRes = await db.listar(
+            'SELECT technician_id, payment_status FROM appointments WHERE id = ?',
+            false,
+            [id]
+        );
+
+        if (!appRes.resultado) {
+            respuesta.estado = 404;
+            respuesta.mensaje = 'Cita no encontrada';
+            return res.status(404).json(respuesta);
+        }
+
+        if (appRes.resultado.technician_id !== userId) {
+            respuesta.estado = 403;
+            respuesta.mensaje = 'Solo el técnico puede establecer el precio';
+            return res.status(403).json(respuesta);
+        }
+
+        if (appRes.resultado.payment_status === 'paid') {
+            respuesta.estado = 400;
+            respuesta.mensaje = 'No se puede cambiar el precio de una cita ya pagada';
+            return res.status(400).json(respuesta);
+        }
+
+        await db.ejecutar('UPDATE appointments SET price = ? WHERE id = ?', [price, id]);
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Precio establecido con éxito';
+        res.json(respuesta);
+    } catch (error) {
+        console.error('Set price error:', error);
+        res.status(500).json({ mensaje: 'Error al establecer precio' });
+    }
+};
+
+/**
+ * Pay appointment (By Client)
+ */
+const payAppointment = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+        const { paymentMethod } = req.body;
+        const userId = req.user.id;
+
+        const appRes = await db.listar(
+            'SELECT client_id, price, payment_status FROM appointments WHERE id = ?',
+            false,
+            [id]
+        );
+
+        if (!appRes.resultado) {
+            respuesta.estado = 404;
+            respuesta.mensaje = 'Cita no encontrada';
+            return res.status(404).json(respuesta);
+        }
+
+        if (appRes.resultado.client_id !== userId) {
+            respuesta.estado = 403;
+            respuesta.mensaje = 'Solo el cliente puede pagar la cita';
+            return res.status(403).json(respuesta);
+        }
+
+        if (!appRes.resultado.price) {
+            respuesta.estado = 400;
+            respuesta.mensaje = 'El técnico aún no ha establecido un precio para esta cita';
+            return res.status(400).json(respuesta);
+        }
+
+        await db.ejecutar(
+            'UPDATE appointments SET payment_method = ?, payment_status = "waiting_confirmation" WHERE id = ?',
+            [paymentMethod, id]
+        );
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Pago registrado, esperando confirmación del técnico';
+        res.json(respuesta);
+    } catch (error) {
+        console.error('Pay error:', error);
+        res.status(500).json({ mensaje: 'Error al procesar pago' });
+    }
+};
+
+/**
+ * Confirm payment (By Technician)
+ */
+const confirmPayment = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        const appRes = await db.listar(
+            'SELECT technician_id, payment_status FROM appointments WHERE id = ?',
+            false,
+            [id]
+        );
+
+        if (!appRes.resultado) {
+            respuesta.estado = 404;
+            respuesta.mensaje = 'Cita no encontrada';
+            return res.status(404).json(respuesta);
+        }
+
+        if (appRes.resultado.technician_id !== userId) {
+            respuesta.estado = 403;
+            respuesta.mensaje = 'Solo el técnico puede confirmar el pago';
+            return res.status(403).json(respuesta);
+        }
+
+        await db.ejecutar(
+            'UPDATE appointments SET payment_status = "paid", payment_confirmed_at = NOW() WHERE id = ?',
+            [id]
+        );
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Pago confirmado con éxito. La cita ahora es incancelable.';
+        res.json(respuesta);
+    } catch (error) {
+        console.error('Confirm payment error:', error);
+        res.status(500).json({ mensaje: 'Error al confirmar pago' });
+    }
+};
+
 module.exports = {
     createAppointment,
     getAppointments,
     getAppointmentById,
     updateAppointmentStatus,
-    cancelAppointment
+    cancelAppointment,
+    setAppointmentPrice,
+    payAppointment,
+    confirmPayment
 };

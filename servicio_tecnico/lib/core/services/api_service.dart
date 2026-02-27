@@ -112,6 +112,28 @@ class ApiService {
     }
   }
 
+  Future<ApiResponse<T>> patch<T>(
+    String url,
+    Map<String, dynamic> body, {
+    bool requiresAuth = false,
+    T Function(dynamic)? fromJson,
+  }) async {
+    try {
+      final response = await http.patch(
+        Uri.parse(url),
+        headers: _getHeaders(includeAuth: requiresAuth),
+        body: jsonEncode(body),
+      );
+
+      return _handleResponse<T>(response, fromJson);
+    } catch (e) {
+      return ApiResponse(
+        success: false,
+        message: 'Error de conexión: ${e.toString()}',
+      );
+    }
+  }
+
   Future<ApiResponse<T>> delete<T>(
     String url, {
     bool requiresAuth = false,

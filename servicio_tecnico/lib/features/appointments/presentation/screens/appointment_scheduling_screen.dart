@@ -21,6 +21,10 @@ class _AppointmentSchedulingScreenState
   List<dynamic> _schedule = [];
   bool _isLoading = true;
   String? _errorMessage;
+  // Ubicacion del servicio
+  double? _serviceLat;
+  double? _serviceLng;
+  String? _serviceAddress;
 
   final TextEditingController _timeController = TextEditingController(
     text: '10:00',
@@ -36,6 +40,9 @@ class _AppointmentSchedulingScreenState
       final extra = GoRouterState.of(context).extra;
       if (extra != null && extra is Map<String, dynamic>) {
         _techInfo = extra;
+        _serviceLat = (extra['serviceLat'] as num?)?.toDouble();
+        _serviceLng = (extra['serviceLng'] as num?)?.toDouble();
+        _serviceAddress = extra['serviceAddress'] as String?;
         _fetchSchedule(extra['id']);
       } else {
         setState(() {
@@ -177,6 +184,9 @@ class _AppointmentSchedulingScreenState
         scheduledDate: scheduledDate,
         scheduledTime: _timeController.text,
         description: description,
+        serviceLat: _serviceLat,
+        serviceLng: _serviceLng,
+        serviceAddress: _serviceAddress,
       );
 
       if (mounted) {
