@@ -82,4 +82,7 @@ router.post(
     authController.resetPassword
 );
 
+router.post('/validate-email', authController.validateEmail);
+router.post('/validate-username', authController.validateUsername);
+
 module.exports = router;

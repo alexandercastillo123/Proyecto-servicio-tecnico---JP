@@ -34,9 +34,9 @@ const register = async (req, res) => {
             longitude
         } = req.body;
 
-        // Validate email
-        if (!isValidEmail(email)) {
-            respuesta.mensaje = 'Formato de correo inválido';
+        // Validate email existence (MX check)
+        if (!(await isValidEmail(email))) {
+            respuesta.mensaje = 'El correo electrónico no existe o el dominio es inválido';
             return res.status(400).json(respuesta);
         }
 
@@ -273,10 +273,18 @@ const forgotPassword = async (req, res) => {
         await db.ejecutar('DELETE FROM password_resets WHERE email = ?', [email]);
 
         // Save code to DB
-        await db.ejecutar(
+        const insertRes = await db.ejecutar(
             'INSERT INTO password_resets (email, code, expires_at) VALUES (?, ?, ?)',
             [email, verificationCode, expiresAt]
         );
+
+        if (!insertRes.exito) {
+            return res.status(500).json({
+                exito: false,
+                estado: 500,
+                mensaje: 'Error interno al generar código de recuperación'
+            });
+        }
 
         // Send email via SMTP
         const emailSent = await sendResetCode(email, verificationCode);
@@ -309,27 +317,33 @@ const forgotPassword = async (req, res) => {
  * Verify reset code
  */
 const verifyCode = async (req, res) => {
+    let respuesta = new Respuesta();
     try {
         const { email, code } = req.body;
+        console.log(`[DEBUG] Intentando verificar código: "${code}" para email: "${email}"`);
 
-        const [results] = await db.pool.query(
+        // Log all records for this email to see what's happening
+        const [allResets] = await db.pool.query(
+            'SELECT code, expires_at, NOW() as db_now FROM password_resets WHERE email = ?',
+            [email]
+        );
+        console.log(`[DEBUG] Estado actual en DB para ${email}:`, allResets);
+
+        const [validResult] = await db.pool.query(
             'SELECT id FROM password_resets WHERE email = ? AND code = ? AND expires_at > NOW()',
             [email, code]
         );
 
-        if (results.length === 0) {
-            return res.status(400).json({
-                exito: false,
-                estado: 400,
-                mensaje: 'Código inválido o expirado'
-            });
+        if (validResult.length === 0) {
+            respuesta.mensaje = 'Código inválido o expirado';
+            respuesta.estado = 400;
+            respuesta.exito = false;
+            return res.status(400).json(respuesta);
         }
 
-        res.json({
-            exito: true,
-            estado: 200,
-            mensaje: 'Código verificado con éxito'
-        });
+        respuesta.exito = true;
+        respuesta.mensaje = 'Código verificado con éxito';
+        res.json(respuesta);
 
     } catch (error) {
         console.error('Verify code error:', error);
@@ -398,10 +412,71 @@ const resetPassword = async (req, res) => {
     }
 };
 
+/**
+ * Validate email availability and existence (for real-time UI)
+ */
+const validateEmailEndpoint = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { email } = req.body;
+        if (!email) {
+            respuesta.mensaje = 'El correo es obligatorio';
+            return res.status(400).json(respuesta);
+        }
+
+        if (!(await isValidEmail(email))) {
+            respuesta.mensaje = 'El correo electrónico no existe o el dominio es inválido';
+            return res.status(400).json(respuesta);
+        }
+
+        const [existing] = await db.pool.query('SELECT id FROM users WHERE email = ?', [email]);
+        if (existing.length > 0) {
+            respuesta.mensaje = 'El correo electrónico ya está registrado';
+            return res.status(409).json(respuesta);
+        }
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Correo válido y disponible';
+        res.json(respuesta);
+    } catch (error) {
+        respuesta.mensaje = 'Error al validar correo';
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * Validate username availability (for real-time UI)
+ */
+const validateUsernameEndpoint = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { username } = req.body;
+        if (!username) {
+            respuesta.mensaje = 'El usuario es obligatorio';
+            return res.status(400).json(respuesta);
+        }
+
+        const [existing] = await db.pool.query('SELECT id FROM users WHERE username = ?', [username]);
+        if (existing.length > 0) {
+            respuesta.mensaje = 'El nombre de usuario ya está registrado';
+            return res.status(409).json(respuesta);
+        }
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Usuario disponible';
+        res.json(respuesta);
+    } catch (error) {
+        respuesta.mensaje = 'Error al validar usuario';
+        res.status(500).json(respuesta);
+    }
+};
+
 module.exports = {
     register,
     login,
     forgotPassword,
     verifyCode,
-    resetPassword
+    resetPassword,
+    validateEmail: validateEmailEndpoint,
+    validateUsername: validateUsernameEndpoint
 };

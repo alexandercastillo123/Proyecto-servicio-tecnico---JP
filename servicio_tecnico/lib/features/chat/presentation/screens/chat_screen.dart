@@ -324,6 +324,11 @@ class _ChatScreenState extends State<ChatScreen> {
                           isMe: isMe,
                           appointmentStatus: msg['appointment_status'],
                           cancellerRole: msg['canceller_role'],
+                          price: double.tryParse(
+                            msg['appointment_price']?.toString() ?? '',
+                          ),
+                          paymentStatus: msg['appointment_payment_status'],
+                          paymentMethod: msg['appointment_payment_method'],
                         );
                       } else {
                         bubble = _buildMessageBubble(
@@ -356,10 +361,21 @@ class _ChatScreenState extends State<ChatScreen> {
     required bool isMe,
     String? appointmentStatus,
     String? cancellerRole,
+    double? price,
+    String? paymentStatus,
+    String? paymentMethod,
   }) {
     final String cancelText = cancellerRole != null
         ? ' - Cancelado por ${cancellerRole == 'client' ? 'Cliente' : 'Técnico'}'
         : '';
+
+    final bool isPaid = paymentStatus == 'paid';
+    final bool isWaiting = paymentStatus == 'waiting_confirmation';
+    final bool isTech =
+        _userRole == 'tech' ||
+        _userRole == 'technician' ||
+        _userRole == 'provider';
+
     return Align(
       alignment: !isMe ? Alignment.centerLeft : Alignment.centerRight,
       child: Column(
@@ -374,75 +390,215 @@ class _ChatScreenState extends State<ChatScreen> {
             decoration: BoxDecoration(
               color: isMe ? AppColors.primary : const Color(0xFFEBEBEB),
               borderRadius: BorderRadius.circular(16),
+              border: isPaid ? Border.all(color: Colors.green, width: 2) : null,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Cita agendada${appointmentStatus == 'cancelled' ? cancelText : ''}:',
-                  style: TextStyle(
-                    color: isMe ? Colors.white : AppColors.primary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    decoration:
-                        (appointmentId == -1 ||
-                            appointmentId == null ||
-                            appointmentStatus == 'cancelled')
-                        ? TextDecoration.lineThrough
-                        : null,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                _buildAppointmentDetails(message, description, isMe),
-                const SizedBox(height: 16),
-                Center(
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed:
-                          (appointmentId == null ||
-                              appointmentStatus == 'cancelled')
-                          ? null
-                          : () async {
-                              final response = await _appointmentService
-                                  .cancelAppointment(appointmentId);
-                              if (response.success) {
-                                _loadMessages(_otherUserId!);
-                              }
-                            },
-                      style: OutlinedButton.styleFrom(
-                        side: BorderSide(
-                          color: (isMe ? Colors.white : AppColors.primary)
-                              .withOpacity(
-                                (appointmentId == null ||
-                                        appointmentStatus == 'cancelled')
-                                    ? 0.3
-                                    : 1.0,
-                              ),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
                       child: Text(
-                        appointmentStatus == 'cancelled'
-                            ? 'Cita Cancelada'
-                            : 'Cancelar Cita',
+                        'Cita agendada${appointmentStatus == 'cancelled' ? cancelText : ''}:',
                         style: TextStyle(
-                          color: (isMe ? Colors.white : AppColors.primary)
-                              .withOpacity(
-                                (appointmentId == null ||
-                                        appointmentStatus == 'cancelled')
-                                    ? 0.3
-                                    : 1.0,
-                              ),
+                          color: isMe ? Colors.white : AppColors.primary,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          decoration:
+                              (appointmentId == -1 ||
+                                  appointmentId == null ||
+                                  appointmentStatus == 'cancelled')
+                              ? TextDecoration.lineThrough
+                              : null,
                         ),
                       ),
                     ),
-                  ),
+                    if (isPaid)
+                      const Icon(Icons.verified, color: Colors.green, size: 20),
+                  ],
                 ),
+                const SizedBox(height: 8),
+                _buildAppointmentDetails(message, description, isMe),
+                const Divider(color: Colors.white24),
+
+                // Price and Payment Status
+                if (price != null) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Monto: S/. $price',
+                        style: TextStyle(
+                          color: isMe ? Colors.white : AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      if (isPaid)
+                        Text(
+                          'PAGADO',
+                          style: TextStyle(
+                            color: isMe
+                                ? Colors.greenAccent
+                                : Colors.green[700],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+
+                // Action Buttons
+                if (appointmentStatus != 'cancelled' &&
+                    appointmentId != null) ...[
+                  // 1. Technician Sets Price
+                  if (isTech && price == null)
+                    _buildActionButton(
+                      label: '💰 Establecer Monto',
+                      onPressed: () => _showSetPriceDialog(appointmentId),
+                      bgColor: AppColors.primary,
+                      fgColor: Colors.white,
+                    ),
+
+                  // 2. Client Pays
+                  if (!isTech && price != null && paymentStatus == 'pending')
+                    _buildActionButton(
+                      label: '💳 Pagar S/. ${price.toStringAsFixed(2)}',
+                      onPressed: () => _showPaymentMethodDialog(appointmentId),
+                      bgColor: const Color(0xFF00C853),
+                      fgColor: Colors.white,
+                    ),
+
+                  // 3. Waiting / Confirm flow
+                  if (isWaiting || isPaid) ...[
+                    const SizedBox(height: 4),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isPaid
+                            ? Colors.green.withOpacity(0.25)
+                            : Colors.orange.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isPaid ? Icons.lock : Icons.access_time,
+                            size: 14,
+                            color: isPaid ? Colors.green : Colors.orange,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              isPaid
+                                  ? '✅ Cita Pagada y Asegurada'
+                                  : (isTech
+                                        ? '⏳ Cliente pagó vía ${(paymentMethod ?? '').toUpperCase()} — Confirma el pago'
+                                        : '⏳ Esperando confirmación del técnico...'),
+                              style: TextStyle(
+                                color: isPaid
+                                    ? Colors.green[800]
+                                    : Colors.orange[900],
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Confirm button (tech only while waiting)
+                    if (isTech && isWaiting) ...[
+                      const SizedBox(height: 6),
+                      _buildActionButton(
+                        label: '✔ Confirmar Pago Recibido',
+                        onPressed: () => _handleConfirmPayment(appointmentId),
+                        bgColor: AppColors.primary,
+                        fgColor: Colors.white,
+                      ),
+                    ],
+
+                    // Details link only when payment is involved
+                    const SizedBox(height: 4),
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () =>
+                            context.push('/appointment-details/$appointmentId'),
+                        icon: Icon(
+                          Icons.info_outline,
+                          size: 16,
+                          color: isMe ? Colors.white70 : AppColors.primary,
+                        ),
+                        label: Text(
+                          'Ver datos de la cita',
+                          style: TextStyle(
+                            color: isMe ? Colors.white70 : AppColors.primary,
+                            fontSize: 13,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  // Cancel Button (only if not paid)
+                  if (!isPaid)
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          final response = await _appointmentService
+                              .cancelAppointment(appointmentId);
+                          if (response.success) {
+                            _loadMessages(_otherUserId!);
+                          }
+                        },
+                        icon: const Icon(
+                          Icons.cancel_outlined,
+                          size: 16,
+                          color: Colors.redAccent,
+                        ),
+                        label: const Text(
+                          'Cancelar Cita',
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.redAccent),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                  if (isPaid)
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: null,
+                        icon: const Icon(Icons.lock_outline, size: 16),
+                        label: const Text('Cita Asegurada — No Cancelable'),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: Colors.grey.withOpacity(0.4)),
+                          foregroundColor: Colors.grey,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ],
             ),
           ),
@@ -463,6 +619,212 @@ class _ChatScreenState extends State<ChatScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildActionButton({
+    required String label,
+    required VoidCallback onPressed,
+    Color bgColor = AppColors.primary,
+    Color fgColor = Colors.white,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: onPressed,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: bgColor,
+            foregroundColor: fgColor,
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSetPriceDialog(int appointmentId) {
+    final priceController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F1F1),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Monto de Cita',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Establezca el monto final para este servicio:',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: priceController,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'S/. 0.00',
+                  filled: true,
+                  fillColor: Colors.white,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final price =
+                            double.tryParse(priceController.text) ?? 0;
+                        if (price > 0) {
+                          Navigator.pop(context);
+                          final response = await _appointmentService.setPrice(
+                            appointmentId,
+                            price,
+                          );
+                          if (response.success) {
+                            _loadMessages(_otherUserId!);
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: const Text('Asignar'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showPaymentMethodDialog(int appointmentId) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Método de Pago',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _paymentOption(Icons.qr_code, 'Yape', 'yape', appointmentId),
+              _paymentOption(
+                Icons.qr_code_scanner,
+                'Plin',
+                'plin',
+                appointmentId,
+              ),
+              _paymentOption(
+                Icons.account_balance,
+                'Transferencia',
+                'transfer',
+                appointmentId,
+              ),
+              _paymentOption(Icons.payments, 'Efectivo', 'cash', appointmentId),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _paymentOption(IconData icon, String label, String value, int id) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.primary),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+      onTap: () async {
+        Navigator.pop(context);
+        final response = await _appointmentService.payAppointment(id, value);
+        if (response.success) {
+          _loadMessages(_otherUserId!);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Pago registrado. Espera confirmación del técnico.',
+              ),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> _handleConfirmPayment(int id) async {
+    final response = await _appointmentService.confirmPayment(id);
+    if (response.success) {
+      _loadMessages(_otherUserId!);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Pago confirmado! Cita asegurada.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   Widget _buildDateSeparator(String label) {

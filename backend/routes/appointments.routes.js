@@ -54,6 +54,40 @@ router.put(
 );
 
 /**
+ * @route   PATCH /api/appointments/:id/price
+ * @desc    Set appointment price (Technician)
+ */
+router.patch(
+    '/:id/price',
+    authenticate,
+    [
+        body('price').isDecimal().withMessage('Valid price is required')
+    ],
+    validate,
+    appointmentsController.setAppointmentPrice
+);
+
+/**
+ * @route   POST /api/appointments/:id/pay
+ * @desc    Pay appointment (Client)
+ */
+router.post(
+    '/:id/pay',
+    authenticate,
+    [
+        body('paymentMethod').isIn(['yape', 'plin', 'transfer', 'cash']).withMessage('Invalid payment method')
+    ],
+    validate,
+    appointmentsController.payAppointment
+);
+
+/**
+ * @route   POST /api/appointments/:id/confirm-payment
+ * @desc    Confirm payment (Technician)
+ */
+router.post('/:id/confirm-payment', authenticate, appointmentsController.confirmPayment);
+
+/**
  * @route   DELETE /api/appointments/:id
  * @desc    Cancel appointment
  * @access  Private

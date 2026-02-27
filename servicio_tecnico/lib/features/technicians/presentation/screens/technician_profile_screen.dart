@@ -15,6 +15,10 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
   Map<String, dynamic>? _technicianData;
   bool _isLoading = true;
   String? _errorMessage;
+  // Service location passed from the map
+  double? _serviceLat;
+  double? _serviceLng;
+  String? _serviceAddress;
 
   @override
   void initState() {
@@ -46,12 +50,15 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
       } else if (extra is String) {
         techId = int.tryParse(extra);
       } else if (extra is Map<String, dynamic>) {
-        // En caso de que se pase un mapa, intentamos extraer el id
-        final id = extra['id'];
+        // Mapa nuevo con coordenadas: {techId, serviceLat, serviceLng, serviceAddress}
+        final id = extra['techId'] ?? extra['id'];
         if (id is int)
           techId = id;
         else if (id is String)
           techId = int.tryParse(id);
+        _serviceLat = (extra['serviceLat'] as num?)?.toDouble();
+        _serviceLng = (extra['serviceLng'] as num?)?.toDouble();
+        _serviceAddress = extra['serviceAddress'] as String?;
       }
 
       if (techId != null) {
@@ -242,7 +249,13 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
               child: ElevatedButton(
                 onPressed: () => context.push(
                   '/appointment-scheduling',
-                  extra: {'id': tech['id'], 'name': name},
+                  extra: {
+                    'id': tech['id'],
+                    'name': name,
+                    'serviceLat': _serviceLat,
+                    'serviceLng': _serviceLng,
+                    'serviceAddress': _serviceAddress,
+                  },
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF3B28FF),

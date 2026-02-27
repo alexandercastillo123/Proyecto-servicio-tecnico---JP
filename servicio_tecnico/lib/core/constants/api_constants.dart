@@ -6,11 +6,14 @@ class ApiConstants {
   // static const String baseUrl = 'http://192.168.1.57:3000/api';
 
   // Authentication Endpoints
-  static const String register = '$baseUrl/auth/register';
-  static const String login = '$baseUrl/auth/login';
-  static const String forgotPassword = '$baseUrl/auth/forgot-password';
-  static const String verifyCode = '$baseUrl/auth/verify-code';
-  static const String resetPassword = '$baseUrl/auth/reset-password';
+  static const String auth = '$baseUrl/auth';
+  static const String register = '$auth/register';
+  static const String login = '$auth/login';
+  static const String forgotPassword = '$auth/forgot-password';
+  static const String verifyCode = '$auth/verify-code';
+  static const String resetPassword = '$auth/reset-password';
+  static const String validateEmail = '$auth/validate-email';
+  static const String validateUsername = '$auth/validate-username';
 
   // User Endpoints
   static const String userProfile = '$baseUrl/users/profile';
