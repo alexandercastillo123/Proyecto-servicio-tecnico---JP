@@ -19,7 +19,9 @@ import '../../../../core/theme/app_colors.dart';
 /// - El botón "Buscar Técnicos" consulta /api/technicians/nearby (radio 5 km)
 ///   y muestra los técnicos con coords reales.
 class ServiceLocationMap extends StatefulWidget {
-  const ServiceLocationMap({super.key});
+  final Function(bool)? onLoadingChanged;
+
+  const ServiceLocationMap({super.key, this.onLoadingChanged});
 
   @override
   State<ServiceLocationMap> createState() => _ServiceLocationMapState();
@@ -36,6 +38,10 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
   bool _loadingTechs = false;
   String? _locationError;
   double _radius = 5.0; // km
+  Timer? _searchTimer;
+  int _searchSeconds = 0;
+  static const int _expansionThreshold =
+      15; // 15 segundos para pruebas, cambiar a 120 para 2 min
 
   // Lima - coordenada de fallback si no hay GPS
   static const LatLng _defaultLocation = LatLng(-12.0464, -77.0428);
@@ -120,9 +126,16 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
       _loadingTechs = true;
       _nearbyTechs = [];
       _selectedTech = null;
+      _searchSeconds = 0;
     });
 
+    _startSearchTimer();
+    widget.onLoadingChanged?.call(true);
+
     try {
+      // Efecto de carga profesional solicitado por el usuario
+      await Future.delayed(const Duration(milliseconds: 1500));
+
       final uri = Uri.parse(
         '${ApiConstants.baseUrl}/technicians/nearby'
         '?lat=${point.latitude}&lng=${point.longitude}&radius=$_radius',
@@ -133,7 +146,6 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
         final body = jsonDecode(response.body);
         final techs = body['resultado'] as List<dynamic>? ?? [];
 
-        // Ordenar por distancia (menor a mayor)
         techs.sort((a, b) {
           final distA =
               double.tryParse(a['distance_km']?.toString() ?? '999') ?? 999.0;
@@ -151,7 +163,7 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
             }).toList();
             _loadingTechs = false;
           });
-
+          widget.onLoadingChanged?.call(false);
           if (_nearbyTechs.isEmpty) {
             _showError('No se encontraron técnicos en este radio.');
           }
@@ -159,15 +171,65 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
       } else {
         if (mounted) {
           setState(() => _loadingTechs = false);
+          widget.onLoadingChanged?.call(false);
           _showError('Error al buscar técnicos (${response.statusCode})');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _loadingTechs = false);
+        widget.onLoadingChanged?.call(false);
+        _stopSearchTimer();
         _showError('Sin conexión al servidor');
       }
     }
+  }
+
+  void _startSearchTimer() {
+    _searchTimer?.cancel();
+    _searchTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _searchSeconds++;
+      });
+
+      if (_searchSeconds >= _expansionThreshold && _nearbyTechs.isEmpty) {
+        timer.cancel();
+        _expandSearch();
+      }
+    });
+  }
+
+  void _stopSearchTimer() {
+    _searchTimer?.cancel();
+    setState(() {
+      _searchSeconds = 0;
+    });
+  }
+
+  void _expandSearch() {
+    setState(() {
+      _radius += 5.0; // Expandir de 5 en 5 km
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Expandiendo radio de búsqueda a ${_radius.toInt()} km...',
+        ),
+        backgroundColor: AppColors.primary,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    _searchNearbyTechnicians();
+  }
+
+  @override
+  void dispose() {
+    _searchTimer?.cancel();
+    super.dispose();
   }
 
   void _showError(String msg) {

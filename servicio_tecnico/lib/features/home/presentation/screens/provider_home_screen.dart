@@ -5,6 +5,7 @@ import '../../../../core/services/message_service.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/constants/assets.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class ProviderHomeScreen extends StatefulWidget {
   const ProviderHomeScreen({super.key});
@@ -109,7 +110,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
@@ -140,12 +141,21 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                                 height: 50,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: const Color(0xFF3B28FF),
-                                    width: 2,
+                                  gradient: AppColors.primaryGradient,
+                                  boxShadow: AppColors.softShadow,
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(2.0),
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: ClipOval(
+                                      child: _buildProfileImage(),
+                                    ),
                                   ),
                                 ),
-                                child: ClipOval(child: _buildProfileImage()),
                               ),
                             ),
                           ],
@@ -155,16 +165,16 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                       const SizedBox(height: 10),
 
                       // ── Consultas de Clientes ────────────────────────────
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            'Consultas de Clientes:',
+                            'Consultas de Clientes',
                             style: TextStyle(
-                              color: Color(0xFF3B28FF),
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
+                              color: AppColors.textPrimary,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -179,16 +189,16 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                       const SizedBox(height: 20),
 
                       // ── Propuestas de Chamba ─────────────────────────────
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Align(
                           alignment: Alignment.centerLeft,
                           child: Text(
-                            'Propuestas de Chamba:',
+                            'Propuestas de Chamba',
                             style: TextStyle(
-                              color: Color(0xFF3B28FF),
-                              fontSize: 18,
-                              fontWeight: FontWeight.w500,
+                              color: AppColors.textPrimary,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -265,8 +275,9 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFE0E0E0),
-        borderRadius: BorderRadius.circular(20),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: AppColors.softShadow,
       ),
       child: items.isEmpty
           ? Padding(
@@ -348,7 +359,10 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
               padding: const EdgeInsets.all(5),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF3B28FF), width: 2),
+                gradient: unreadCount > 0 ? AppColors.primaryGradient : null,
+                border: unreadCount == 0
+                    ? Border.all(color: AppColors.primaryLight, width: 2)
+                    : null,
               ),
               child: const Icon(
                 Icons.person_outline,

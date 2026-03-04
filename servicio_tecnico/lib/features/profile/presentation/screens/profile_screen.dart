@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/constants/api_constants.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -238,7 +239,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final profileImg = user['profile_image_url'] ?? '';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -246,25 +247,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => context.pop(),
-                    icon: const Icon(
-                      Icons.arrow_left,
-                      color: AppColors.primary,
-                    ),
-                    label: const Text(
-                      'Regresar',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 30),
                 const SizedBox(height: 20),
                 Stack(
                   children: [
@@ -281,7 +264,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             ? NetworkImage(
                                 profileImg.startsWith('http')
                                     ? profileImg
-                                    : 'http://10.0.2.2:3000$profileImg',
+                                    : '${ApiConstants.baseUrl}$profileImg',
                               )
                             : null,
                         child: profileImg.isEmpty
@@ -388,46 +371,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 60),
                 SizedBox(
                   width: double.infinity,
-                  height: 60,
+                  height: 56,
                   child: ElevatedButton(
                     onPressed: _showEditDialog,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFCDCDCD),
+                      backgroundColor: Colors.white,
                       foregroundColor: AppColors.primary,
+                      side: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
-                      'Editar Datos',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.edit_outlined, size: 20),
+                        SizedBox(width: 10),
+                        Text(
+                          'Editar Datos',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  height: 60,
-                  child: ElevatedButton(
+                  height: 56,
+                  child: TextButton(
                     onPressed: () => context.go('/login'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFCDCDCD),
-                      foregroundColor: AppColors.primary,
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.redAccent,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      elevation: 0,
                     ),
-                    child: const Text(
-                      'Cerrar Sesión',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.logout, size: 20),
+                        SizedBox(width: 10),
+                        Text(
+                          'Cerrar Sesión',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),

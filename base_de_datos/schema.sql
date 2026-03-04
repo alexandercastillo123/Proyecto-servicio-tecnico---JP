@@ -99,3 +99,29 @@ CREATE TABLE IF NOT EXISTS reviews (
     FOREIGN KEY (client_id) REFERENCES users(id),
     FOREIGN KEY (technician_id) REFERENCES users(id)
 );
+
+-- 7. Sucursales
+CREATE TABLE if NOT EXISTS sucursales(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    address TEXT NOT NULL,
+    city VARCHAR(100) NOT NULL,
+    state VARCHAR(100) NOT NULL,
+    zip_code VARCHAR(20) NOT NULL,
+    country VARCHAR(100) NOT NULL,
+    phone VARCHAR(20) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 8. Citas en Sucursales
+CREATE TABLE IF NOT EXISTS sucursales_citas(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sucursal_id INT NOT NULL,
+    cita_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE,
+    FOREIGN KEY (cita_id) REFERENCES appointments(id) ON DELETE CASCADE
+);
