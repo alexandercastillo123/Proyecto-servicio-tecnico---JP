@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/technician_service.dart';
+import '../../../../core/constants/api_constants.dart';
 
 class TechnicianProfileScreen extends StatefulWidget {
   const TechnicianProfileScreen({super.key});
@@ -164,7 +165,7 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                         child: Image.network(
                           profileImg.startsWith('http')
                               ? profileImg
-                              : 'http://10.0.2.2:3000${profileImg.startsWith('/') ? '' : '/'}$profileImg',
+                              : '${ApiConstants.baseUrl}${profileImg.startsWith('/') ? '' : '/'}$profileImg',
                           fit: BoxFit.cover,
                           width: 120,
                           height: 120,

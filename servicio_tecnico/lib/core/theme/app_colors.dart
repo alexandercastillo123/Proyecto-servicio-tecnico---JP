@@ -24,4 +24,34 @@ class AppColors {
   // Specific UI Elements
   static const Color inputBorder = Color(0xFFE0E0E0);
   static const Color divider = Color(0xFFEEEEEE);
+
+  // Premium Gradients
+  static const Gradient primaryGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF3B28FF), Color(0xFF6E5FFF)],
+  );
+
+  static const Gradient accentGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+  );
+
+  // Premium Shadows
+  static List<BoxShadow> softShadow = [
+    BoxShadow(
+      color: Colors.black.withOpacity(0.08),
+      blurRadius: 15,
+      offset: const Offset(0, 5),
+    ),
+  ];
+
+  static List<BoxShadow> intenseShadow = [
+    BoxShadow(
+      color: primary.withOpacity(0.2),
+      blurRadius: 20,
+      offset: const Offset(0, 10),
+    ),
+  ];
 }

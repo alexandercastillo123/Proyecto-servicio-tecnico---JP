@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/mini_location_map.dart';
 
 class AppointmentDetailsScreen extends StatefulWidget {
   final int appointmentId;
@@ -209,7 +210,13 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
                       'Coordenadas',
                       '${double.tryParse(app['service_lat'].toString())?.toStringAsFixed(5)}, ${double.tryParse(app['service_lng'].toString())?.toStringAsFixed(5)}',
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
+                    MiniLocationMap(
+                      latitude: double.parse(app['service_lat'].toString()),
+                      longitude: double.parse(app['service_lng'].toString()),
+                      height: 180,
+                    ),
+                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
