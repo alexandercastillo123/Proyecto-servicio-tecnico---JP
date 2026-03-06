@@ -5,6 +5,7 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/service_location_map.dart';
+import '../widgets/store_map_widget.dart'; // Nuevo
 
 class ClientHomeScreen extends StatefulWidget {
   const ClientHomeScreen({super.key});
@@ -49,110 +50,162 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         child: IndexedStack(
           index: _currentIndex,
           children: [
-            _buildMapTab(),
-            _buildRecentTechsTab(),
-            _buildProfileTab(),
+            _buildMapTab(), // 0 - Técnicos
+            _buildStoresTab(), // 1 - Tiendas
+            _buildRecentTechsTab(), // 2 - Mensajes
+            _buildProfileTab(), // 3 - Perfil
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-            ),
-          ],
+      bottomNavigationBar: _buildBottomNavBar(),
+    );
+  }
+
+  Widget _buildBottomNavBar() {
+    final hasUnread = _recentChats.any((c) => (c['unread_count'] ?? 0) > 0);
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 20,
+            offset: Offset(0, -4),
+          ),
+        ],
+      ),
+      child: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() => _currentIndex = index);
+          if (index == 2) _loadRecentChats(); // Mensajes ahora es index 2
+        },
+        backgroundColor: Colors.transparent,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: Colors.grey.shade400,
+        type: BottomNavigationBarType.fixed,
+        elevation: 0,
+        selectedLabelStyle: const TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 12,
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() => _currentIndex = index);
-            if (index == 1) _loadRecentChats();
-          },
-          backgroundColor: Colors.white,
-          selectedItemColor: AppColors.primary,
-          unselectedItemColor: Colors.grey,
-          type: BottomNavigationBarType.fixed,
-          elevation: 0,
-          items: [
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.map_outlined),
-              activeIcon: Icon(Icons.map),
-              label: 'Mapa',
-            ),
-            BottomNavigationBarItem(
-              icon: Stack(
-                children: [
-                  const Icon(Icons.chat_bubble_outline),
-                  if (_recentChats.any((c) => (c['unread_count'] ?? 0) > 0))
-                    Positioned(
-                      right: -2,
-                      top: -2,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.green, // Más profesional para chats
-                          shape: BoxShape.circle,
-                        ),
-                        constraints: const BoxConstraints(
-                          minWidth: 10,
-                          minHeight: 10,
-                        ),
+        items: [
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.map_outlined),
+            activeIcon: Icon(Icons.map),
+            label: 'Técnicos',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.store_outlined),
+            activeIcon: Icon(Icons.store),
+            label: 'Tiendas',
+          ),
+          BottomNavigationBarItem(
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.chat_bubble_outline),
+                if (hasUnread)
+                  Positioned(
+                    right: -4,
+                    top: -4,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
                       ),
                     ),
-                ],
-              ),
-              activeIcon: const Icon(Icons.chat_bubble),
-              label: 'Mensajes',
+                  ),
+              ],
             ),
-            const BottomNavigationBarItem(
-              icon: Icon(Icons.account_circle_outlined),
-              activeIcon: Icon(Icons.account_circle),
-              label: 'Perfil',
+            activeIcon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                const Icon(Icons.chat_bubble),
+                if (hasUnread)
+                  Positioned(
+                    right: -4,
+                    top: -4,
+                    child: Container(
+                      width: 10,
+                      height: 10,
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
             ),
-          ],
-        ),
+            label: 'Mensajes',
+          ),
+          const BottomNavigationBarItem(
+            icon: Icon(Icons.account_circle_outlined),
+            activeIcon: Icon(Icons.account_circle),
+            label: 'Perfil',
+          ),
+        ],
       ),
     );
   }
 
+  // ─── TAB 1: MAPA DE TÉCNICOS ────────────────────────────────────────────
   Widget _buildMapTab() {
     return Stack(
       children: [
         Column(
           children: [
-            // 1. Custom Header (Simplified)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            // Header
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Image.asset(
-                    'assets/images/logo.png',
-                    height: 40,
-                    fit: BoxFit.contain,
-                  ), // Fallback seguro
-                  const Text(
-                    'Explorar Técnicos',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Explorar Técnicos',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      Text(
+                        'Toca el mapa para elegir el punto de servicio',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  CircleAvatar(
+                    backgroundColor: AppColors.primaryLight,
+                    radius: 20,
+                    child: Icon(
+                      Icons.search,
                       color: AppColors.primary,
+                      size: 20,
                     ),
                   ),
                 ],
               ),
             ),
 
-            // 2. Map Container
+            // Técnico Reciente (sección separada, encima del mapa)
+            if (_recentChats.isNotEmpty) _buildRecentBanner(),
+
+            // Mapa
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                 child: ClipRRect(
-                  borderRadius: const BorderRadius.all(Radius.circular(30)),
+                  borderRadius: const BorderRadius.all(Radius.circular(24)),
                   child: ServiceLocationMap(
                     onLoadingChanged: (loading) {
                       setState(() => _isLoadingSearch = loading);
@@ -163,12 +216,17 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             ),
           ],
         ),
+
+        // Overlay de carga global
         if (_isLoadingSearch)
           Container(
-            color: Colors.black.withOpacity(0.35),
+            color: Colors.black26,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 20,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -181,15 +239,14 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                       valueColor: AlwaysStoppedAnimation<Color>(
                         AppColors.primary,
                       ),
-                      strokeWidth: 5,
+                      strokeWidth: 4,
                     ),
-                    const SizedBox(height: 20),
-                    Text(
+                    const SizedBox(height: 16),
+                    const Text(
                       'Buscando los mejores técnicos...',
                       style: TextStyle(
-                        color: AppColors.primary,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        color: AppColors.primary,
                       ),
                     ),
                   ],
@@ -201,102 +258,362 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     );
   }
 
-  Widget _buildRecentTechsTab() {
-    return Column(
+  // ─── TAB 2: MAPA DE TIENDAS ─────────────────────────────────────────────
+  Widget _buildStoresTab() {
+    return Stack(
       children: [
-        const Padding(
-          padding: EdgeInsets.all(24.0),
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              'Técnicos Recientes',
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          child: _isLoadingRecent
-              ? const Center(child: CircularProgressIndicator())
-              : _recentChats.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+        Column(
+          children: [
+            // Header unificado (Estilo SerTec Azul)
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.history, size: 80, color: Colors.grey[300]),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Aún no tienes técnicos recientes',
-                        style: TextStyle(color: Colors.grey),
+                      Text(
+                        'Tiendas Cercanas',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      Text(
+                        'Puntos de servicio autorizados J&P',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.grey.shade500,
+                        ),
                       ),
                     ],
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: _recentChats.length,
-                  itemBuilder: (context, index) {
-                    final chat = _recentChats[index];
-                    return _buildRecentTechCard(chat);
-                  },
+                  CircleAvatar(
+                    backgroundColor: AppColors.primaryLight,
+                    radius: 20,
+                    child: Icon(
+                      Icons.store,
+                      color: AppColors.primary,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Mapa de Tiendas con mismo estilo que Técnicos
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.all(Radius.circular(24)),
+                  child: StoreMapWidget(
+                    onLoadingChanged: (loading) {
+                      setState(() => _isLoadingSearch = loading);
+                    },
+                  ),
                 ),
+              ),
+            ),
+          ],
         ),
+
+        // Overlay de carga global (compartido)
+        if (_isLoadingSearch)
+          Container(
+            color: Colors.black26,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 20,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: AppColors.intenseShadow,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        AppColors.primary,
+                      ),
+                      strokeWidth: 4,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Buscando tiendas cercanas...',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
       ],
+    );
+  }
+
+  Widget _buildRecentBanner() {
+    if (_isLoadingRecent) {
+      return const SizedBox(
+        height: 48,
+        child: Center(child: LinearProgressIndicator()),
+      );
+    }
+    final recent = _recentChats.first;
+    final unread = (recent['unread_count'] ?? 0) as int;
+    final rawUrl = recent['profile_image_url']?.toString();
+    final name = recent['username'] ?? 'Técnico';
+    final lastMsg = recent['last_message'] ?? 'Sin mensajes recientes';
+
+    return GestureDetector(
+      onTap: () =>
+          context.push('/technician-profile', extra: recent['other_user_id']),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: AppColors.softShadow,
+          border: unread > 0
+              ? Border.all(
+                  color: AppColors.primary.withOpacity(0.3),
+                  width: 1.5,
+                )
+              : null,
+        ),
+        child: Row(
+          children: [
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: AppColors.primaryLight,
+                  backgroundImage: (rawUrl != null && rawUrl.isNotEmpty)
+                      ? NetworkImage(
+                          rawUrl.startsWith('http')
+                              ? rawUrl
+                              : '${ApiConstants.baseUrl}/$rawUrl',
+                        )
+                      : null,
+                  child: (rawUrl == null || rawUrl.isEmpty)
+                      ? const Icon(
+                          Icons.person,
+                          color: AppColors.primary,
+                          size: 22,
+                        )
+                      : null,
+                ),
+                if (unread > 0)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 16,
+                      height: 16,
+                      decoration: const BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          '$unread',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryLight,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Text(
+                          'Reciente',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    lastMsg,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.primary, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── TAB 2: MENSAJES RECIENTES ─────────────────────────────────────────
+  Widget _buildRecentTechsTab() {
+    return RefreshIndicator(
+      color: AppColors.primary,
+      onRefresh: _loadRecentChats,
+      child: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            floating: true,
+            pinned: false,
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Mensajes',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 22,
+                  ),
+                ),
+                Text(
+                  'Técnicos con los que hablaste',
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 12,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (_isLoadingRecent)
+            const SliverFillRemaining(
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (_recentChats.isEmpty)
+            SliverFillRemaining(
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.chat_bubble_outline,
+                      size: 72,
+                      color: Colors.grey.shade300,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Aún no tienes conversaciones',
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Busca técnicos en el Mapa para comenzar',
+                      style: TextStyle(
+                        color: Colors.grey.shade400,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              sliver: SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, index) => _buildRecentTechCard(_recentChats[index]),
+                  childCount: _recentChats.length,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
   Widget _buildRecentTechCard(dynamic chat) {
     final unreadCount = chat['unread_count'] ?? 0;
     final rawUrl = chat['profile_image_url']?.toString();
-    final name = chat['username'] ?? 'Usuario';
+    final name = chat['username'] ?? 'Técnico';
+    final lastMsg = chat['last_message'] ?? '';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
         boxShadow: AppColors.softShadow,
+        border: unreadCount > 0
+            ? Border.all(color: AppColors.primary.withOpacity(0.25), width: 1.5)
+            : null,
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         leading: Stack(
           children: [
-            Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: unreadCount > 0 ? AppColors.primaryGradient : null,
-              ),
-              child: CircleAvatar(
-                radius: 28,
-                backgroundColor: AppColors.primaryLight,
-                backgroundImage: (rawUrl != null && rawUrl.isNotEmpty)
-                    ? NetworkImage(
-                        rawUrl.startsWith('http')
-                            ? rawUrl
-                            : '${ApiConstants.baseUrl}${rawUrl.startsWith('/') ? '' : '/'}$rawUrl',
-                      )
-                    : null,
-                child: (rawUrl == null || rawUrl.isEmpty)
-                    ? const Icon(Icons.person, color: AppColors.primary)
-                    : null,
-              ),
+            CircleAvatar(
+              radius: 26,
+              backgroundColor: AppColors.primaryLight,
+              backgroundImage: (rawUrl != null && rawUrl.isNotEmpty)
+                  ? NetworkImage(
+                      rawUrl.startsWith('http')
+                          ? rawUrl
+                          : '${ApiConstants.baseUrl}/$rawUrl',
+                    )
+                  : null,
+              child: (rawUrl == null || rawUrl.isEmpty)
+                  ? const Icon(Icons.person, color: AppColors.primary)
+                  : null,
             ),
             if (unreadCount > 0)
               Positioned(
                 right: 0,
                 bottom: 0,
                 child: Container(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(5),
                   decoration: const BoxDecoration(
                     color: Colors.green,
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(color: Colors.black26, blurRadius: 4),
-                    ],
                   ),
                   child: Text(
                     '$unreadCount',
@@ -310,19 +627,51 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
               ),
           ],
         ),
-        title: Text(
-          name,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        title: Row(
+          children: [
+            Text(
+              name,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            ),
+            if (unreadCount > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.green,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text(
+                  'Nuevo',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
-        subtitle: const Text('Ver perfil y contactar'),
+        subtitle: lastMsg.isNotEmpty
+            ? Text(
+                lastMsg,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+              )
+            : const Text(
+                'Ver perfil del técnico',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
         trailing: const Icon(Icons.chevron_right, color: AppColors.primary),
-        onTap: () {
-          context.push('/technician-profile', extra: chat['other_user_id']);
-        },
+        onTap: () =>
+            context.push('/technician-profile', extra: chat['other_user_id']),
       ),
     );
   }
 
+  // ─── TAB 3: PERFIL ─────────────────────────────────────────────────────
   Widget _buildProfileTab() {
     return const ProfileScreen();
   }

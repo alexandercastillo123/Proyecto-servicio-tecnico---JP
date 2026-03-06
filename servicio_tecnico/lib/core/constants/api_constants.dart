@@ -46,6 +46,13 @@ class ApiConstants {
   static String cancelOffer(int id) => '$baseUrl/messages/offer/$id/cancel';
   static String markAsRead(int id) => '$baseUrl/messages/$id/read';
 
+  // Store / Sucursales Endpoints
+  static const String sucursales = '$baseUrl/sucursales';
+  static const String nearbyStores = '$baseUrl/sucursales/nearby';
+  static String storeById(int id) => '$baseUrl/sucursales/$id';
+  static String storeProducts(int id) => '$baseUrl/sucursales/$id/products';
+  static const String addStoreProduct = '$baseUrl/sucursales/products';
+
   // Health Check
   static const String health = 'http://localhost:3000/health';
 }

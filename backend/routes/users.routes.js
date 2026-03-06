@@ -48,4 +48,11 @@ router.post(
  */
 router.get('/:id', usersController.getUserById);
 
+/**
+ * @route   PATCH /api/users/availability
+ * @desc    Toggle technician availability (active/inactive)
+ * @access  Private (Tech only)
+ */
+router.patch('/availability', authenticate, usersController.toggleAvailability);
+
 module.exports = router;

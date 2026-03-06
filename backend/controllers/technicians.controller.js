@@ -21,6 +21,7 @@ const getTechnicians = async (req, res) => {
       FROM users u
       INNER JOIN user_profiles up ON u.id = up.user_id
       WHERE u.role = 'tech'
+        AND (up.is_available IS NULL OR up.is_available = TRUE)
     `;
 
         const params = [];
@@ -46,7 +47,7 @@ const getTechnicians = async (req, res) => {
         }
 
         // Get total count
-        let countQuery = 'SELECT COUNT(*) as total FROM users u INNER JOIN user_profiles up ON u.id = up.user_id WHERE u.role = "tech"';
+        let countQuery = 'SELECT COUNT(*) as total FROM users u INNER JOIN user_profiles up ON u.id = up.user_id WHERE u.role = "tech" AND (up.is_available IS NULL OR up.is_available = TRUE)';
         const countParams = [];
 
         if (city) {
@@ -186,6 +187,7 @@ const getNearbyTechnicians = async (req, res) => {
             WHERE u.role = 'tech'
               AND up.latitude IS NOT NULL
               AND up.longitude IS NOT NULL
+              AND (up.is_available IS NULL OR up.is_available = TRUE)
             HAVING distance_km <= ?
             ORDER BY distance_km ASC
             LIMIT 50

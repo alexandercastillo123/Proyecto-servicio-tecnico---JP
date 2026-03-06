@@ -43,8 +43,10 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
   static const int _expansionThreshold =
       15; // 15 segundos para pruebas, cambiar a 120 para 2 min
 
-  // Lima - coordenada de fallback si no hay GPS
-  static const LatLng _defaultLocation = LatLng(-12.0464, -77.0428);
+  static const LatLng _defaultLocation = LatLng(
+    -12.0453,
+    -77.0428,
+  ); // Plaza Dos de Mayo
 
   @override
   void initState() {
@@ -99,8 +101,7 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
       if (mounted) {
         setState(() {
           _clientLocation = LatLng(pos.latitude, pos.longitude);
-          _servicePoint =
-              _clientLocation; // punto inicial = ubicación del cliente
+          _servicePoint = _clientLocation;
           _loadingLocation = false;
         });
         _mapController.move(_clientLocation!, 15.0);
@@ -118,23 +119,37 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
 
   // ─── Buscar Técnicos ──────────────────────────────────────────────────────
 
-  Future<void> _searchNearbyTechnicians() async {
+  bool _isSearchActive = false; // bandera para evitar expansiones múltiples
+
+  Future<void> _searchNearbyTechnicians({bool isManual = true}) async {
+    // Si es búsqueda manual del usuario, siempre reseteamos todo
+    if (isManual) {
+      _stopSearchTimer();
+      _radius = 5.0; // Reiniciar radio en búsqueda manual
+      _isSearchActive = true;
+    }
+
     final point = _servicePoint ?? _clientLocation;
     if (point == null) return;
 
-    setState(() {
-      _loadingTechs = true;
-      _nearbyTechs = [];
-      _selectedTech = null;
-      _searchSeconds = 0;
-    });
+    if (mounted) {
+      setState(() {
+        _loadingTechs = true;
+        _nearbyTechs = [];
+        _selectedTech = null;
+        _searchSeconds = 0;
+      });
+    }
 
-    _startSearchTimer();
     widget.onLoadingChanged?.call(true);
 
+    // Solo inicia el timer de expansión si es búsqueda activa
+    if (_isSearchActive && isManual) {
+      _startSearchTimer();
+    }
+
     try {
-      // Efecto de carga profesional solicitado por el usuario
-      await Future.delayed(const Duration(milliseconds: 1500));
+      await Future.delayed(const Duration(milliseconds: 1200));
 
       final uri = Uri.parse(
         '${ApiConstants.baseUrl}/technicians/nearby'
@@ -155,24 +170,41 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
         });
 
         if (mounted) {
+          final filtered = techs.where((t) {
+            final lat = t['latitude'];
+            final lng = t['longitude'];
+            return lat != null && lng != null;
+          }).toList();
+
           setState(() {
-            _nearbyTechs = techs.where((t) {
-              final lat = t['latitude'];
-              final lng = t['longitude'];
-              return lat != null && lng != null;
-            }).toList();
+            _nearbyTechs = filtered;
             _loadingTechs = false;
           });
+
           widget.onLoadingChanged?.call(false);
-          if (_nearbyTechs.isEmpty) {
-            _showError('No se encontraron técnicos en este radio.');
+
+          if (filtered.isEmpty) {
+            // No encontró - el timer sigue corriendo para expandir automáticamente
+            _showSnack(
+              'No se hallaron técnicos a ${_radius.toInt()} km. Esperando expansión...',
+              Colors.orange,
+            );
+          } else {
+            // Encontró técnicos: detener todo
+            _stopSearchTimer();
+            _isSearchActive = false;
           }
         }
       } else {
         if (mounted) {
           setState(() => _loadingTechs = false);
           widget.onLoadingChanged?.call(false);
-          _showError('Error al buscar técnicos (${response.statusCode})');
+          _stopSearchTimer();
+          _isSearchActive = false;
+          _showSnack(
+            'Error al buscar técnicos (${response.statusCode})',
+            Colors.red,
+          );
         }
       }
     } catch (e) {
@@ -180,7 +212,8 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
         setState(() => _loadingTechs = false);
         widget.onLoadingChanged?.call(false);
         _stopSearchTimer();
-        _showError('Sin conexión al servidor');
+        _isSearchActive = false;
+        _showSnack('Sin conexión al servidor', Colors.red);
       }
     }
   }
@@ -192,12 +225,12 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
         timer.cancel();
         return;
       }
-      setState(() {
-        _searchSeconds++;
-      });
+      setState(() => _searchSeconds++);
 
-      if (_searchSeconds >= _expansionThreshold && _nearbyTechs.isEmpty) {
-        timer.cancel();
+      // Solo expandir si aún estamos en búsqueda activa y sin resultados
+      if (_searchSeconds >= _expansionThreshold &&
+          _nearbyTechs.isEmpty &&
+          !_loadingTechs) {
         _expandSearch();
       }
     });
@@ -205,25 +238,31 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
 
   void _stopSearchTimer() {
     _searchTimer?.cancel();
-    setState(() {
-      _searchSeconds = 0;
-    });
+    _searchTimer = null;
+    if (mounted) setState(() => _searchSeconds = 0);
   }
 
   void _expandSearch() {
+    if (!_isSearchActive) return; // No expandir si ya se canceló la búsqueda
     setState(() {
-      _radius += 5.0; // Expandir de 5 en 5 km
+      _radius += 5.0;
+      _searchSeconds = 0; // Resetear contador para el próximo ciclo
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Expandiendo radio de búsqueda a ${_radius.toInt()} km...',
-        ),
-        backgroundColor: AppColors.primary,
-        duration: const Duration(seconds: 2),
-      ),
+    _showSnack(
+      '🔍 Expandiendo radio a ${_radius.toInt()} km...',
+      AppColors.primary,
     );
-    _searchNearbyTechnicians();
+    // Búsqueda automática - no reinicia el timer, el timer ya está corriendo
+    _searchNearbyTechnicians(isManual: false);
+  }
+
+  void _cancelSearch() {
+    _stopSearchTimer();
+    _isSearchActive = false;
+    if (mounted) {
+      setState(() => _loadingTechs = false);
+      widget.onLoadingChanged?.call(false);
+    }
   }
 
   @override
@@ -232,10 +271,17 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
     super.dispose();
   }
 
-  void _showError(String msg) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
+  void _showSnack(String msg, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: color,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   // ─── Nombre del técnico ───────────────────────────────────────────────────
@@ -362,15 +408,13 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
       );
     }
 
-    final center = _clientLocation ?? _defaultLocation;
-
     return Stack(
       children: [
         // ── Mapa ──────────────────────────────────────────────────────────
         FlutterMap(
           mapController: _mapController,
           options: MapOptions(
-            initialCenter: center,
+            initialCenter: _clientLocation ?? _defaultLocation,
             initialZoom: 14.0,
             onTap: (tapPos, point) {
               setState(() {
@@ -691,36 +735,64 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
           left: 0,
           right: 0,
           child: Center(
-            child: _loadingTechs
-                ? Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: const [
-                        BoxShadow(color: Colors.black26, blurRadius: 8),
-                      ],
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+            child: _isSearchActive && _loadingTechs
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
                         ),
-                        SizedBox(width: 10),
-                        Text('Buscando técnicos...'),
-                      ],
-                    ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: AppColors.softShadow,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Buscando en ${_radius.toInt()} km...',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: _cancelSearch,
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.stop,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
                   )
                 : Hero(
                     tag: 'search_button',
                     child: ElevatedButton.icon(
-                      onPressed: _searchNearbyTechnicians,
+                      onPressed: () => _searchNearbyTechnicians(isManual: true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
@@ -737,7 +809,7 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
                       label: Text(
                         _nearbyTechs.isEmpty
                             ? 'Buscar técnicos cercanos'
-                            : '${_nearbyTechs.length} encontrados (Radio ${_radius.toInt()}km)',
+                            : '${_nearbyTechs.length} encontrados · Volver a buscar',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                     ),
