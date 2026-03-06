@@ -15,7 +15,7 @@ const getProfile = async (req, res) => {
         up.phone, up.profile_image_url, up.address, up.city,
         up.person_type, up.names, up.surnames, up.dni,
         up.company_name, up.ruc, up.reference_address,
-        up.rating, up.reviews_count
+        up.rating, up.reviews_count, up.is_available
       FROM users u
       LEFT JOIN user_profiles up ON u.id = up.user_id
       WHERE u.id = ?`,
@@ -202,9 +202,47 @@ const getUserById = async (req, res) => {
     }
 };
 
+/**
+ * Toggle technician availability status
+ */
+const toggleAvailability = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const userId = req.user.id;
+        const { is_available } = req.body;
+
+        if (typeof is_available !== 'boolean') {
+            respuesta.mensaje = 'El campo is_available debe ser true o false';
+            return res.status(400).json(respuesta);
+        }
+
+        const dbRes = await db.ejecutar(
+            'UPDATE user_profiles SET is_available = ? WHERE user_id = ?',
+            [is_available, userId]
+        );
+
+        if (!dbRes.exito) {
+            respuesta.mensaje = 'Error al actualizar disponibilidad';
+            return res.status(500).json(respuesta);
+        }
+
+        respuesta.exito = true;
+        respuesta.estado = 200;
+        respuesta.mensaje = is_available ? 'Ahora estás disponible' : 'Ahora estás inactivo';
+        respuesta.resultado = { is_available };
+        res.json(respuesta);
+
+    } catch (error) {
+        console.error('Toggle availability error:', error);
+        respuesta.mensaje = 'Error al cambiar disponibilidad: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
 module.exports = {
     getProfile,
     updateProfile,
     uploadPhoto,
-    getUserById
+    getUserById,
+    toggleAvailability
 };

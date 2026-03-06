@@ -1,144 +1,332 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/assets.dart';
+import 'package:image_picker/image_picker.dart';
+import '../../../../core/services/user_service.dart';
+import '../../../../core/constants/api_constants.dart';
+import '../../../../core/theme/app_colors.dart';
 
-class ChangePhotoScreen extends StatelessWidget {
+class ChangePhotoScreen extends StatefulWidget {
   const ChangePhotoScreen({super.key});
+
+  @override
+  State<ChangePhotoScreen> createState() => _ChangePhotoScreenState();
+}
+
+class _ChangePhotoScreenState extends State<ChangePhotoScreen> {
+  final UserService _userService = UserService();
+  final ImagePicker _picker = ImagePicker();
+
+  File? _selectedImage;
+  String? _currentPhotoUrl;
+  bool _isUploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentPhoto();
+  }
+
+  Future<void> _loadCurrentPhoto() async {
+    final res = await _userService.getProfile();
+    if (res.success && mounted) {
+      final rawUrl = res.data?['profile_image_url']?.toString().trim();
+      if (rawUrl != null && rawUrl.isNotEmpty) {
+        setState(() {
+          _currentPhotoUrl = rawUrl.startsWith('http')
+              ? rawUrl
+              : '${ApiConstants.baseUrl}/$rawUrl';
+        });
+      }
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    final picked = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 800,
+    );
+    if (picked != null && mounted) {
+      setState(() => _selectedImage = File(picked.path));
+    }
+  }
+
+  Future<void> _pickFromCamera() async {
+    final picked = await _picker.pickImage(
+      source: ImageSource.camera,
+      imageQuality: 85,
+      maxWidth: 800,
+    );
+    if (picked != null && mounted) {
+      setState(() => _selectedImage = File(picked.path));
+    }
+  }
+
+  Future<void> _uploadPhoto() async {
+    if (_selectedImage == null) return;
+    setState(() => _isUploading = true);
+    try {
+      final res = await _userService.uploadPhoto(_selectedImage!.path);
+      if (!mounted) return;
+      if (res.success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('¡Foto actualizada correctamente!'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+        context.pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(res.message ?? 'Error al subir la foto'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error de conexión'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              const SizedBox(height: 10),
-              // Back Button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => context.pop(),
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  IconButton(
                     icon: const Icon(
-                      Icons.arrow_left,
-                      color: Color(0xFF3B28FF),
+                      Icons.arrow_back_ios,
+                      color: AppColors.primary,
                     ),
-                    label: const Text(
-                      'Regresar',
-                      style: TextStyle(
-                        color: Color(0xFF3B28FF),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                    onPressed: () => context.pop(),
                   ),
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
-              const Text(
-                'Cambiar Foto de Perfil',
-                style: TextStyle(
-                  color: Color(0xFF3B28FF),
-                  fontSize: 28,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Top Image Preview
-              Center(
-                child: Container(
-                  width: 250,
-                  height: 250,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(150),
-                    child: Image.asset(
-                      AppAssets.providerPhoto,
-                      fit: BoxFit.cover,
+                  const Text(
+                    'Cambiar Foto de Perfil',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
+                ],
               ),
+            ),
 
-              const SizedBox(height: 30),
-
-              // Gallery Section
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 24),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0F0F0),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(30),
-                  ),
-                ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
-                    const Text(
-                      'Seleccione una foto de su galería:',
+                    const SizedBox(height: 20),
+
+                    // Preview de la foto
+                    Center(
+                      child: Stack(
+                        children: [
+                          Container(
+                            width: 180,
+                            height: 180,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.primary,
+                                width: 3,
+                              ),
+                              boxShadow: AppColors.softShadow,
+                            ),
+                            child: ClipOval(
+                              child: _selectedImage != null
+                                  ? Image.file(
+                                      _selectedImage!,
+                                      fit: BoxFit.cover,
+                                    )
+                                  : _currentPhotoUrl != null
+                                  ? Image.network(
+                                      _currentPhotoUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) =>
+                                          _defaultAvatar(),
+                                    )
+                                  : _defaultAvatar(),
+                            ),
+                          ),
+                          Positioned(
+                            bottom: 8,
+                            right: 8,
+                            child: GestureDetector(
+                              onTap: _pickFromGallery,
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  shape: BoxShape.circle,
+                                  boxShadow: AppColors.softShadow,
+                                ),
+                                child: const Icon(
+                                  Icons.edit,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+                    Text(
+                      _selectedImage != null
+                          ? 'Nueva foto seleccionada'
+                          : 'Foto de perfil actual',
                       style: TextStyle(
-                        color: Color(0xFF3B28FF),
-                        fontSize: 16,
+                        color: _selectedImage != null
+                            ? AppColors.primary
+                            : Colors.grey,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Container(
-                      height: 1,
-                      width: 150,
-                      color: const Color(0xFF3B28FF),
+
+                    const SizedBox(height: 36),
+
+                    // Opciones
+                    _buildOptionCard(
+                      icon: Icons.photo_library_outlined,
+                      title: 'Elegir de la Galería',
+                      subtitle: 'Selecciona una foto existente',
+                      onTap: _pickFromGallery,
                     ),
-                    const SizedBox(height: 20),
-                    // 6x3 Grid Mock
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                          ),
-                      itemCount: 18,
-                      itemBuilder: (context, index) {
-                        return Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            color: Colors.grey[300],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
-                            child: Image.network(
-                              'https://picsum.photos/seed/${index + 42}/200',
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.image, color: Colors.white),
+                    const SizedBox(height: 12),
+                    _buildOptionCard(
+                      icon: Icons.camera_alt_outlined,
+                      title: 'Tomar Foto',
+                      subtitle: 'Usa la cámara de tu dispositivo',
+                      onTap: _pickFromCamera,
+                    ),
+
+                    const SizedBox(height: 32),
+
+                    // Botón guardar
+                    if (_selectedImage != null)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: _isUploading ? null : _uploadPhoto,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
-                        );
-                      },
-                    ),
+                          icon: _isUploading
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.cloud_upload_outlined),
+                          label: Text(
+                            _isUploading ? 'Subiendo...' : 'Guardar Foto',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _defaultAvatar() {
+    return Container(
+      color: AppColors.primaryLight,
+      child: const Icon(Icons.person, size: 80, color: AppColors.primary),
+    );
+  }
+
+  Widget _buildOptionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: AppColors.softShadow,
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 26),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.primary),
+          ],
         ),
       ),
     );

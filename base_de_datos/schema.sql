@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('client', 'tech') NOT NULL,
+    role ENUM('client', 'tech', 'store') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     reviews_count INT DEFAULT 0,
     latitude DECIMAL(10, 8) DEFAULT NULL,  -- Coordenadas del técnico (geocodificadas)
     longitude DECIMAL(11, 8) DEFAULT NULL, -- Permite valores del -180 al 180
+    is_available BOOLEAN DEFAULT TRUE,     -- Técnico activo/inactivo (aparece en radar de búsqueda)
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -112,6 +113,9 @@ CREATE TABLE if NOT EXISTS sucursales(
     country VARCHAR(100) NOT NULL,
     phone VARCHAR(20) NOT NULL,
     email VARCHAR(255) NOT NULL,
+    latitude DECIMAL(10, 8) DEFAULT NULL,
+    longitude DECIMAL(11, 8) DEFAULT NULL,
+    status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

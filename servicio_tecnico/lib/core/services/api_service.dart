@@ -38,6 +38,11 @@ class ApiService {
     _token = null;
   }
 
+  Future<void> logout() async {
+    _token = null;
+    // Aquí se podría llamar a un endpoint de blacklist si fuera necesario
+  }
+
   Map<String, String> _getHeaders({bool includeAuth = false}) {
     final headers = {'Content-Type': 'application/json'};
 

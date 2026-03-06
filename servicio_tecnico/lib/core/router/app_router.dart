@@ -17,6 +17,8 @@ import '../../features/profile/presentation/screens/provider_profile_screen.dart
 import '../../features/profile/presentation/screens/change_photo_screen.dart';
 import '../../features/profile/presentation/screens/edit_data_screen.dart';
 import '../../features/appointments/presentation/screens/appointment_details_screen.dart';
+import '../../features/home/presentation/screens/store_home_screen.dart';
+import '../../features/home/presentation/screens/store_profile_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login', // Login is now the start
@@ -27,7 +29,6 @@ final appRouter = GoRouter(
       path: '/forgot-password',
       builder: (context, state) => const ForgotPasswordScreen(),
     ),
-    // ...
     GoRoute(
       path: '/forgot-password/verify',
       builder: (context, state) {
@@ -75,6 +76,10 @@ final appRouter = GoRouter(
       builder: (context, state) => const ProviderHomeScreen(),
     ),
     GoRoute(
+      path: '/store-home',
+      builder: (context, state) => const StoreHomeScreen(),
+    ),
+    GoRoute(
       path: '/profile',
       builder: (context, state) => const ProfileScreen(),
     ),
@@ -106,5 +111,12 @@ final appRouter = GoRouter(
       },
     ),
     GoRoute(path: '/chat', builder: (context, state) => const ChatScreen()),
+    GoRoute(
+      path: '/store-profile/:id',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
+        return StoreProfileScreen(storeId: id);
+      },
+    ),
   ],
 );

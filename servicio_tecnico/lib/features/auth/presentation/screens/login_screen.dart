@@ -129,6 +129,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           context.go('/client-home');
                         } else if (role == 'tech') {
                           context.go('/home');
+                        } else if (role == 'store') {
+                          context.go('/store-home');
                         }
                       }
                     } else {
