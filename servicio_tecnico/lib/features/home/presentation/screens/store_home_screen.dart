@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/services/api_service.dart';
 import '../../../../core/services/store_service.dart';
 import '../../../../core/services/message_service.dart';
+import '../../../../core/services/api_service.dart';
 import '../../../../core/models/store.dart';
+import '../../../../core/models/store_product.dart';
+import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/constants/api_constants.dart';
-import 'package:animate_do/animate_do.dart';
 
 class StoreHomeScreen extends StatefulWidget {
   const StoreHomeScreen({super.key});
@@ -19,7 +21,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
   int _selectedIndex = 0;
   final StoreService _storeService = StoreService();
   final MessageService _messageService = MessageService();
-  List<dynamic> _products = [];
+  List<StoreProduct> _products = [];
   List<dynamic> _recentChats = [];
   bool _loadingProducts = true;
   bool _loadingRecent = false;
@@ -48,16 +50,22 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
   }
 
   Future<void> _loadStoreData() async {
-    // Para simplificar, asumimos que el usuario autenticado tiene una sucursal única
-    // En un sistema real, buscaríamos la sucursal ligada al user_id
+    setState(() => _loadingProducts = true);
     try {
-      // Mock de carga de sucursal propia (asumiendo ID 1 para la sucursal de prueba)
-      final resStore = await _storeService.getStoreById(1);
-      if (mounted) {
+      // Get the real store for the authenticated user
+      final resStore = await _storeService.getMyStore();
+      if (resStore.success && mounted) {
         setState(() {
           _myStore = resStore.data;
         });
-        _loadProducts();
+        if (_myStore != null) {
+          _loadProducts();
+        } else {
+          setState(() => _loadingProducts = false);
+          // Show message or navigate to create store
+        }
+      } else {
+        if (mounted) setState(() => _loadingProducts = false);
       }
     } catch (e) {
       if (mounted) setState(() => _loadingProducts = false);
@@ -66,14 +74,8 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
 
   Future<void> _loadProducts() async {
     if (_myStore == null) return;
-    setState(() => _loadingProducts = true);
     try {
-      // Usaremos el nuevo endpoint
-      final res = await ApiService().get<List<dynamic>>(
-        ApiConstants.storeProducts(_myStore!.id),
-        requiresAuth: true,
-        fromJson: (data) => data as List<dynamic>,
-      );
+      final res = await _storeService.getStoreProducts(_myStore!.id);
       if (mounted) {
         setState(() {
           _products = res.data ?? [];
@@ -152,7 +154,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
                     ),
                   ),
                   Text(
-                    _myStore?.name ?? 'Cargando...',
+                    _myStore?.name ?? 'Sin sucursal registrada',
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                 ],
@@ -163,6 +165,44 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
               ),
             ],
           ),
+          if (_myStore == null && !_loadingProducts) ...[
+            const SizedBox(height: 30),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(15),
+                border: Border.all(color: Colors.blue[200]!),
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    '¡Aún no tienes una sucursal registrada!',
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'Crea tu sucursal para poder gestionar tus productos y recibir consultas de clientes.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      final created = await context.push<bool>('/create-store');
+                      if (created == true) _loadStoreData();
+                    },
+                    icon: const Icon(Icons.add),
+                    label: const Text('REGISTRAR MI TIENDA'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 30),
           Row(
             children: [
@@ -300,34 +340,67 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
               ? const Center(
                   child: Text('Aún no tienes productos en tu catálogo'),
                 )
-              : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: _products.length,
-                  itemBuilder: (context, index) {
-                    final p = _products[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: ListTile(
-                        leading: const CircleAvatar(child: Icon(Icons.image)),
-                        title: Text(
-                          p['name'],
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: _products.length,
+                    itemBuilder: (context, index) {
+                      final p = _products[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
                         ),
-                        subtitle: Text('S/ ${p['price']}'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () {},
+                        child: ListTile(
+                          leading: CircleAvatar(
+                            backgroundColor: AppColors.primaryLight,
+                            child: const Icon(Icons.shopping_bag, color: AppColors.primary),
+                          ),
+                          title: Text(
+                            p.name,
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text('S/ ${p.price.toStringAsFixed(2)}'),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.delete, color: Colors.red),
+                            onPressed: () => _confirmDeleteProduct(p),
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
         ),
       ],
     );
+  }
+
+  Future<void> _confirmDeleteProduct(StoreProduct product) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar Producto'),
+        content: Text('¿Estás seguro de que deseas eliminar ${product.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final res = await _storeService.deleteStoreProduct(product.id);
+      if (res.success) {
+        _loadProducts();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Producto eliminado con éxito')),
+        );
+      }
+    }
   }
 
   void _showAddProductDialog() {
@@ -359,23 +432,21 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
           ),
           ElevatedButton(
             onPressed: () async {
-              if (nameController.text.isEmpty || priceController.text.isEmpty)
-                return;
-              if (_myStore == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Error: No se cargó la tienda')),
-                );
-                return;
-              }
-              await ApiService().post(ApiConstants.addStoreProduct, {
+              if (nameController.text.isEmpty || priceController.text.isEmpty) return;
+              if (_myStore == null) return;
+              
+              final res = await _storeService.addStoreProduct({
                 'sucursal_id': _myStore!.id,
                 'name': nameController.text,
                 'price': double.tryParse(priceController.text) ?? 0.0,
                 'description': '',
                 'image_url': '',
-              }, requiresAuth: true);
-              Navigator.pop(context);
-              _loadProducts();
+              });
+              
+              if (res.success) {
+                Navigator.pop(context);
+                _loadProducts();
+              }
             },
             child: const Text('Guardar'),
           ),
@@ -421,14 +492,16 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
     return Center(
       child: ElevatedButton(
         onPressed: () async {
-          await ApiService().logout();
+          await context.read<AuthProvider>().logout();
           if (mounted) context.go('/login');
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.red,
           foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
-        child: const Text('Cerrar Sesión'),
+        child: const Text('Cerrar Sesión', style: TextStyle(fontSize: 16)),
       ),
     );
   }

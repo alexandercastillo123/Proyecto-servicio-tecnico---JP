@@ -5,9 +5,9 @@ async function fixSchema() {
     try {
         console.log('Modifying reviews table to allow NULL appointment_id...');
         await db.ejecutar('ALTER TABLE reviews MODIFY COLUMN appointment_id INT NULL');
-        console.log('✅ Successfully modified reviews table.');
+        console.log('Successfully modified reviews table.');
     } catch (error) {
-        console.error('❌ Error modifying reviews table:', error);
+        console.error('Error modifying reviews table:', error);
     }
     process.exit();
 }

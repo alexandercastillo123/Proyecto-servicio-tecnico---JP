@@ -19,6 +19,7 @@ class ApiConstants {
   static const String userProfile = '$baseUrl/users/profile';
   static const String updateProfile = '$baseUrl/users/profile';
   static const String uploadPhoto = '$baseUrl/users/profile/photo';
+  static const String toggleAvailability = '$baseUrl/users/availability';
   static String getUserById(int id) => '$baseUrl/users/$id';
 
   // Technician Endpoints
@@ -48,10 +49,15 @@ class ApiConstants {
 
   // Store / Sucursales Endpoints
   static const String sucursales = '$baseUrl/sucursales';
+  static const String myStore = '$baseUrl/sucursales/my-store';
   static const String nearbyStores = '$baseUrl/sucursales/nearby';
   static String storeById(int id) => '$baseUrl/sucursales/$id';
   static String storeProducts(int id) => '$baseUrl/sucursales/$id/products';
   static const String addStoreProduct = '$baseUrl/sucursales/products';
+  static String updateStoreProduct(int id) => '$baseUrl/sucursales/products/$id';
+  static String deleteStoreProduct(int id) => '$baseUrl/sucursales/products/$id';
+  static String updateStore(int id) => '$baseUrl/sucursales/$id';
+  static String deleteStore(int id) => '$baseUrl/sucursales/$id';
 
   // Health Check
   static const String health = 'http://localhost:3000/health';

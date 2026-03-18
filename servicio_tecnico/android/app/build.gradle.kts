@@ -25,7 +25,7 @@ android {
         applicationId = "com.jp.serviciotecnico.servicio_tecnico_app"
         
         // 2. FORZAMOS EL MIN SDK A 23 PARA LA CÁMARA
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

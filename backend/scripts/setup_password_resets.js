@@ -1,7 +1,7 @@
 const db = require('../config/database');
 
 async function setupTable() {
-    console.log('⏳ Creating password_resets table...');
+    console.log('Creating password_resets table...');
 
     const query = `
         CREATE TABLE IF NOT EXISTS password_resets (
@@ -18,12 +18,12 @@ async function setupTable() {
     try {
         const res = await db.ejecutar(query);
         if (res.exito) {
-            console.log('✅ Table password_resets created successfully or already exists.');
+            console.log('Table password_resets created successfully or already exists.');
         } else {
-            console.error('❌ Error creating table:', res.mensaje);
+            console.error('Error creating table:', res.mensaje);
         }
     } catch (err) {
-        console.error('❌ Exception:', err);
+        console.error('Exception:', err);
     } finally {
         process.exit();
     }

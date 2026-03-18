@@ -33,4 +33,40 @@ router.get('/:id/products', sucursalesController.getStoreProducts);
  */
 router.post('/products', sucursalesController.addStoreProduct);
 
+/**
+ * @route   GET /api/sucursales/my-store
+ * @desc    Get store for logged in user
+ */
+router.get('/my-store', authenticate, sucursalesController.getMyStore);
+
+/**
+ * @route   POST /api/sucursales
+ * @desc    Create a store
+ */
+router.post('/', authenticate, sucursalesController.createStore);
+
+/**
+ * @route   PUT /api/sucursales/:id
+ * @desc    Update a store
+ */
+router.put('/:id', authenticate, sucursalesController.updateStore);
+
+/**
+ * @route   DELETE /api/sucursales/:id
+ * @desc    Delete a store
+ */
+router.delete('/:id', authenticate, sucursalesController.deleteStore);
+
+/**
+ * @route   PUT /api/sucursales/products/:id
+ * @desc    Update a product in a store
+ */
+router.put('/products/:id', authenticate, sucursalesController.updateStoreProduct);
+
+/**
+ * @route   DELETE /api/sucursales/products/:id
+ * @desc    Delete a product from a store
+ */
+router.delete('/products/:id', authenticate, sucursalesController.deleteStoreProduct);
+
 module.exports = router;
