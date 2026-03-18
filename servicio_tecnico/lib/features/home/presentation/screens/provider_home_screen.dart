@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/services/message_service.dart';
 import '../../../../core/services/user_service.dart';
@@ -7,6 +8,7 @@ import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/assets.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/providers/auth_provider.dart';
 
 class ProviderHomeScreen extends StatefulWidget {
   const ProviderHomeScreen({super.key});
@@ -25,7 +27,6 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
   List<dynamic> _consultations = [];
   bool _isLoading = true;
   String? _errorMessage;
-  bool _isAvailable = true; // Estado activo/inactivo del técnico
   bool _togglingAvailability = false;
 
   @override
@@ -36,30 +37,27 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
 
   Future<void> _loadData() async {
     try {
-      final proposalsRes = await _appointmentService.getAppointments(
-        status: 'pending',
-      );
-      final completedRes = await _appointmentService.getAppointments(
-        status: 'completed',
-      );
+      final authProvider = context.read<AuthProvider>();
+      final proposalsRes = await _appointmentService.getAppointments(status: 'pending');
+      final completedRes = await _appointmentService.getAppointments(status: 'completed');
       final consultRes = await _messageService.getConversations();
-      final profileRes = await _userService.getProfile();
+      
+      // Load global profile
+      await authProvider.loadProfile();
 
       if (proposalsRes.success && completedRes.success && consultRes.success) {
         if (mounted) {
           setState(() {
-            if (profileRes.success) {
-              _profile = profileRes.data;
-              _isAvailable = _profile?['is_available'] != false;
-            }
+            _profile = authProvider.user != null ? {
+              'profile_image_url': authProvider.user!.profileImageUrl,
+              'username': authProvider.user!.username,
+            } : null;
+            
             _proposals = proposalsRes.data ?? [];
             _completedJobs = completedRes.data ?? [];
 
-            // Excluir de consultas a quienes ya tienen propuesta activa
             final allConsultations = consultRes.data ?? [];
-            final proposalClientIds = _proposals
-                .map((p) => p['client_id'].toString())
-                .toSet();
+            final proposalClientIds = _proposals.map((p) => p['client_id'].toString()).toSet();
 
             _consultations = allConsultations.where((c) {
               final otherId = c['other_user_id'].toString();
@@ -72,10 +70,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
       } else {
         if (mounted) {
           setState(() {
-            _errorMessage =
-                proposalsRes.message ??
-                completedRes.message ??
-                consultRes.message;
+            _errorMessage = proposalsRes.message ?? completedRes.message ?? consultRes.message;
             _isLoading = false;
           });
         }
@@ -90,40 +85,27 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
     }
   }
 
-  /// Cambia el estado activo/inactivo del técnico
   Future<void> _toggleAvailability() async {
     if (_togglingAvailability) return;
     setState(() => _togglingAvailability = true);
-    final newStatus = !_isAvailable;
+    
+    final authProvider = context.read<AuthProvider>();
+    final newStatus = !(authProvider.user?.isAvailable ?? true);
+    
     try {
-      final response = await ApiService().patch(
-        '${ApiConstants.baseUrl}/users/availability',
-        {'is_available': newStatus},
-        requiresAuth: true,
-      );
+      final response = await authProvider.toggleAvailability(newStatus);
       if (mounted) {
+        setState(() => _togglingAvailability = false);
         if (response.success) {
-          setState(() {
-            _isAvailable = newStatus;
-            _togglingAvailability = false;
-          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                newStatus
-                    ? '✅ Ahora estás Disponible'
-                    : '🔴 Ahora estás Inactivo',
-              ),
+              content: Text(newStatus ? '✅ Ahora estás Disponible' : '🔴 Ahora estás Inactivo'),
               backgroundColor: newStatus ? Colors.green : Colors.grey[700],
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               duration: const Duration(seconds: 2),
             ),
           );
-        } else {
-          setState(() => _togglingAvailability = false);
         }
       }
     } catch (e) {
@@ -182,79 +164,58 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                             // Toggle Activo/Inactivo (Diseño más Premium e Intuitivo)
                             Expanded(
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _isAvailable
-                                        ? Colors.green.withOpacity(0.05)
-                                        : Colors.red.withOpacity(0.05),
-                                    borderRadius: BorderRadius.circular(15),
-                                    border: Border.all(
-                                      color: _isAvailable
-                                          ? Colors.green.withOpacity(0.3)
-                                          : Colors.red.withOpacity(0.3),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              _isAvailable
-                                                  ? 'DISPONIBLE'
-                                                  : 'INACTIVO',
-                                              style: TextStyle(
-                                                color: _isAvailable
-                                                    ? Colors.green[700]
-                                                    : Colors.red[700],
-                                                fontWeight: FontWeight.w900,
-                                                fontSize: 10,
-                                                letterSpacing: 0.5,
-                                              ),
-                                            ),
-                                            Text(
-                                              _isAvailable
-                                                  ? 'Visible en mapa'
-                                                  : 'Oculto del radar',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 9,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                child: Consumer<AuthProvider>(
+                                  builder: (context, auth, child) {
+                                    final isAvailable = auth.user?.isAvailable ?? true;
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                      decoration: BoxDecoration(
+                                        color: isAvailable ? Colors.green.withOpacity(0.05) : Colors.red.withOpacity(0.05),
+                                        borderRadius: BorderRadius.circular(15),
+                                        border: Border.all(color: isAvailable ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3)),
                                       ),
-                                      _togglingAvailability
-                                          ? const SizedBox(
-                                              width: 20,
-                                              height: 20,
-                                              child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                              ),
-                                            )
-                                          : Switch(
-                                              value: _isAvailable,
-                                              onChanged: (_) =>
-                                                  _toggleAvailability(),
-                                              activeColor: Colors.green,
-                                              activeTrackColor: Colors.green
-                                                  .withOpacity(0.2),
-                                              inactiveThumbColor: Colors.red,
-                                              inactiveTrackColor: Colors.red
-                                                  .withOpacity(0.2),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  isAvailable ? 'DISPONIBLE' : 'INACTIVO',
+                                                  style: TextStyle(
+                                                    color: isAvailable ? Colors.green[700] : Colors.red[700],
+                                                    fontWeight: FontWeight.w900,
+                                                    fontSize: 10,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  isAvailable ? 'Visible en mapa' : 'Oculto del radar',
+                                                  style: TextStyle(color: Colors.grey[600], fontSize: 9),
+                                                ),
+                                              ],
                                             ),
-                                    ],
-                                  ),
+                                          ),
+                                          _togglingAvailability
+                                              ? const SizedBox(
+                                                  width: 20,
+                                                  height: 20,
+                                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                                )
+                                              : Switch(
+                                                  value: isAvailable,
+                                                  onChanged: (_) => _toggleAvailability(),
+                                                  activeColor: Colors.green,
+                                                  activeTrackColor: Colors.green.withOpacity(0.2),
+                                                  inactiveThumbColor: Colors.red,
+                                                  inactiveTrackColor: Colors.red.withOpacity(0.2),
+                                                ),
+                                        ],
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
                             ),

@@ -129,3 +129,20 @@ CREATE TABLE IF NOT EXISTS sucursales_citas(
     FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE,
     FOREIGN KEY (cita_id) REFERENCES appointments(id) ON DELETE CASCADE
 );
+
+-- 9. Productos de Tiendas (Sucursales)
+CREATE TABLE IF NOT EXISTS store_products(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sucursal_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    price DECIMAL(10, 2) NOT NULL,
+    image_url VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE
+);
+
+-- Índices para optimización
+CREATE INDEX idx_user_profiles_available ON user_profiles(is_available);
+CREATE INDEX idx_sucursales_status ON sucursales(status);
+CREATE INDEX idx_sucursales_location ON sucursales(latitude, longitude);

@@ -49,6 +49,8 @@ dependencies:
   geolocator: ^13.0.0
   url_launcher: ^6.3.2
   animate_do: ^3.3.4
+  provider: ^6.1.2
+  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:

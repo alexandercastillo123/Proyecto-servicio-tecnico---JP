@@ -19,6 +19,7 @@ import '../../features/profile/presentation/screens/edit_data_screen.dart';
 import '../../features/appointments/presentation/screens/appointment_details_screen.dart';
 import '../../features/home/presentation/screens/store_home_screen.dart';
 import '../../features/home/presentation/screens/store_profile_screen.dart';
+import '../../features/store/presentation/screens/create_store_screen.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login', // Login is now the start
@@ -78,6 +79,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/store-home',
       builder: (context, state) => const StoreHomeScreen(),
+    ),
+    GoRoute(
+      path: '/create-store',
+      builder: (context, state) => const CreateStoreScreen(),
     ),
     GoRoute(
       path: '/profile',
