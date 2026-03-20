@@ -13,6 +13,7 @@ class AppointmentService {
     double? serviceLat,
     double? serviceLng,
     String? serviceAddress,
+    String? serviceType,
   }) async {
     return await _apiService.post<Map<String, dynamic>>(
       ApiConstants.appointments,
@@ -24,6 +25,7 @@ class AppointmentService {
         if (serviceLat != null) 'serviceLat': serviceLat,
         if (serviceLng != null) 'serviceLng': serviceLng,
         if (serviceAddress != null) 'serviceAddress': serviceAddress,
+        if (serviceType != null) 'serviceType': serviceType,
       },
       requiresAuth: true,
       fromJson: (data) => data as Map<String, dynamic>,

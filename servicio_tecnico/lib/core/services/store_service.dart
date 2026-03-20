@@ -102,4 +102,56 @@ class StoreService {
       requiresAuth: true,
     );
   }
+
+  /// Get store schedules
+  Future<ApiResponse<List<Map<String, dynamic>>>> getStoreSchedules(int id) async {
+    return await _apiService.get<List<Map<String, dynamic>>>(
+      ApiConstants.storeSchedules(id),
+      fromJson: (data) => (data as List).map((s) => s as Map<String, dynamic>).toList(),
+    );
+  }
+
+  /// Get store reviews
+  Future<ApiResponse<List<Map<String, dynamic>>>> getStoreReviews(int id) async {
+    return await _apiService.get<List<Map<String, dynamic>>>(
+      ApiConstants.storeReviews(id),
+      fromJson: (data) => (data as List).map((r) => r as Map<String, dynamic>).toList(),
+    );
+  }
+
+  /// Add store review
+  Future<ApiResponse<dynamic>> addStoreReview(int id, int rating, String comment) async {
+    return await _apiService.post(
+      ApiConstants.storeReviews(id),
+      {'rating': rating, 'comment': comment},
+      requiresAuth: true,
+    );
+  }
+
+  /// Update store status
+  Future<ApiResponse<dynamic>> updateStoreStatus(int id, String status) async {
+    return await _apiService.patch(
+      ApiConstants.updateStoreStatus(id),
+      {'status': status},
+      requiresAuth: true,
+    );
+  }
+
+  /// Upload store image
+  Future<ApiResponse<String>> uploadStoreImage(String filePath) async {
+    return await _apiService.uploadFile(
+      ApiConstants.uploadStoreImage,
+      filePath,
+      fieldName: 'image',
+    );
+  }
+
+  /// Upload product image
+  Future<ApiResponse<String>> uploadProductImage(String filePath) async {
+    return await _apiService.uploadFile(
+      ApiConstants.uploadProductImage,
+      filePath,
+      fieldName: 'image',
+    );
+  }
 }

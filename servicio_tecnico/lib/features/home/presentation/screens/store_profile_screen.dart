@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/store.dart';
+import '../../../../core/models/store_product.dart';
 import '../../../../core/services/store_service.dart';
-import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/api_constants.dart';
 import 'package:animate_do/animate_do.dart';
 
@@ -17,7 +18,7 @@ class StoreProfileScreen extends StatefulWidget {
 class _StoreProfileScreenState extends State<StoreProfileScreen> {
   final StoreService _storeService = StoreService();
   Store? _store;
-  List<dynamic> _products = [];
+  List<StoreProduct> _products = [];
   bool _isLoading = true;
 
   @override
@@ -29,10 +30,7 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
   Future<void> _loadData() async {
     try {
       final res = await _storeService.getStoreById(widget.storeId);
-      final resProd = await ApiService().get<List<dynamic>>(
-        ApiConstants.storeProducts(widget.storeId),
-        fromJson: (data) => data as List<dynamic>,
-      );
+      final resProd = await _storeService.getStoreProducts(widget.storeId);
       if (mounted) {
         setState(() {
           _store = res.data;
@@ -75,9 +73,15 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                     end: Alignment.bottomRight,
                   ),
                 ),
-                child: const Center(
-                  child: Icon(Icons.store, size: 80, color: Colors.white54),
-                ),
+                child: (_store?.imageUrl != null)
+                    ? Image.network(
+                        '${ApiConstants.baseUrl}/${_store!.imageUrl}',
+                        fit: BoxFit.cover,
+                        errorBuilder: (c, e, s) => const Icon(Icons.store, size: 80, color: Colors.white54),
+                      )
+                    : const Center(
+                        child: Icon(Icons.store, size: 80, color: Colors.white54),
+                      ),
               ),
             ),
           ),
@@ -87,32 +91,37 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (_store!.description != null && _store!.description!.isNotEmpty) ...[
+                    Text(
+                      _store!.description!,
+                      style: TextStyle(color: Colors.grey[700], fontSize: 15),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                   Row(
                     children: [
-                      const Icon(
-                        Icons.location_on,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
+                      const Icon(Icons.location_on, color: AppColors.primary, size: 20),
                       const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _store!.address,
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ),
+                      Expanded(child: Text(_store!.address, style: const TextStyle(fontSize: 14))),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(
-                        Icons.phone,
-                        color: AppColors.primary,
-                        size: 20,
-                      ),
+                      const Icon(Icons.phone, color: AppColors.primary, size: 20),
                       const SizedBox(width: 8),
                       Text(_store!.phone, style: const TextStyle(fontSize: 14)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.access_time, color: AppColors.primary, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Horario: ${_store!.openingTime ?? "No def."} - ${_store!.closingTime ?? "No def."}',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                      ),
                     ],
                   ),
                   const Divider(height: 40),
@@ -127,69 +136,61 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
           ),
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.75,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-              ),
-              delegate: SliverChildBuilderDelegate((context, index) {
-                final p = _products[index];
-                return FadeInUp(
-                  delay: Duration(milliseconds: 100 * index),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: AppColors.softShadow,
+            sliver: _products.isEmpty
+                ? const SliverToBoxAdapter(child: Center(child: Text('No hay productos disponibles')))
+                : SliverGrid(
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.75,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(16),
-                              ),
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.image, color: Colors.grey),
-                            ),
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final p = _products[index];
+                      return FadeInUp(
+                        delay: Duration(milliseconds: 100 * index),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: AppColors.softShadow,
                           ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(12),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                p['name'],
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
+                              Expanded(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                  ),
+                                  child: const Center(child: Icon(Icons.shopping_bag, color: Colors.grey, size: 40)),
                                 ),
-                                maxLines: 1,
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'S/ ${p['price']}',
-                                style: const TextStyle(
-                                  color: AppColors.primary,
-                                  fontWeight: FontWeight.bold,
+                              Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      p.name,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                      maxLines: 1,
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'S/ ${p.price.toStringAsFixed(2)}',
+                                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ],
-                    ),
+                      );
+                    }, childCount: _products.length),
                   ),
-                );
-              }, childCount: _products.length),
-            ),
           ),
           const SliverToBoxAdapter(child: SizedBox(height: 100)),
         ],
@@ -198,15 +199,17 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
         decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: [
-            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
-          ],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
         ),
         child: Row(
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  if (_store?.userId != null) {
+                    context.push('/chat', extra: _store!.userId);
+                  }
+                },
                 icon: const Icon(Icons.message),
                 label: const Text('Consultar'),
                 style: ElevatedButton.styleFrom(
@@ -219,7 +222,14 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () {},
+                onPressed: () {
+                  context.push('/appointment-scheduling', extra: {
+                    'id': _store!.userId,
+                    'storeId': _store!.id,
+                    'name': _store!.name,
+                    'isStore': true
+                  });
+                },
                 icon: const Icon(Icons.calendar_today),
                 label: const Text('Cita Local'),
                 style: ElevatedButton.styleFrom(

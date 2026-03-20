@@ -8,23 +8,24 @@ const createAppointment = async (req, res) => {
     let respuesta = new Respuesta();
     try {
         const clientId = req.user.id;
-        const { technicianId, scheduledDate, scheduledTime, description, serviceLat, serviceLng, serviceAddress } = req.body;
+        const { technicianId, scheduledDate, scheduledTime, description, serviceLat, serviceLng, serviceAddress, serviceType } = req.body;
 
-        // Verify technician exists
-        const techRes = await db.listar(
-            'SELECT id FROM users WHERE id = ? AND role = "tech"',
+        // Verify technician or store exists
+        const destRes = await db.listar(
+            'SELECT id, role FROM users WHERE id = ? AND role IN ("tech", "store")',
             false,
             [technicianId]
         );
 
-        if (!techRes.exito || !techRes.resultado) {
+        if (!destRes.exito || !destRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Técnico no encontrado';
+            respuesta.mensaje = 'Destino (Técnico/Sucursal) no encontrado';
             return res.status(404).json(respuesta);
         }
 
+        const destRole = destRes.resultado.role;
+
         // Check for existing active appointment (ignoring expired ones)
-        // A appointment is "vigente" if it's pending/confirmed AND (date is future OR (date is today AND time is future))
         const activeAppRes = await db.listar(
             `SELECT id FROM appointments 
              WHERE client_id = ? AND technician_id = ? 
@@ -36,27 +37,38 @@ const createAppointment = async (req, res) => {
 
         if (activeAppRes.resultado) {
             respuesta.estado = 400;
-            respuesta.mensaje = 'Ya tienes una cita vigente con este técnico.';
+            respuesta.mensaje = 'Ya tienes una cita vigente con este destino.';
             return res.status(400).json(respuesta);
         }
 
         // Create appointment
         const dbRes = await db.ejecutar(
-            `INSERT INTO appointments (client_id, technician_id, scheduled_date, scheduled_time, description, status, service_lat, service_lng, service_address)
-       VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?)`,
-            [clientId, technicianId, scheduledDate, scheduledTime, description, serviceLat || null, serviceLng || null, serviceAddress || null]
+            `INSERT INTO appointments (client_id, technician_id, scheduled_date, scheduled_time, description, status, service_lat, service_lng, service_address, service_type)
+             VALUES (?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)`,
+            [clientId, technicianId, scheduledDate, scheduledTime, description, serviceLat || null, serviceLng || null, serviceAddress || null, serviceType || 'local']
         );
 
         if (!dbRes.exito) {
             return res.status(500).json(dbRes);
         }
 
+        const appointmentId = dbRes.resultado.insertId;
+
+        // If it's a store, link it in sucursales_citas
+        if (destRole === 'store') {
+            const storeRes = await db.listar('SELECT id FROM sucursales WHERE user_id = ?', false, [technicianId]);
+            if (storeRes.resultado) {
+                await db.ejecutar(
+                    'INSERT INTO sucursales_citas (sucursal_id, cita_id) VALUES (?, ?)',
+                    [storeRes.resultado.id, appointmentId]
+                );
+            }
+        }
+
         respuesta.exito = true;
         respuesta.estado = 201;
         respuesta.mensaje = 'Cita creada con éxito';
-        respuesta.resultado = {
-            appointmentId: dbRes.resultado.insertId
-        };
+        respuesta.resultado = { appointmentId };
 
         res.status(201).json(respuesta);
 
@@ -79,7 +91,7 @@ const getAppointments = async (req, res) => {
         let query = `
       SELECT 
         a.id, a.scheduled_date, a.scheduled_time, a.description, a.status, a.created_at,
-        a.price, a.payment_method, a.payment_status, a.payment_confirmed_at,
+        a.price, a.payment_method, a.payment_status, a.payment_confirmed_at, a.service_type,
         client.id as client_id, client.username as client_username, client_profile.names as client_names, 
         client_profile.surnames as client_surnames, client_profile.phone as client_phone,
         tech.id as technician_id, tech_profile.names as tech_names,
@@ -130,7 +142,7 @@ const getAppointmentById = async (req, res) => {
         const dbRes = await db.listar(
             `SELECT 
         a.id, a.scheduled_date, a.scheduled_time, a.description, a.status, a.created_at,
-        a.price, a.payment_method, a.payment_status, a.payment_confirmed_at,
+        a.price, a.payment_method, a.payment_status, a.payment_confirmed_at, a.service_type,
         a.service_lat, a.service_lng, a.service_address,
         client.id as client_id, client.email as client_email, client.username as client_username,
         client_profile.names as client_names, client_profile.surnames as client_surnames,
@@ -218,7 +230,7 @@ const updateAppointmentStatus = async (req, res) => {
 };
 
 /**
- * Cancel/delete appointment
+ * Cancel appointment (with cancellation_pending logic for stores)
  */
 const cancelAppointment = async (req, res) => {
     let respuesta = new Respuesta();
@@ -226,35 +238,47 @@ const cancelAppointment = async (req, res) => {
         const { id } = req.params;
         const userId = req.user.id;
 
-        // Check if appointment is already paid
-        const isPaidRes = await db.listar(
-            'SELECT payment_status FROM appointments WHERE id = ?',
+        const initialRes = await db.listar(
+            'SELECT a.*, u.role FROM appointments a JOIN users u ON a.technician_id = u.id WHERE a.id = ?',
             false,
             [id]
         );
 
-        if (isPaidRes.resultado && isPaidRes.resultado.payment_status === 'paid') {
+        if (!initialRes.resultado) {
+            respuesta.estado = 404;
+            respuesta.mensaje = 'Cita no encontrada';
+            return res.status(404).json(respuesta);
+        }
+
+        const appointment = initialRes.resultado;
+
+        if (appointment.payment_status === 'paid') {
             respuesta.estado = 400;
             respuesta.mensaje = 'No se puede cancelar una cita que ya ha sido pagada.';
             return res.status(400).json(respuesta);
         }
 
-        // Update to cancelled status instead of deleting
+        // Logic: Store confirm cancellation if it was already confirmed and client is cancelling
+        let newStatus = 'cancelled';
+        if (appointment.role === 'store' && appointment.status === 'confirmed' && userId !== appointment.technician_id) {
+            newStatus = 'cancellation_pending';
+        }
+
         const dbRes = await db.ejecutar(
-            `UPDATE appointments SET status = 'cancelled', cancelled_by = ?
-       WHERE id = ? AND (client_id = ? OR technician_id = ?)`,
-            [userId, id, userId, userId]
+            `UPDATE appointments SET status = ?, cancelled_by = ?
+             WHERE id = ? AND (client_id = ? OR technician_id = ?)`,
+            [newStatus, userId, id, userId, userId]
         );
 
         if (!dbRes.exito || dbRes.resultado.affectedRows === 0) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Cita no encontrada o no autorizada';
+            respuesta.mensaje = 'Error al cancelar la cita o no autorizada';
             return res.status(404).json(respuesta);
         }
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Cita cancelada con éxito';
+        respuesta.mensaje = newStatus === 'cancelled' ? 'Cita cancelada con éxito' : 'Solicitud de cancelación enviada a la sucursal';
         res.json(respuesta);
 
     } catch (error) {
@@ -265,7 +289,7 @@ const cancelAppointment = async (req, res) => {
 };
 
 /**
- * Set appointment price (By Technician)
+ * Set appointment price (By Provider)
  */
 const setAppointmentPrice = async (req, res) => {
     let respuesta = new Respuesta();
@@ -288,7 +312,7 @@ const setAppointmentPrice = async (req, res) => {
 
         if (appRes.resultado.technician_id !== userId) {
             respuesta.estado = 403;
-            respuesta.mensaje = 'Solo el técnico puede establecer el precio';
+            respuesta.mensaje = 'Solo el prestador del servicio puede establecer el precio';
             return res.status(403).json(respuesta);
         }
 
@@ -339,7 +363,7 @@ const payAppointment = async (req, res) => {
 
         if (!appRes.resultado.price) {
             respuesta.estado = 400;
-            respuesta.mensaje = 'El técnico aún no ha establecido un precio para esta cita';
+            respuesta.mensaje = 'El prestador aún no ha establecido un precio para esta cita';
             return res.status(400).json(respuesta);
         }
 
@@ -349,7 +373,7 @@ const payAppointment = async (req, res) => {
         );
 
         respuesta.exito = true;
-        respuesta.mensaje = 'Pago registrado, esperando confirmación del técnico';
+        respuesta.mensaje = 'Pago registrado, esperando confirmación';
         res.json(respuesta);
     } catch (error) {
         console.error('Pay error:', error);
@@ -358,7 +382,7 @@ const payAppointment = async (req, res) => {
 };
 
 /**
- * Confirm payment (By Technician)
+ * Confirm payment (By Provider)
  */
 const confirmPayment = async (req, res) => {
     let respuesta = new Respuesta();
@@ -380,7 +404,7 @@ const confirmPayment = async (req, res) => {
 
         if (appRes.resultado.technician_id !== userId) {
             respuesta.estado = 403;
-            respuesta.mensaje = 'Solo el técnico puede confirmar el pago';
+            respuesta.mensaje = 'Solo el prestador del servicio puede confirmar el pago';
             return res.status(403).json(respuesta);
         }
 

@@ -194,42 +194,242 @@ const getMyStore = async (req, res) => {
 };
 
 /**
- * Create a new store
+ * Get store schedules
+ */
+const getStoreSchedules = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+        const dbRes = await db.listar(
+            'SELECT * FROM store_schedules WHERE sucursal_id = ?',
+            true,
+            [id]
+        );
+        respuesta.exito = true;
+        respuesta.resultado = dbRes.resultado || [];
+        res.json(respuesta);
+    } catch (error) {
+        respuesta.mensaje = 'Error al obtener horarios: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * Get store reviews
+ */
+const getStoreReviews = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+        const dbRes = await db.listar(
+            `SELECT sr.*, up.names, up.surnames, up.profile_image_url 
+             FROM store_reviews sr
+             JOIN user_profiles up ON sr.client_id = up.user_id
+             WHERE sr.sucursal_id = ? 
+             ORDER BY sr.created_at DESC`,
+            true,
+            [id]
+        );
+        respuesta.exito = true;
+        respuesta.resultado = dbRes.resultado || [];
+        res.json(respuesta);
+    } catch (error) {
+        respuesta.mensaje = 'Error al obtener reseñas: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * Add store review
+ */
+const addStoreReview = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+        const clientId = req.user.id;
+        const { rating, comment } = req.body;
+
+        await db.ejecutar(
+            'INSERT INTO store_reviews (sucursal_id, client_id, rating, comment) VALUES (?, ?, ?, ?)',
+            [id, clientId, rating, comment]
+        );
+
+        // Update branch rating/count
+        await db.ejecutar(
+            `UPDATE sucursales SET 
+             rating = (SELECT AVG(rating) FROM store_reviews WHERE sucursal_id = ?),
+             reviews_count = (SELECT COUNT(*) FROM store_reviews WHERE sucursal_id = ?)
+             WHERE id = ?`,
+            [id, id, id]
+        );
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Reseña añadida';
+        res.status(201).json(respuesta);
+    } catch (error) {
+        respuesta.mensaje = 'Error al añadir reseña: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * Update store status
+ */
+const updateStoreStatus = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const userId = req.user.id;
+
+        const store = await db.listar('SELECT id FROM sucursales WHERE id = ? AND user_id = ?', false, [id, userId]);
+        if (!store.resultado) {
+            respuesta.estado = 403;
+            respuesta.mensaje = 'No autorizado';
+            return res.status(403).json(respuesta);
+        }
+
+        await db.ejecutar('UPDATE sucursales SET status = ? WHERE id = ?', [status, id]);
+        respuesta.exito = true;
+        res.json(respuesta);
+    } catch (error) {
+        respuesta.mensaje = 'Error al actualizar estado: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * Upload Store Image
+ */
+const uploadStoreImage = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        if (!req.file) {
+            respuesta.mensaje = 'No se subió ninguna imagen';
+            return res.status(400).json(respuesta);
+        }
+        const userId = req.user.id;
+        const fileUrl = 'uploads/stores/' + req.file.filename;
+
+        await db.ejecutar('UPDATE sucursales SET image_url = ? WHERE user_id = ?', [fileUrl, userId]);
+
+        respuesta.exito = true;
+        respuesta.resultado = { url: fileUrl };
+        res.json(respuesta);
+    } catch (error) {
+        respuesta.mensaje = 'Error al subir imagen: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * Upload Product Image
+ */
+const uploadProductImage = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        if (!req.file) {
+            respuesta.mensaje = 'No se subió ninguna imagen';
+            return res.status(400).json(respuesta);
+        }
+        const fileUrl = 'uploads/products/' + req.file.filename;
+
+        respuesta.exito = true;
+        respuesta.resultado = { url: fileUrl };
+        res.json(respuesta);
+    } catch (error) {
+        respuesta.mensaje = 'Error al subir imagen: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * Create a new store (Used primarily for initial setup/admin)
  */
 const createStore = async (req, res) => {
     let respuesta = new Respuesta();
+    const connection = await db.pool.getConnection();
+    
     try {
-        const userId = req.user.id;
-        const { name, address, city, state, zip_code, country, phone, email, latitude, longitude } = req.body;
+        await connection.beginTransaction();
 
-        if (!name || !address || !city || !state || !zip_code || !country || !phone || !email) {
-            respuesta.mensaje = 'Faltan campos obligatorios';
-            return res.status(400).json(respuesta);
-        }
+        const { 
+            name, description, address, city, state, zip_code, country, 
+            phone, email, whatsapp, website_url, latitude, longitude, 
+            specialties, opening_time, closing_time, open_days,
+            // For admin creation
+            admin_email, admin_password 
+        } = req.body;
 
-        // Check if user already has a store
-        const existing = await db.listar('SELECT id FROM sucursales WHERE user_id = ?', false, [userId]);
-        if (existing.resultado) {
-            respuesta.mensaje = 'Ya tienes una sucursal registrada';
-            return res.status(400).json(respuesta);
+        let targetUserId = req.user.id;
+        const role = req.user.role;
+
+        // If admin is creating a store, we must create a new user account for that store
+        if (role === 'admin' && admin_email && admin_password) {
+            // 1. Check if email already exists
+            const [existing] = await connection.query('SELECT id FROM users WHERE email = ?', [admin_email]);
+            if (existing.length > 0) {
+                await connection.rollback();
+                respuesta.mensaje = 'El correo del administrador de la sucursal ya está registrado';
+                return res.status(400).json(respuesta);
+            }
+
+            // 2. Hash password
+            const bcrypt = require('bcryptjs');
+            const passwordHash = await bcrypt.hash(admin_password, 10);
+
+            // 3. Create user
+            const username = name.toLowerCase().replace(/\s+/g, '_') + '_' + Math.floor(Math.random() * 1000);
+            const [userResult] = await connection.query(
+                'INSERT INTO users (email, username, password_hash, role) VALUES (?, ?, ?, ?)',
+                [admin_email, username, passwordHash, 'store']
+            );
+            targetUserId = userResult.insertId;
+
+            // 4. Create profile
+            await connection.query(
+                `INSERT INTO user_profiles (user_id, phone, address, city, person_type, names) 
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [targetUserId, phone, address, city, 'juridical', name]
+            );
+        } else if (role !== 'admin') {
+            // If not admin, verify if user already has a store
+            const [existingStore] = await connection.query('SELECT id FROM sucursales WHERE user_id = ?', [targetUserId]);
+            if (existingStore.length > 0) {
+                await connection.rollback();
+                respuesta.mensaje = 'Este usuario ya tiene una sucursal registrada';
+                return res.status(400).json(respuesta);
+            }
         }
 
         const query = `
-            INSERT INTO sucursales (user_id, name, address, city, state, zip_code, country, phone, email, latitude, longitude)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO sucursales (
+                user_id, name, description, address, city, state, zip_code, country, 
+                phone, email, whatsapp, website_url, latitude, longitude, 
+                specialties, opening_time, closing_time, open_days
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
-        const dbRes = await db.ejecutar(query, [userId, name, address, city, state, zip_code, country, phone, email, latitude, longitude]);
+        await connection.query(query, [
+            targetUserId, name, description, address, city, state, zip_code, country, 
+            phone, email, whatsapp, website_url, latitude, longitude, 
+            specialties, opening_time || '09:00:00', closing_time || '18:00:00', open_days || 'Lunes-Sábado'
+        ]);
 
-        if (!dbRes.exito) throw new Error('Error al insertar en DB');
+        await connection.commit();
 
         respuesta.exito = true;
         respuesta.estado = 201;
-        respuesta.mensaje = 'Sucursal creada con éxito';
+        respuesta.mensaje = 'Sucursal y cuenta de acceso creadas con éxito';
+        respuesta.resultado = { userId: targetUserId };
         res.status(201).json(respuesta);
     } catch (error) {
+        if (connection) await connection.rollback();
+        console.error('Create store error:', error);
         respuesta.mensaje = 'Error al crear sucursal: ' + error.message;
         res.status(500).json(respuesta);
+    } finally {
+        if (connection) connection.release();
     }
 };
 
@@ -241,40 +441,42 @@ const updateStore = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.id;
-        const { name, address, city, state, zip_code, country, phone, email, latitude, longitude, status } = req.body;
+        const fields = req.body;
 
         // Verify ownership
         const store = await db.listar('SELECT id FROM sucursales WHERE id = ? AND user_id = ?', false, [id, userId]);
         if (!store.resultado) {
             respuesta.estado = 403;
-            respuesta.mensaje = 'No tienes permiso para editar esta sucursal';
+            respuesta.mensaje = 'No autorizado';
             return res.status(403).json(respuesta);
         }
 
-        const query = `
-            UPDATE sucursales SET 
-                name = COALESCE(?, name),
-                address = COALESCE(?, address),
-                city = COALESCE(?, city),
-                state = COALESCE(?, state),
-                zip_code = COALESCE(?, zip_code),
-                country = COALESCE(?, country),
-                phone = COALESCE(?, phone),
-                email = COALESCE(?, email),
-                latitude = COALESCE(?, latitude),
-                longitude = COALESCE(?, longitude),
-                status = COALESCE(?, status)
-            WHERE id = ? AND user_id = ?
-        `;
+        let query = 'UPDATE sucursales SET ';
+        const params = [];
+        const updates = [];
 
-        await db.ejecutar(query, [name, address, city, state, zip_code, country, phone, email, latitude, longitude, status, id, userId]);
+        Object.keys(fields).forEach(key => {
+            if (key !== 'id' && key !== 'user_id' && key !== 'created_at') {
+                updates.push(`${key} = ?`);
+                params.push(fields[key]);
+            }
+        });
+
+        if (updates.length === 0) {
+            respuesta.mensaje = 'No hay campos para actualizar';
+            return res.status(400).json(respuesta);
+        }
+
+        query += updates.join(', ') + ' WHERE id = ? AND user_id = ?';
+        params.push(id, userId);
+
+        await db.ejecutar(query, params);
 
         respuesta.exito = true;
-        respuesta.estado = 200;
-        respuesta.mensaje = 'Sucursal actualizada con éxito';
+        respuesta.mensaje = 'Sucursal actualizada';
         res.json(respuesta);
     } catch (error) {
-        respuesta.mensaje = 'Error al actualizar sucursal: ' + error.message;
+        respuesta.mensaje = 'Error al actualizar: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -286,20 +488,9 @@ const deleteStore = async (req, res) => {
     let respuesta = new Respuesta();
     try {
         const { id } = req.params;
-        const userId = req.user.id;
-
-        const store = await db.listar('SELECT id FROM sucursales WHERE id = ? AND user_id = ?', false, [id, userId]);
-        if (!store.resultado) {
-            respuesta.estado = 403;
-            respuesta.mensaje = 'No tienes permiso para eliminar esta sucursal o no existe';
-            return res.status(403).json(respuesta);
-        }
-
-        await db.ejecutar('DELETE FROM sucursales WHERE id = ? AND user_id = ?', [id, userId]);
-
+        await db.ejecutar('DELETE FROM sucursales WHERE id = ?', [id]);
         respuesta.exito = true;
-        respuesta.estado = 200;
-        respuesta.mensaje = 'Sucursal eliminada con éxito';
+        respuesta.mensaje = 'Sucursal eliminada';
         res.json(respuesta);
     } catch (error) {
         respuesta.mensaje = 'Error al eliminar sucursal: ' + error.message;
@@ -313,38 +504,31 @@ const deleteStore = async (req, res) => {
 const updateStoreProduct = async (req, res) => {
     let respuesta = new Respuesta();
     try {
-        const { id } = req.params; // Product ID
-        const userId = req.user.id;
-        const { name, description, price, image_url } = req.body;
+        const { id } = req.params;
+        const fields = req.body;
+        
+        let query = 'UPDATE store_products SET ';
+        const params = [];
+        const updates = [];
 
-        // Verify store ownership through product inner join
-        const prod = await db.listar(
-            `SELECT p.id FROM store_products p 
-            INNER JOIN sucursales s ON p.sucursal_id = s.id 
-            WHERE p.id = ? AND s.user_id = ?`,
-            false, [id, userId]
-        );
+        Object.keys(fields).forEach(key => {
+            if (key !== 'id' && key !== 'sucursal_id') {
+                updates.push(`${key} = ?`);
+                params.push(fields[key]);
+            }
+        });
 
-        if (!prod.resultado) {
-            respuesta.estado = 403;
-            respuesta.mensaje = 'Producto no encontrado o no tienes permiso';
-            return res.status(403).json(respuesta);
+        if (updates.length === 0) {
+            respuesta.mensaje = 'No hay campos para actualizar';
+            return res.status(400).json(respuesta);
         }
 
-        const query = `
-            UPDATE store_products SET 
-                name = COALESCE(?, name),
-                description = COALESCE(?, description),
-                price = COALESCE(?, price),
-                image_url = COALESCE(?, image_url)
-            WHERE id = ?
-        `;
+        query += updates.join(', ') + ' WHERE id = ?';
+        params.push(id);
 
-        await db.ejecutar(query, [name, description, price, image_url, id]);
-
+        await db.ejecutar(query, params);
         respuesta.exito = true;
-        respuesta.estado = 200;
-        respuesta.mensaje = 'Producto actualizado con éxito';
+        respuesta.mensaje = 'Producto actualizado';
         res.json(respuesta);
     } catch (error) {
         respuesta.mensaje = 'Error al actualizar producto: ' + error.message;
@@ -358,27 +542,10 @@ const updateStoreProduct = async (req, res) => {
 const deleteStoreProduct = async (req, res) => {
     let respuesta = new Respuesta();
     try {
-        const { id } = req.params; // Product ID
-        const userId = req.user.id;
-
-        const prod = await db.listar(
-            `SELECT p.id FROM store_products p 
-            INNER JOIN sucursales s ON p.sucursal_id = s.id 
-            WHERE p.id = ? AND s.user_id = ?`,
-            false, [id, userId]
-        );
-
-        if (!prod.resultado) {
-            respuesta.estado = 403;
-            respuesta.mensaje = 'Producto no encontrado o no tienes permiso';
-            return res.status(403).json(respuesta);
-        }
-
+        const { id } = req.params;
         await db.ejecutar('DELETE FROM store_products WHERE id = ?', [id]);
-
         respuesta.exito = true;
-        respuesta.estado = 200;
-        respuesta.mensaje = 'Producto eliminado con éxito';
+        respuesta.mensaje = 'Producto eliminado';
         res.json(respuesta);
     } catch (error) {
         respuesta.mensaje = 'Error al eliminar producto: ' + error.message;
@@ -397,5 +564,11 @@ module.exports = {
     updateStore,
     deleteStore,
     updateStoreProduct,
-    deleteStoreProduct
+    deleteStoreProduct,
+    getStoreSchedules,
+    getStoreReviews,
+    addStoreReview,
+    updateStoreStatus,
+    uploadStoreImage,
+    uploadProductImage
 };

@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS users (
     username VARCHAR(50) UNIQUE,
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    role ENUM('client', 'tech', 'store') NOT NULL,
+    role ENUM('client', 'tech', 'store', 'admin') NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -102,10 +102,11 @@ CREATE TABLE IF NOT EXISTS reviews (
 );
 
 -- 7. Sucursales
-CREATE TABLE if NOT EXISTS sucursales(
+CREATE TABLE IF NOT EXISTS sucursales (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
+    user_id INT NOT NULL,   
     name VARCHAR(255) NOT NULL,
+    description TEXT,
     address TEXT NOT NULL,
     city VARCHAR(100) NOT NULL,
     state VARCHAR(100) NOT NULL,
@@ -113,15 +114,25 @@ CREATE TABLE if NOT EXISTS sucursales(
     country VARCHAR(100) NOT NULL,
     phone VARCHAR(20) NOT NULL,
     email VARCHAR(255) NOT NULL,
+    whatsapp VARCHAR(20),
+    website_url VARCHAR(255),
+    image_url VARCHAR(255),
     latitude DECIMAL(10, 8) DEFAULT NULL,
     longitude DECIMAL(11, 8) DEFAULT NULL,
+    rating DECIMAL(2,1) DEFAULT 0,
+    reviews_count INT DEFAULT 0,
+    specialties TEXT,
+    social_media JSON,
+    opening_time TIME,
+    closing_time TIME,
+    open_days VARCHAR(100),
     status ENUM('active', 'inactive') DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- 8. Citas en Sucursales
-CREATE TABLE IF NOT EXISTS sucursales_citas(
+CREATE TABLE IF NOT EXISTS sucursales_citas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sucursal_id INT NOT NULL,
     cita_id INT NOT NULL,
@@ -131,15 +142,52 @@ CREATE TABLE IF NOT EXISTS sucursales_citas(
 );
 
 -- 9. Productos de Tiendas (Sucursales)
-CREATE TABLE IF NOT EXISTS store_products(
+CREATE TABLE IF NOT EXISTS store_products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sucursal_id INT NOT NULL,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,
     image_url VARCHAR(255),
+    stock INT DEFAULT NULL,
+    category VARCHAR(100),
+    brand VARCHAR(100),
+    sku VARCHAR(50),
+    is_available BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE
+);
+
+-- 10. Reseñas de Tiendas
+CREATE TABLE IF NOT EXISTS store_reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sucursal_id INT NOT NULL,
+    client_id INT NOT NULL,
+    rating TINYINT CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE,
+    FOREIGN KEY (client_id) REFERENCES users(id)
+);
+
+-- 11. Horarios Detallados de Tiendas
+CREATE TABLE IF NOT EXISTS store_schedules (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sucursal_id INT NOT NULL,
+    day_of_week ENUM('Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'),
+    open_time TIME,
+    close_time TIME,
+    is_closed BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE
+);
+
+-- 12. Password Resets
+CREATE TABLE IF NOT EXISTS password_resets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    email VARCHAR(255) NOT NULL,
+    code VARCHAR(6) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Índices para optimización

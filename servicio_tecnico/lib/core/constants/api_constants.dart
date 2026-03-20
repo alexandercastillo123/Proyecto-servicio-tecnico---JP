@@ -58,6 +58,11 @@ class ApiConstants {
   static String deleteStoreProduct(int id) => '$baseUrl/sucursales/products/$id';
   static String updateStore(int id) => '$baseUrl/sucursales/$id';
   static String deleteStore(int id) => '$baseUrl/sucursales/$id';
+  static String storeSchedules(int id) => '$baseUrl/sucursales/$id/schedules';
+  static String storeReviews(int id) => '$baseUrl/sucursales/$id/reviews';
+  static String updateStoreStatus(int id) => '$baseUrl/sucursales/$id/status';
+  static const String uploadStoreImage = '$baseUrl/sucursales/upload-image';
+  static const String uploadProductImage = '$baseUrl/sucursales/products/upload-image';
 
   // Health Check
   static const String health = 'http://localhost:3000/health';
