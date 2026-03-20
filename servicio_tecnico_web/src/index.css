@@ -1,0 +1,119 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #2563eb;
+  --color-primary-dark: #1d4ed8;
+}
+
+:root {
+  --bg-main: #f8fafc;
+  --glass: rgba(255, 255, 255, 0.7);
+  --glass-border: rgba(255, 255, 255, 0.5);
+  --sidebar-w: 280px;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Custom Components as Standard CSS Classes (Avoids v4 @utility apply conflicts) */
+.glass-card {
+  @apply bg-white/70 backdrop-blur-xl border border-white/50 shadow-xl shadow-slate-200/50 rounded-3xl;
+}
+
+.glass-sidebar {
+  @apply bg-slate-900/95 backdrop-blur-2xl border-r border-white/5;
+}
+
+.nav-item {
+  @apply flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-300 font-medium text-slate-400 hover:text-white hover:bg-white/10;
+}
+
+.nav-item.active {
+  @apply bg-blue-600 text-white shadow-lg shadow-blue-500/30;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all duration-300 hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-500/40 active:scale-95 disabled:opacity-50;
+}
+
+.table-container {
+  @apply glass-card overflow-hidden;
+}
+
+.status-badge {
+  @apply px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider;
+}
+
+/* Base element styles */
+th {
+  @apply px-6 py-4 text-left text-xs font-bold text-slate-400 uppercase tracking-widest bg-slate-50/50;
+}
+
+td {
+  @apply px-6 py-4 text-sm text-slate-600 border-t border-slate-100;
+}
+
+.status-pending { @apply bg-amber-100 text-amber-700; }
+.status-confirmed { @apply bg-emerald-100 text-emerald-700; }
+.status-cancelled { @apply bg-rose-100 text-rose-700; }
+.status-completed { @apply bg-blue-100 text-blue-700; }
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full hover:bg-slate-300 transition-colors;
+}
+
+.app-container {
+  @apply min-h-screen flex;
+}
+
+.sidebar {
+  width: var(--sidebar-w);
+  @apply glass-sidebar h-screen sticky top-0 flex flex-col p-6 z-50;
+}
+
+.main-content {
+  @apply flex-1 p-8 lg:p-12 overflow-y-auto;
+}
+
+.stats-grid {
+  @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12;
+}
+
+.stat-card {
+  @apply glass-card p-8 flex items-center gap-6 hover:translate-y-[-4px] transition-all duration-500;
+}
+
+.stat-icon {
+  @apply w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner ring-1 ring-white/20;
+}
+
+.stat-info h4 {
+  @apply text-sm font-bold text-slate-400 uppercase tracking-widest mb-1;
+}
+
+.stat-info p {
+  @apply text-3xl font-black text-slate-800 tracking-tight;
+}
+
+.logo-container {
+  @apply flex items-center gap-3 mb-10 px-2;
+}
+
+.logo-img {
+  @apply w-10 h-10 object-contain drop-shadow-md;
+}
+
+.logo-text {
+  @apply text-xl font-black text-white tracking-tighter;
+}

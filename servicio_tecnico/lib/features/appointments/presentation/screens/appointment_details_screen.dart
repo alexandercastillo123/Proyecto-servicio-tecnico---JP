@@ -61,6 +61,8 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
         return 'Completado';
       case 'cancelled':
         return 'Cancelado';
+      case 'cancellation_pending':
+        return 'Cancelación Pendiente';
       default:
         return status ?? 'Desconocido';
     }
@@ -76,6 +78,8 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
         return Colors.green;
       case 'cancelled':
         return Colors.red;
+      case 'cancellation_pending':
+        return Colors.deepOrange;
       default:
         return Colors.grey;
     }
@@ -166,6 +170,10 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
                   _buildDetailRow(
                     'Descripción',
                     app['description'] ?? 'Sin descripción',
+                  ),
+                  _buildDetailRow(
+                    'Tipo',
+                    app['service_type'] == 'domicilio' ? 'Técnico a Domicilio 🏠' : 'Atención en Local 🏬',
                   ),
                   _buildDetailRow(
                     'Fecha',

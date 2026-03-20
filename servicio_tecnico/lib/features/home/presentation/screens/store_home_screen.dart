@@ -50,9 +50,8 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
   }
 
   Future<void> _loadStoreData() async {
-    setState(() => _loadingProducts = true);
+    if (mounted) setState(() => _loadingProducts = true);
     try {
-      // Get the real store for the authenticated user
       final resStore = await _storeService.getMyStore();
       if (resStore.success && mounted) {
         setState(() {
@@ -62,7 +61,6 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
           _loadProducts();
         } else {
           setState(() => _loadingProducts = false);
-          // Show message or navigate to create store
         }
       } else {
         if (mounted) setState(() => _loadingProducts = false);
@@ -119,14 +117,8 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Panel'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.inventory_2),
-            label: 'Catálogo',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble),
-            label: 'Mensajes',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.inventory_2), label: 'Catálogo'),
+          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble), label: 'Mensajes'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
         ],
       ),
@@ -145,8 +137,8 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Panel de Tienda',
+                  const Text(
+                    '¡Hola!',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -154,14 +146,23 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
                     ),
                   ),
                   Text(
-                    _myStore?.name ?? 'Sin sucursal registrada',
+                    _myStore?.name ?? 'Rol: Administrador de Tienda',
                     style: TextStyle(color: Colors.grey[600]),
                   ),
                 ],
               ),
-              CircleAvatar(
-                backgroundColor: AppColors.primary.withOpacity(0.1),
-                child: const Icon(Icons.store, color: AppColors.primary),
+              GestureDetector(
+                onTap: () => setState(() => _selectedIndex = 3),
+                child: CircleAvatar(
+                  radius: 25,
+                  backgroundColor: AppColors.primary.withOpacity(0.1),
+                  backgroundImage: (_myStore?.imageUrl != null)
+                      ? NetworkImage('${ApiConstants.baseUrl}/${_myStore!.imageUrl}')
+                      : null,
+                  child: (_myStore?.imageUrl == null)
+                      ? const Icon(Icons.store, color: AppColors.primary, size: 30)
+                      : null,
+                ),
               ),
             ],
           ),
@@ -170,32 +171,32 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: Colors.orange[50],
                 borderRadius: BorderRadius.circular(15),
-                border: Border.all(color: Colors.blue[200]!),
+                border: Border.all(color: Colors.orange[200]!),
               ),
               child: Column(
                 children: [
+                  const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 40),
+                  const SizedBox(height: 12),
                   const Text(
-                    '¡Aún no tienes una sucursal registrada!',
+                    'Sucursal no vinculada',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 8),
                   const Text(
-                    'Crea tu sucursal para poder gestionar tus productos y recibir consultas de clientes.',
+                    'Su cuenta no tiene una sucursal asignada en el sistema. Las sucursales son gestionadas directamente por el administrador principal.',
                     textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13),
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
-                    onPressed: () async {
-                      final created = await context.push<bool>('/create-store');
-                      if (created == true) _loadStoreData();
-                    },
-                    icon: const Icon(Icons.add),
-                    label: const Text('REGISTRAR MI TIENDA'),
+                    onPressed: _loadStoreData,
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('REINTENTAR CARGA'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: Colors.orange,
                       foregroundColor: Colors.white,
                     ),
                   ),
@@ -206,56 +207,18 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
           const SizedBox(height: 30),
           Row(
             children: [
-              _buildStatCard(
-                'Productos',
-                '${_products.length}',
-                Icons.shopping_bag,
-                Colors.blue,
-              ),
+              _buildStatCard('Productos', '${_products.length}', Icons.shopping_bag, Colors.blue),
               const SizedBox(width: 15),
-              _buildStatCard(
-                'Citas Hoy',
-                '0',
-                Icons.calendar_today,
-                Colors.orange,
-              ),
+              _buildStatCard('Citas Hoy', '0', Icons.calendar_today, Colors.orange),
             ],
           ),
           const SizedBox(height: 30),
-          const Text(
-            'Actividad de Clientes',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
+          const Text('Actividad Reciente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           const SizedBox(height: 15),
           if (_loadingRecent)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              child: Center(child: LinearProgressIndicator()),
-            )
+            const Center(child: LinearProgressIndicator())
           else if (_recentChats.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(30),
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: AppColors.softShadow,
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.chat_bubble_outline,
-                    size: 40,
-                    color: Colors.grey[300],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'No hay consultas de clientes aún',
-                    style: TextStyle(color: Colors.grey[600]),
-                  ),
-                ],
-              ),
-            )
+            _buildEmptyState(Icons.chat_bubble_outline, 'No hay actividad de clientes aún')
           else
             ..._recentChats.take(3).map((chat) => _buildRecentChatCard(chat)),
         ],
@@ -263,111 +226,109 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
     );
   }
 
+  Widget _buildEmptyState(IconData icon, String message) {
+    return Container(
+      padding: const EdgeInsets.all(30),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: AppColors.softShadow,
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 40, color: Colors.grey[300]),
+          const SizedBox(height: 12),
+          Text(message, style: TextStyle(color: Colors.grey[600]), textAlign: TextAlign.center),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMessagesTab() {
     return _recentChats.isEmpty
-        ? Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.chat_bubble_outline,
-                  size: 64,
-                  color: Colors.grey[300],
+        ? Center(child: _buildEmptyState(Icons.chat_bubble_outline, 'No tienes mensajes aún'))
+        : Column(
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(20),
+                child: Text('Mensajes de Clientes', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: _recentChats.length,
+                  itemBuilder: (context, index) => _buildRecentChatCard(_recentChats[index]),
                 ),
-                const SizedBox(height: 16),
-                const Text('No tienes mensajes aún'),
-              ],
-            ),
-          )
-        : ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: _recentChats.length,
-            itemBuilder: (context, index) =>
-                _buildRecentChatCard(_recentChats[index]),
+              ),
+            ],
           );
   }
 
   Widget _buildRecentChatCard(dynamic chat) {
-    final rawUrl = chat['profile_image_url']?.toString();
     final name = chat['username'] ?? 'Cliente';
-    final lastMsg = chat['last_message'] ?? 'Consulta de producto';
+    final lastMsg = chat['last_message'] ?? 'Consulta';
     final unread = (chat['unread_count'] ?? 0) > 0;
 
-    return Container(
+    return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: AppColors.softShadow,
-        border: unread
-            ? Border.all(color: AppColors.primary.withOpacity(0.3), width: 1.5)
-            : null,
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: AppColors.primaryLight,
-          backgroundImage: (rawUrl != null && rawUrl.isNotEmpty)
-              ? NetworkImage('${ApiConstants.baseUrl}/$rawUrl')
-              : null,
-          child: (rawUrl == null || rawUrl.isEmpty)
-              ? const Icon(Icons.person, color: AppColors.primary)
-              : null,
+          backgroundColor: AppColors.primary.withOpacity(0.1),
+          child: const Icon(Icons.person, color: AppColors.primary),
         ),
         title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Text(lastMsg, maxLines: 1, overflow: TextOverflow.ellipsis),
-        trailing: const Icon(Icons.chevron_right, size: 18),
+        trailing: unread ? const CircleAvatar(radius: 5, backgroundColor: Colors.red) : const Icon(Icons.chevron_right),
         onTap: () => context.push('/chat', extra: chat['other_user_id']),
       ),
     );
   }
 
   Widget _buildCatalog() {
-    if (_loadingProducts)
-      return const Center(child: CircularProgressIndicator());
+    if (_loadingProducts) return const Center(child: CircularProgressIndicator());
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.all(20),
-          child: Text(
-            'Gestionar Productos',
-            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Gestionar Productos', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              if (_myStore != null) 
+                Text('Sucursal: ${_myStore!.name}', style: TextStyle(color: Colors.grey[600])),
+            ],
           ),
         ),
         Expanded(
           child: _products.isEmpty
-              ? const Center(
-                  child: Text('Aún no tienes productos en tu catálogo'),
-                )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _products.length,
-                    itemBuilder: (context, index) {
-                      final p = _products[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
+              ? Center(child: _buildEmptyState(Icons.inventory_2_outlined, 'Aún no tienes productos'))
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: _products.length,
+                  itemBuilder: (context, index) {
+                    final p = _products[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.primaryLight,
+                          child: const Icon(Icons.shopping_bag, color: AppColors.primary),
                         ),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: AppColors.primaryLight,
-                            child: const Icon(Icons.shopping_bag, color: AppColors.primary),
-                          ),
-                          title: Text(
-                            p.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: Text('S/ ${p.price.toStringAsFixed(2)}'),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red),
-                            onPressed: () => _confirmDeleteProduct(p),
-                          ),
+                        title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                        subtitle: Text('S/ ${p.price.toStringAsFixed(2)} | Stock: ${p.stock ?? 0}'),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _confirmDeleteProduct(p),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
+                ),
         ),
       ],
     );
@@ -378,16 +339,10 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar Producto'),
-        content: Text('¿Estás seguro de que deseas eliminar ${product.name}?'),
+        content: Text('¿Deseas eliminar ${product.name}?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
@@ -396,54 +351,67 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
       final res = await _storeService.deleteStoreProduct(product.id);
       if (res.success) {
         _loadProducts();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Producto eliminado con éxito')),
-        );
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Producto eliminado')));
       }
     }
   }
 
   void _showAddProductDialog() {
+    if (_myStore == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No puede agregar productos sin una sucursal vinculada.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final nameController = TextEditingController();
+    final descriptionController = TextEditingController();
     final priceController = TextEditingController();
+    final stockController = TextEditingController();
+    final categoryController = TextEditingController();
+    final brandController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Añadir Producto'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(labelText: 'Nombre'),
-            ),
-            TextField(
-              controller: priceController,
-              decoration: const InputDecoration(labelText: 'Precio'),
-              keyboardType: TextInputType.number,
-            ),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Nombre *')),
+              TextField(controller: descriptionController, decoration: const InputDecoration(labelText: 'Descripción'), maxLines: 2),
+              Row(
+                children: [
+                  Expanded(child: TextField(controller: priceController, decoration: const InputDecoration(labelText: 'Precio *'), keyboardType: TextInputType.number)),
+                  const SizedBox(width: 10),
+                  Expanded(child: TextField(controller: stockController, decoration: const InputDecoration(labelText: 'Stock'), keyboardType: TextInputType.number)),
+                ],
+              ),
+              TextField(controller: categoryController, decoration: const InputDecoration(labelText: 'Categoría')),
+              TextField(controller: brandController, decoration: const InputDecoration(labelText: 'Marca')),
+            ],
+          ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
           ElevatedButton(
             onPressed: () async {
               if (nameController.text.isEmpty || priceController.text.isEmpty) return;
-              if (_myStore == null) return;
-              
               final res = await _storeService.addStoreProduct({
                 'sucursal_id': _myStore!.id,
                 'name': nameController.text,
+                'description': descriptionController.text,
                 'price': double.tryParse(priceController.text) ?? 0.0,
-                'description': '',
-                'image_url': '',
+                'stock': int.tryParse(stockController.text),
+                'category': categoryController.text,
+                'brand': brandController.text,
+                'is_available': true,
               });
-              
-              if (res.success) {
+              if (res.success && mounted) {
                 Navigator.pop(context);
                 _loadProducts();
               }
@@ -455,53 +423,164 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
     );
   }
 
-  Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: AppColors.softShadow,
+  void _showEditProfileDialog() {
+    if (_myStore == null) return;
+    final descController = TextEditingController(text: _myStore!.description);
+    final phoneController = TextEditingController(text: _myStore!.phone);
+    final whatsappController = TextEditingController(text: _myStore!.whatsapp);
+    final specialtiesController = TextEditingController(text: _myStore!.specialties);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar Perfil de Sucursal'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: descController, decoration: const InputDecoration(labelText: 'Descripción'), maxLines: 3),
+              TextField(controller: phoneController, decoration: const InputDecoration(labelText: 'Teléfono de Contacto')),
+              TextField(controller: whatsappController, decoration: const InputDecoration(labelText: 'WhatsApp')),
+              TextField(controller: specialtiesController, decoration: const InputDecoration(labelText: 'Especialidades')),
+            ],
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: color),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            Text(
-              title,
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
-            ),
-          ],
-        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          ElevatedButton(
+            onPressed: () async {
+              final res = await _storeService.updateStore(_myStore!.id, {
+                'description': descController.text,
+                'phone': phoneController.text,
+                'whatsapp': whatsappController.text,
+                'specialties': specialtiesController.text,
+              });
+              if (res.success && mounted) {
+                Navigator.pop(context);
+                _loadStoreData();
+              }
+            },
+            child: const Text('Actualizar Sucursal'),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildProfile() {
-    return Center(
-      child: ElevatedButton(
-        onPressed: () async {
-          await context.read<AuthProvider>().logout();
-          if (mounted) context.go('/login');
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        ),
-        child: const Text('Cerrar Sesión', style: TextStyle(fontSize: 16)),
+    final user = context.watch<AuthProvider>().user;
+    
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          CircleAvatar(
+            radius: 50,
+            backgroundColor: AppColors.primary.withOpacity(0.1),
+            child: const Icon(Icons.person, size: 50, color: AppColors.primary),
+          ),
+          const SizedBox(height: 15),
+          Text(user?.username ?? 'Cargando...', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(user?.email ?? '', style: TextStyle(color: Colors.grey[600])),
+          const SizedBox(height: 5),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Text('ROL: TIENDA / SUCURSAL', style: TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(height: 30),
+          
+          if (_myStore != null) ...[
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Datos de la Sucursal', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(height: 15),
+            _buildProfileItem(Icons.store, 'Nombre Comercial', _myStore!.name),
+            _buildProfileItem(Icons.location_on, 'Ubicación', _myStore!.address),
+            _buildProfileItem(Icons.description, 'Descripción', _myStore!.description ?? 'Sin descripción'),
+            _buildProfileItem(Icons.phone, 'Teléfono', _myStore!.phone),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _showEditProfileDialog, 
+              icon: const Icon(Icons.edit), 
+              label: const Text('MODIFICAR SUCURSAL'),
+              style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+            ),
+          ] else ...[
+            _buildEmptyState(Icons.info_outline, 'Sin sucursal vinculada'),
+            const SizedBox(height: 10),
+            const Text(
+              'La información de sucursal aparecerá aquí una vez que el administrador la vincule a su cuenta.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+            ),
+          ],
+          
+          const SizedBox(height: 30),
+          const Divider(),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: () async {
+              await context.read<AuthProvider>().logout();
+              if (mounted) context.go('/login');
+            },
+            icon: const Icon(Icons.logout),
+            label: const Text('CERRAR SESIÓN'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.red,
+              side: const BorderSide(color: Colors.red),
+              minimumSize: const Size(double.infinity, 50),
+            ),
+          ),
+          const SizedBox(height: 50),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProfileItem(IconData icon, String label, String value) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 5)],
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primary, size: 22),
+          const SizedBox(width: 15),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+            const SizedBox(height: 2),
+            Text(value, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+          ])),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), boxShadow: AppColors.softShadow),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(height: 15),
+          Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          Text(title, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+        ]),
       ),
     );
   }

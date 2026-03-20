@@ -159,6 +159,24 @@ class ApiService {
     }
   }
 
+  Future<ApiResponse<T>> uploadFile<T>(
+    String url,
+    String filePath, {
+    String fieldName = 'file',
+    bool requiresAuth = true,
+    T Function(dynamic)? fromJson,
+  }) async {
+    try {
+      final file = await http.MultipartFile.fromPath(fieldName, filePath);
+      return postMultipart<T>(url, {}, file, requiresAuth: requiresAuth, fromJson: fromJson);
+    } catch (e) {
+      return ApiResponse(
+        success: false,
+        message: 'Error al preparar archivo: ${e.toString()}',
+      );
+    }
+  }
+
   Future<ApiResponse<T>> postMultipart<T>(
     String url,
     Map<String, String> fields,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/services/technician_service.dart';
+import '../../../../core/services/store_service.dart';
 import '../../../../core/services/message_service.dart';
 
 class AppointmentSchedulingScreen extends StatefulWidget {
@@ -16,11 +17,14 @@ class _AppointmentSchedulingScreenState
     extends State<AppointmentSchedulingScreen> {
   final AppointmentService _appointmentService = AppointmentService();
   final TechnicianService _technicianService = TechnicianService();
+  final StoreService _storeService = StoreService();
 
   Map<String, dynamic>? _techInfo;
   List<dynamic> _schedule = [];
   bool _isLoading = true;
   String? _errorMessage;
+  bool _isStore = false;
+  String _serviceType = 'local';
   // Ubicacion del servicio
   double? _serviceLat;
   double? _serviceLng;
@@ -40,22 +44,41 @@ class _AppointmentSchedulingScreenState
       final extra = GoRouterState.of(context).extra;
       if (extra != null && extra is Map<String, dynamic>) {
         _techInfo = extra;
+        _isStore = extra['isStore'] ?? false;
         _serviceLat = (extra['serviceLat'] as num?)?.toDouble();
         _serviceLng = (extra['serviceLng'] as num?)?.toDouble();
         _serviceAddress = extra['serviceAddress'] as String?;
-        _fetchSchedule(extra['id']);
+        
+        // If we have an address, default to domicilio
+        if (_serviceAddress != null && _serviceAddress!.isNotEmpty) {
+          _serviceType = 'domicilio';
+        }
+        
+        // Handle both 'id' (tech) and 'storeId' (branch)
+        final targetId = extra['id'] ?? extra['storeId'];
+        if (targetId != null) {
+          _fetchSchedule(targetId);
+        } else {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = 'ID de destino no encontrado';
+          });
+        }
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Información del técnico no proporcionada';
+          _errorMessage = 'Información no proporcionada';
         });
       }
     }
   }
 
-  Future<void> _fetchSchedule(int techId) async {
+  Future<void> _fetchSchedule(int targetId) async {
     try {
-      final response = await _technicianService.getTechnicianSchedule(techId);
+      final response = _isStore 
+          ? await _storeService.getStoreSchedules(targetId)
+          : await _technicianService.getTechnicianSchedule(targetId);
+          
       if (response.success) {
         setState(() {
           _schedule = response.data ?? [];
@@ -132,6 +155,14 @@ class _AppointmentSchedulingScreenState
   Future<void> _createAppointment() async {
     if (_techInfo == null) return;
 
+    final targetId = _techInfo!['id'] ?? _techInfo!['storeUserId'];
+    if (targetId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('ID de destino no encontrado')),
+      );
+      return;
+    }
+
     if (_selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor selecciona una fecha')),
@@ -160,7 +191,7 @@ class _AppointmentSchedulingScreenState
         final existingApps = appsResponse.data as List<dynamic>;
         final hasActive = existingApps.any(
           (app) =>
-              app['technician_id'] == _techInfo!['id'] &&
+              app['technician_id'] == targetId &&
               (app['status'] == 'pending' || app['status'] == 'confirmed'),
         );
 
@@ -168,7 +199,7 @@ class _AppointmentSchedulingScreenState
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Ya tienes una cita activa con este técnico'),
+                content: Text('Ya tienes una cita activa con este destino'),
                 backgroundColor: Colors.orange,
               ),
             );
@@ -180,20 +211,21 @@ class _AppointmentSchedulingScreenState
       final scheduledDate =
           "${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}";
       final response = await _appointmentService.createAppointment(
-        technicianId: _techInfo!['id'],
+        technicianId: targetId,
         scheduledDate: scheduledDate,
         scheduledTime: _timeController.text,
         description: description,
         serviceLat: _serviceLat,
         serviceLng: _serviceLng,
         serviceAddress: _serviceAddress,
+        serviceType: _serviceType,
       );
 
       if (mounted) {
         if (response.success) {
           // Send automatic message to chat
           await _messageService.sendMessage(
-            receiverId: _techInfo!['id'],
+            receiverId: targetId,
             messageText:
                 'Cita agendada para $scheduledDate a las ${_timeController.text}\nMotivo: $description',
             messageType: 'appointment',
@@ -205,7 +237,7 @@ class _AppointmentSchedulingScreenState
           );
 
           // Redirect to Chat Screen
-          context.pushReplacement('/chat', extra: _techInfo!['id']);
+          context.pushReplacement('/chat', extra: targetId);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -430,7 +462,51 @@ class _AppointmentSchedulingScreenState
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  if (_isStore) ...[
+                    _buildFormField(
+                      label: 'Servicio:',
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE8E8E8),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _serviceType,
+                            isExpanded: true,
+                            dropdownColor: Colors.white,
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'local',
+                                child: Text('Atención en Local'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'domicilio',
+                                child: Text('Técnico a Domicilio'),
+                              ),
+                            ],
+                            onChanged: (val) {
+                              if (val != null) {
+                                setState(() {
+                                  _serviceType = val;
+                                });
+                              }
+                            },
+                            style: const TextStyle(
+                              color: Color(0xFF3B28FF),
+                              fontSize: 16,
+                            ),
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Color(0xFF3B28FF),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   _buildFormField(
                     label: 'Descripcion:',
                     alignTop: true,
