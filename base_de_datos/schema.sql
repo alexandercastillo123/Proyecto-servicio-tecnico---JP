@@ -53,12 +53,13 @@ CREATE TABLE IF NOT EXISTS appointments (
     scheduled_date DATE NOT NULL,
     scheduled_time TIME NOT NULL,
     description TEXT,
-    status ENUM('pending', 'confirmed', 'completed', 'cancelled') DEFAULT 'pending',
+    status ENUM('pending', 'confirmed', 'completed', 'cancelled', 'cancellation_pending') DEFAULT 'pending',
     cancelled_by INT DEFAULT NULL,
     price DECIMAL(10, 2) DEFAULT NULL,
     payment_method ENUM('yape', 'plin', 'transfer', 'cash') DEFAULT NULL,
     payment_status ENUM('pending', 'waiting_confirmation', 'paid') DEFAULT 'pending',
     payment_confirmed_at TIMESTAMP NULL DEFAULT NULL,
+    service_type ENUM('local', 'domicilio') DEFAULT 'local',
     service_lat DECIMAL(10, 7) DEFAULT NULL,
     service_lng DECIMAL(10, 7) DEFAULT NULL,
     service_address TEXT DEFAULT NULL,
@@ -149,7 +150,6 @@ CREATE TABLE IF NOT EXISTS store_products (
     description TEXT,
     price DECIMAL(10, 2) NOT NULL,
     image_url VARCHAR(255),
-    stock INT DEFAULT NULL,
     category VARCHAR(100),
     brand VARCHAR(100),
     sku VARCHAR(50),
@@ -181,7 +181,26 @@ CREATE TABLE IF NOT EXISTS store_schedules (
     FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE
 );
 
--- 12. Password Resets
+-- 12. Pedidos de Tiendas
+CREATE TABLE IF NOT EXISTS store_orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    client_id INT NOT NULL,
+    sucursal_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT DEFAULT 1,
+    unit_price DECIMAL(10, 2) NOT NULL,
+    total_price DECIMAL(10, 2) NOT NULL,
+    status ENUM('pending', 'completed', 'cancelled') DEFAULT 'pending',
+    delivery_address TEXT,
+    latitude DECIMAL(10, 8),
+    longitude DECIMAL(11, 8),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES users(id),
+    FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES store_products(id) ON DELETE CASCADE
+);
+
+-- 13. Password Resets
 CREATE TABLE IF NOT EXISTS password_resets (
     id INT AUTO_INCREMENT PRIMARY KEY,
     email VARCHAR(255) NOT NULL,

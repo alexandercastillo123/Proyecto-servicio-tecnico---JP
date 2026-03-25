@@ -13,6 +13,7 @@ const appointmentsRoutes = require('./routes/appointments.routes');
 const messagesRoutes = require('./routes/messages.routes');
 const sucursalesRoutes = require('./routes/sucursales.routes');
 const adminRoutes = require('./routes/admin.routes');
+const appointmentManager = require('./utils/appointmentManager');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -78,6 +79,9 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('');
     console.log('Press CTRL+C to stop the server');
     console.log('═══════════════════════════════════════════════════════');
+    
+    // Start automated tasks
+    appointmentManager.startAppointmentAutomation();
 });
 
 // Graceful shutdown

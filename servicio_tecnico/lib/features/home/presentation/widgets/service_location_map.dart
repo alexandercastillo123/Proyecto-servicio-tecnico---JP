@@ -19,9 +19,10 @@ import '../../../../core/theme/app_colors.dart';
 /// - El botón "Buscar Técnicos" consulta /api/technicians/nearby (radio 5 km)
 ///   y muestra los técnicos con coords reales.
 class ServiceLocationMap extends StatefulWidget {
+  final bool isActive;
   final Function(bool)? onLoadingChanged;
 
-  const ServiceLocationMap({super.key, this.onLoadingChanged});
+  const ServiceLocationMap({super.key, this.isActive = true, this.onLoadingChanged});
 
   @override
   State<ServiceLocationMap> createState() => _ServiceLocationMapState();
@@ -266,8 +267,18 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
   }
 
   @override
+  void didUpdateWidget(covariant ServiceLocationMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive && !widget.isActive) {
+      _cancelSearch();
+    }
+  }
+
+  @override
   void dispose() {
     _searchTimer?.cancel();
+    // Ensure parent stops showing loading if we are disposed suddenly
+    widget.onLoadingChanged?.call(false);
     super.dispose();
   }
 

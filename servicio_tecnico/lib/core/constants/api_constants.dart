@@ -63,6 +63,12 @@ class ApiConstants {
   static String updateStoreStatus(int id) => '$baseUrl/sucursales/$id/status';
   static const String uploadStoreImage = '$baseUrl/sucursales/upload-image';
   static const String uploadProductImage = '$baseUrl/sucursales/products/upload-image';
+  
+  // Store Order Endpoints
+  static const String createStoreOrder = '$baseUrl/sucursales/orders';
+  static const String myOrders = '$baseUrl/sucursales/orders/my';
+  static String storeOrders(int id) => '$baseUrl/sucursales/$id/orders';
+  static String updateOrderStatus(int id) => '$baseUrl/sucursales/orders/$id/status';
 
   // Health Check
   static const String health = 'http://localhost:3000/health';

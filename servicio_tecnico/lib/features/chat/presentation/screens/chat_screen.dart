@@ -75,15 +75,28 @@ class _ChatScreenState extends State<ChatScreen> {
     super.didChangeDependencies();
     if (_isLoading && _otherUserId == null) {
       final extra = GoRouterState.of(context).extra;
-      if (extra != null && extra is int) {
-        _otherUserId = extra;
-        _loadInitialData(extra);
-      } else {
-        setState(() {
-          _isLoading = false;
-          _errorMessage = 'ID de usuario no proporcionado';
-        });
+      if (extra != null) {
+        int? userId;
+        if (extra is int) {
+          userId = extra;
+        } else if (extra is String) {
+          userId = int.tryParse(extra);
+        } else {
+          // Fallback: try converting to string and parsing if it's some other type (e.g. double)
+          userId = int.tryParse(extra.toString());
+        }
+
+        if (userId != null) {
+          _otherUserId = userId;
+          _loadInitialData(userId);
+          return;
+        }
       }
+      
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'ID de usuario no proporcionado o inválido';
+      });
     }
   }
 
@@ -374,7 +387,8 @@ class _ChatScreenState extends State<ChatScreen> {
     final bool isTech =
         _userRole == 'tech' ||
         _userRole == 'technician' ||
-        _userRole == 'provider';
+        _userRole == 'provider' ||
+        _userRole == 'store';
 
     return Align(
       alignment: !isMe ? Alignment.centerLeft : Alignment.centerRight,
@@ -400,7 +414,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Cita agendada${appointmentStatus == 'cancelled' ? cancelText : ''}:',
+                        appointmentStatus == 'cancelled' 
+                          ? '❌ Cita Cancelada$cancelText'
+                          : appointmentStatus == 'completed'
+                            ? '✅ Chamba Terminada'
+                            : (price == null ? '🔧 Propuesta de Chamba' : '💼 Chamba Activa'),
                         style: TextStyle(
                           color: isMe ? Colors.white : AppColors.primary,
                           fontSize: 16,
@@ -555,10 +573,27 @@ class _ChatScreenState extends State<ChatScreen> {
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: () async {
-                          final response = await _appointmentService
-                              .cancelAppointment(appointmentId);
-                          if (response.success) {
-                            _loadMessages(_otherUserId!);
+                          final confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Confirmar Cancelación'),
+                              content: const Text('¿Estás seguro de que deseas cancelar esta cita? Esta acción no se puede deshacer.'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('NO, VOLVER')),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true), 
+                                  child: const Text('SÍ, CANCELAR', style: TextStyle(color: Colors.red))
+                                ),
+                              ],
+                            ),
+                          );
+
+                          if (confirm == true) {
+                            final response = await _appointmentService
+                                .cancelAppointment(appointmentId);
+                            if (response.success) {
+                              _loadMessages(_otherUserId!);
+                            }
                           }
                         },
                         icon: const Icon(

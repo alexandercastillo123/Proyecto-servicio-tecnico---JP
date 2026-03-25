@@ -1,295 +1,548 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext, createContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  Users, 
-  Store, 
-  LogOut, 
-  ChevronRight,
-  MapPin,
-  Plus,
-  X,
-  Home,
-  Map
+import {
+  LayoutDashboard, Calendar, Users, Store, LogOut, Sun, Moon,
+  ChevronRight, MapPin, Home, Map, TrendingUp, X, Eye,
+  CheckCircle, XCircle, Clock, AlertCircle, Search, Filter
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { adminService } from './services/api';
-
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend
+} from 'recharts';
+import { adminService, authService } from './services/api';
 import Login from './Login';
 import StoreManagement from './StoreManagement';
 
-// --- Dashboard Component (Summary) ---
-const Dashboard = () => {
-  const [stats, setStats] = useState({ appointments: 0, users: 0, stores: 0 });
-  const [appointments, setAppointments] = useState([]);
+// ─── DARK MODE ────────────────────────────────────────────────
+export const DarkModeContext = createContext({ dark: false, toggle: () => {} });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [appRes, userRes, storeRes] = await Promise.all([
-          adminService.getAppointments({ limit: 8 }),
-          adminService.getUsers({ role: 'client' }),
-          adminService.getBranches()
-        ]);
-        setStats({
-          appointments: appRes.data.resultado.length,
-          users: userRes.data.resultado.length,
-          stores: storeRes.data.resultado.length
-        });
-        setAppointments(appRes.data.resultado.slice(0, 8));
-      } catch (err) {
-        console.error('Error fetching dashboard data', err);
-      }
-    };
-    fetchData();
-  }, []);
+// ─── CONSTANTS ───────────────────────────────────────────────
+const STATUS_LABELS = {
+  pending: 'Pendiente', confirmed: 'Confirmada', completed: 'Completada',
+  cancelled: 'Cancelada', cancellation_pending: 'Cancel. Pend.'
+};
+const STATUS_COLORS_HEX = {
+  pending: '#F59E0B', confirmed: '#3B82F6', completed: '#10B981',
+  cancelled: '#EF4444', cancellation_pending: '#F97316'
+};
+const ROLE_COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981'];
+const ROLE_LABELS = { client: 'Cliente', tech: 'Técnico', store: 'Tienda', admin: 'Admin' };
 
+// ─── BADGE COMPONENT ─────────────────────────────────────────
+const StatusBadge = ({ status }) => {
+  const colors = {
+    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400',
+    confirmed: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
+    completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400',
+    cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400',
+    cancellation_pending: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400',
+  };
   return (
-    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-      <div className="stats-grid">
-        <StatCard icon={<Calendar size={28} />} label="Citas Totales" value={stats.appointments} color="blue" description="Programadas este mes" />
-        <StatCard icon={<Users size={28} />} label="Base de Clientes" value={stats.users} color="indigo" description="Usuarios registrados" />
-        <StatCard icon={<Store size={28} />} label="Sucursales" value={stats.stores} color="emerald" description="Puntos de atención" />
-      </div>
+    <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${colors[status] || 'bg-slate-100 text-slate-600'}`}>
+      {STATUS_LABELS[status] || status}
+    </span>
+  );
+};
 
-      <div className="table-container">
-        <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-white/40">
+const RoleBadge = ({ role }) => {
+  const colors = {
+    admin: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400',
+    tech: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400',
+    store: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-400',
+    client: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
+  };
+  return (
+    <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${colors[role] || 'bg-slate-100 text-slate-600'}`}>
+      {ROLE_LABELS[role] || role}
+    </span>
+  );
+};
+
+// ─── STAT CARD ────────────────────────────────────────────────
+const StatCard = ({ icon, label, value, color, desc, delta }) => (
+  <motion.div whileHover={{ y: -4 }} className="stat-card">
+    <div className={`stat-icon bg-${color}-600/10 text-${color}-600`}>{icon}</div>
+    <div className="stat-info">
+      <h4>{label}</h4>
+      <p>{value}</p>
+      <span className="text-[10px] text-muted font-black uppercase tracking-wider">{desc}</span>
+    </div>
+  </motion.div>
+);
+
+// ─── APPOINTMENT DETAIL MODAL ─────────────────────────────────
+const AppointmentModal = ({ appt, onClose }) => {
+  if (!appt) return null;
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}>
+      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+        className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden"
+        onClick={e => e.stopPropagation()}>
+        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-8 py-6 flex items-center justify-between">
           <div>
-            <h3 className="font-extrabold text-xl text-slate-800 tracking-tight">Actividad Reciente</h3>
-            <p className="text-xs text-slate-500 font-medium">Últimas 8 citas registradas en el sistema</p>
+            <p className="text-blue-200 text-xs font-black uppercase tracking-widest">Cita #{appt.id}</p>
+            <h2 className="text-white font-black text-xl">{appt.description || 'Sin descripción'}</h2>
           </div>
-          <Link to="/appointments" className="bg-slate-100 text-slate-600 px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-slate-200 transition-all">
-            Ver todas <ChevronRight size={14} />
-          </Link>
+          <button onClick={onClose} className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-all">
+            <X size={18}/>
+          </button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr>
-                <th>Identificador</th>
-                <th>Cliente</th>
-                <th>Tipo</th>
-                <th>Asignado a</th>
-                <th>Fecha y Hora</th>
-                <th>Estado Actual</th>
-              </tr>
-            </thead>
-            <tbody>
-              {appointments.map((app, index) => (
-                <motion.tr 
-                  key={app.id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="hover:bg-slate-50/80 transition-colors"
-                >
-                  <td className="font-mono text-xs font-bold text-blue-600"># {app.id}</td>
-                  <td>
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-600 border border-slate-200">
-                        {app.client_names[0]}
-                      </div>
-                      <div>
-                        <div className="font-bold text-slate-800 leading-tight">{app.client_names} {app.client_surnames}</div>
-                        <div className="text-[10px] text-slate-400 font-medium">@{app.client_username}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider">
-                      {app.service_type === 'domicilio' ? (
-                        <><Map size={14} className="text-orange-500" /> Domicilio</>
-                      ) : (
-                        <><Home size={14} className="text-blue-500" /> Local</>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                       <Store size={14} className="text-blue-400" />
-                       <span className="font-medium">{app.store_name || `${app.tech_names} ${app.tech_surnames}`}</span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="font-bold text-slate-700">{new Date(app.scheduled_date).toLocaleDateString()}</div>
-                    <div className="text-[11px] text-slate-400">{app.scheduled_time}</div>
-                  </td>
-                  <td>
-                    <span className={`status-badge status-${app.status}`}>
-                      {app.status === 'confirmed' ? 'Confirmada' : 
-                       app.status === 'pending' ? 'Pendiente' :
-                       app.status === 'completed' ? 'Completado' : 'Cancelado'}
-                    </span>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="p-8 space-y-5">
+          <div className="flex items-center justify-between">
+            <StatusBadge status={appt.status}/>
+            {appt.price && <span className="text-xl font-black text-blue-600">S/ {parseFloat(appt.price).toFixed(2)}</span>}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <InfoItem label="Cliente" value={`${appt.client_names || ''} ${appt.client_surnames || ''}`} />
+            <InfoItem label="Técnico" value={`${appt.tech_names || '—'} ${appt.tech_surnames || ''}`} />
+            <InfoItem label="Fecha" value={new Date(appt.scheduled_date).toLocaleDateString('es-PE', { weekday:'long', day:'numeric', month:'long' })} />
+            <InfoItem label="Hora" value={appt.scheduled_time?.slice(0,5)} />
+            <InfoItem label="Tipo" value={appt.service_type === 'domicilio' ? '🏠 Domicilio' : '🏢 Local'} />
+            <InfoItem label="Pago" value={appt.payment_status === 'paid' ? '✅ Pagado' : appt.payment_status === 'waiting_confirmation' ? '⏳ En revisión' : '⏱ Pendiente'} />
+          </div>
+          {appt.service_address && <InfoItem label="Dirección del servicio" value={appt.service_address}/>}
+          {appt.payment_method && <InfoItem label="Método de pago" value={appt.payment_method.toUpperCase()}/>}
         </div>
-      </div>
+      </motion.div>
     </motion.div>
   );
 };
 
-const StatCard = ({ icon, label, value, color, description }) => (
-  <div className="stat-card">
-    <div className={`stat-icon bg-${color}-600/10 text-${color}-600`}>
-      {icon}
-    </div>
-    <div className="stat-info">
-      <h4>{label}</h4>
-      <p>{value}</p>
-      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{description}</span>
-    </div>
+const InfoItem = ({ label, value }) => (
+  <div className="bg-slate-50 dark:bg-slate-700/50 rounded-2xl px-4 py-3">
+    <p className="text-[9px] font-black uppercase tracking-widest text-muted mb-1">{label}</p>
+    <p className="font-bold text-sm">{value || '—'}</p>
   </div>
 );
 
-// --- User Management Component ---
-const UserManagement = () => {
+// ─── USER DETAIL MODAL ────────────────────────────────────────
+const UserModal = ({ user, onClose }) => {
+  if (!user) return null;
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}>
+      <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+        className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden"
+        onClick={e => e.stopPropagation()}>
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-8 text-center relative">
+          <button onClick={onClose} className="absolute top-4 right-4 w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-all">
+            <X size={16}/>
+          </button>
+          <div className="w-20 h-20 rounded-full bg-white/20 border-4 border-white/40 flex items-center justify-center mx-auto mb-4 shadow-xl text-white font-black text-3xl">
+            {(user.names || user.username || '?')[0].toUpperCase()}
+          </div>
+          <h2 className="text-white font-black text-xl">{user.names ? `${user.names} ${user.surnames||''}` : user.username}</h2>
+          <p className="text-indigo-200 text-sm">{user.email}</p>
+        </div>
+        <div className="p-8 space-y-4">
+          <div className="flex justify-center mb-4"><RoleBadge role={user.role}/></div>
+          <div className="grid grid-cols-2 gap-3">
+            <InfoItem label="Username" value={user.username}/>
+            <InfoItem label="Tipo" value={user.person_type === 'natural' ? 'Persona Natural' : 'Persona Jurídica'}/>
+            <InfoItem label="Ciudad" value={user.city}/>
+            <InfoItem label="Teléfono" value={user.phone}/>
+            {user.dni && <InfoItem label="DNI" value={user.dni}/>}
+            {user.ruc && <InfoItem label="RUC" value={user.ruc}/>}
+            {user.company_name && <InfoItem label="Empresa" value={user.company_name}/>}
+            <InfoItem label="Registro" value={new Date(user.created_at).toLocaleDateString('es-PE')}/>
+          </div>
+          {user.address && <InfoItem label="Dirección" value={user.address}/>}
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// ─── DASHBOARD ────────────────────────────────────────────────
+const Dashboard = () => {
+  const [stats, setStats] = useState({ appointments: 0, users: 0, stores: 0 });
+  const [appointments, setAppointments] = useState([]);
   const [users, setUsers] = useState([]);
+  const [selectedAppt, setSelectedAppt] = useState(null);
+  const { dark } = useContext(DarkModeContext);
 
   useEffect(() => {
-    adminService.getUsers().then(res => setUsers(res.data.resultado));
+    const fetch = async () => {
+      try {
+        const [appRes, userRes, storeRes] = await Promise.all([
+          adminService.getAppointments({ limit: 50 }),
+          adminService.getUsers(),
+          adminService.getBranches()
+        ]);
+        const apps = appRes.data.resultado || [];
+        const usrs = userRes.data.resultado || [];
+        setStats({ appointments: apps.length, users: usrs.length, stores: (storeRes.data.resultado||[]).length });
+        setAppointments(apps.slice(0, 8));
+        setUsers(usrs);
+      } catch {}
+    };
+    fetch();
   }, []);
 
+  const apptByStatus = Object.entries(
+    appointments.reduce((a, x) => { a[x.status] = (a[x.status]||0)+1; return a; }, {})
+  ).map(([status, count]) => ({ name: STATUS_LABELS[status]||status, count, fill: STATUS_COLORS_HEX[status]||'#94A3B8' }));
+
+  const usersByRole = Object.entries(
+    users.reduce((a, u) => { a[u.role] = (a[u.role]||0)+1; return a; }, {})
+  ).map(([role, value], i) => ({ name: ROLE_LABELS[role]||role, value, fill: ROLE_COLORS[i%4] }));
+
+  const tick = { fill: dark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: 700 };
+  const tooltipStyle = { background: dark ? '#1E293B' : '#fff', border: 'none', borderRadius: 12, fontWeight: 700, fontSize: 12 };
+
   return (
-    <div className="table-container">
-      <div className="px-8 py-6 border-b border-slate-100 bg-white/40">
-        <h3 className="font-black text-xl text-slate-800 tracking-tight">Directorio de Usuarios</h3>
-        <p className="text-xs text-slate-500 font-medium mt-1">Gestión integral de clientes y personal técnico</p>
+    <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+        <StatCard icon={<Calendar size={26}/>} label="Citas Totales" value={stats.appointments} color="blue" desc="Registradas"/>
+        <StatCard icon={<Users size={26}/>} label="Usuarios" value={stats.users} color="indigo" desc="Registrados"/>
+        <StatCard icon={<Store size={26}/>} label="Sucursales" value={stats.stores} color="emerald" desc="Puntos activos"/>
       </div>
-      <table className="w-full">
-        <thead>
-          <tr>
-            <th>Nombre y Email</th>
-            <th>Nivel de Acceso</th>
-            <th>Categoría</th>
-            <th>Ubicación</th>
-            <th>Fecha Registro</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u, i) => (
-            <motion.tr 
-              key={u.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: i * 0.03 }}
-              className="hover:bg-slate-50/80 transition-colors"
-            >
-              <td>
-                <div className="font-black text-slate-800">{u.names || u.username} {u.surnames}</div>
-                <div className="text-[11px] text-blue-500 font-bold">{u.email}</div>
-              </td>
-              <td>
-                 <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${
-                   u.role === 'admin' ? 'bg-indigo-100 text-indigo-700' :
-                   u.role === 'tech' ? 'bg-orange-100 text-orange-700' :
-                   u.role === 'store' ? 'bg-pink-100 text-pink-700' :
-                   'bg-blue-100 text-blue-700'
-                 }`}>
-                   {u.role}
-                 </span>
-              </td>
-              <td>
-                <span className="text-xs font-semibold text-slate-500">
-                  {u.person_type === 'natural' ? 'Persona Natural' : 'Persona Jurídica'}
-                </span>
-              </td>
-              <td>
-                <div className="flex items-center gap-1 text-slate-600 font-medium">
-                  <MapPin size={12} className="text-slate-400" /> {u.city || 'S/E'}
-                </div>
-              </td>
-              <td className="font-medium text-slate-400">{new Date(u.created_at).toLocaleDateString()}</td>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
+        <div className="lg:col-span-2 glass-card p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <TrendingUp size={18} className="text-blue-500"/>
+            <h3 className="font-black text-base">Citas por Estado</h3>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={apptByStatus} barCategoryGap="35%">
+              <XAxis dataKey="name" tick={tick} axisLine={false} tickLine={false}/>
+              <YAxis tick={tick} axisLine={false} tickLine={false} allowDecimals={false}/>
+              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: dark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)' }}/>
+              <Bar dataKey="count" radius={[8,8,0,0]}>
+                {apptByStatus.map((e, i) => <Cell key={i} fill={e.fill}/>)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="glass-card p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <Users size={18} className="text-indigo-500"/>
+            <h3 className="font-black text-base">Usuarios por Rol</h3>
+          </div>
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie data={usersByRole} dataKey="value" nameKey="name" cx="50%" cy="45%" outerRadius={70} paddingAngle={3}>
+                {usersByRole.map((e, i) => <Cell key={i} fill={e.fill}/>)}
+              </Pie>
+              <Legend iconType="circle" iconSize={8} formatter={v => <span style={{ fontSize: 11, fontWeight: 700 }}>{v}</span>}/>
+              <Tooltip contentStyle={tooltipStyle}/>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      <div className="glass-card overflow-hidden">
+        <div className="px-8 py-6 border-b border-card flex justify-between items-center">
+          <div>
+            <h3 className="font-black text-lg">Actividad Reciente</h3>
+            <p className="text-muted text-xs font-medium mt-0.5">Últimas citas registradas</p>
+          </div>
+          <Link to="/citas" className="bg-slate-100 dark:bg-slate-700 text-muted px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 hover:opacity-80 transition-all">
+            Ver todas <ChevronRight size={13}/>
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead><tr><th>ID</th><th>Cliente</th><th>Tipo</th><th>Fecha</th><th>Estado</th><th></th></tr></thead>
+            <tbody>
+              {appointments.map((a, i) => (
+                <motion.tr key={a.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i*0.04 }}
+                  className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors cursor-pointer"
+                  onClick={() => setSelectedAppt(a)}>
+                  <td className="font-mono text-xs font-bold text-blue-600">#{a.id}</td>
+                  <td>
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-[10px] font-black">
+                        {(a.client_names||'?')[0]}
+                      </div>
+                      <div>
+                        <div className="font-bold text-sm">{a.client_names} {a.client_surnames}</div>
+                        <div className="text-[10px] text-muted">{a.client_email || a.client_username}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td><span className="text-xs font-bold">{a.service_type === 'domicilio' ? '🏠 Domicilio' : '🏢 Local'}</span></td>
+                  <td><div className="font-bold text-sm">{new Date(a.scheduled_date).toLocaleDateString('es-PE')}</div><div className="text-xs text-muted">{a.scheduled_time}</div></td>
+                  <td><StatusBadge status={a.status}/></td>
+                  <td><button className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all"><Eye size={14}/></button></td>
                 </motion.tr>
               ))}
             </tbody>
           </table>
-    </div>
+        </div>
+      </div>
+
+      <AnimatePresence>{selectedAppt && <AppointmentModal appt={selectedAppt} onClose={() => setSelectedAppt(null)}/>}</AnimatePresence>
+    </motion.div>
   );
 };
 
-// --- Main Layout ---
+// ─── APPOINTMENTS PAGE ────────────────────────────────────────
+const AppointmentsPage = () => {
+  const [appts, setAppts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [selected, setSelected] = useState(null);
+
+  useEffect(() => {
+    adminService.getAppointments({ limit: 200 }).then(r => {
+      setAppts(r.data.resultado || []);
+      setLoading(false);
+    });
+  }, []);
+
+  const filtered = appts.filter(a => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || `${a.client_names} ${a.client_surnames} ${a.description}`.toLowerCase().includes(q);
+    const matchStatus = statusFilter === 'all' || a.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <header className="mb-8">
+        <div className="text-blue-500 text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2"><Calendar size={13}/> Agenda</div>
+        <h1 className="text-5xl font-black tracking-tighter">Gestión de <span className="text-blue-600">Citas</span></h1>
+        <p className="text-muted text-sm mt-2 font-medium">Monitorea y gestiona todas las citas del sistema.</p>
+      </header>
+
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted"/>
+          <input
+            type="text" placeholder="Buscar por cliente o descripción..." value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 rounded-2xl bg-card border border-card text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none transition-all"/>
+        </div>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          className="px-5 py-3 rounded-2xl bg-card border border-card text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
+          <option value="all">Todos los estados</option>
+          <option value="pending">Pendiente</option>
+          <option value="confirmed">Confirmada</option>
+          <option value="completed">Completada</option>
+          <option value="cancelled">Cancelada</option>
+          <option value="cancellation_pending">Cancel. Pend.</option>
+        </select>
+      </div>
+
+      {loading ? <div className="py-20 text-center"><div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"/></div> : (
+        <div className="glass-card overflow-hidden">
+          <div className="px-8 py-4 border-b border-card flex justify-between items-center">
+            <span className="text-sm font-bold text-muted">{filtered.length} cita{filtered.length !== 1 ? 's' : ''} encontrada{filtered.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead><tr><th>ID</th><th>Cliente</th><th>Técnico</th><th>Tipo</th><th>Fecha</th><th>Estado</th><th>Pago</th><th></th></tr></thead>
+              <tbody>
+                {filtered.map((a, i) => (
+                  <motion.tr key={a.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i*0.02 }}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors cursor-pointer"
+                    onClick={() => setSelected(a)}>
+                    <td className="font-mono text-xs font-bold text-blue-600">#{a.id}</td>
+                    <td><div className="font-bold text-sm">{a.client_names} {a.client_surnames}</div><div className="text-[10px] text-muted">{a.client_email}</div></td>
+                    <td className="text-sm font-medium">{a.tech_names ? `${a.tech_names} ${a.tech_surnames||''}` : <span className="text-muted">—</span>}</td>
+                    <td><span className="text-xs font-bold">{a.service_type === 'domicilio' ? '🏠 Domicilio' : '🏢 Local'}</span></td>
+                    <td><div className="font-bold text-sm">{new Date(a.scheduled_date).toLocaleDateString('es-PE')}</div><div className="text-xs text-muted">{a.scheduled_time}</div></td>
+                    <td><StatusBadge status={a.status}/></td>
+                    <td>{a.price ? <span className="font-black text-blue-600">S/ {parseFloat(a.price).toFixed(2)}</span> : <span className="text-muted text-xs">—</span>}</td>
+                    <td><button className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-500 flex items-center justify-center hover:bg-blue-500 hover:text-white transition-all"><Eye size={14}/></button></td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {filtered.length === 0 && (
+            <div className="py-16 text-center text-muted font-bold">No se encontraron citas con ese filtro.</div>
+          )}
+        </div>
+      )}
+      <AnimatePresence>{selected && <AppointmentModal appt={selected} onClose={() => setSelected(null)}/>}</AnimatePresence>
+    </motion.div>
+  );
+};
+
+// ─── USERS PAGE ───────────────────────────────────────────────
+const UsersPage = () => {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [selected, setSelected] = useState(null);
+
+  useEffect(() => {
+    adminService.getUsers().then(r => { setUsers(r.data.resultado||[]); setLoading(false); });
+  }, []);
+
+  const filtered = users.filter(u => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || `${u.names||''} ${u.surnames||''} ${u.email} ${u.username}`.toLowerCase().includes(q);
+    const matchRole = roleFilter === 'all' || u.role === roleFilter;
+    return matchSearch && matchRole;
+  });
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <header className="mb-8">
+        <div className="text-indigo-500 text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2"><Users size={13}/> Directorio</div>
+        <h1 className="text-5xl font-black tracking-tighter">Gestión de <span className="text-indigo-600">Usuarios</span></h1>
+        <p className="text-muted text-sm mt-2 font-medium">Administra clientes, técnicos y administradores.</p>
+      </header>
+
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted"/>
+          <input type="text" placeholder="Buscar usuario..." value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 rounded-2xl bg-card border border-card text-sm font-medium focus:ring-2 focus:ring-indigo-500 outline-none transition-all"/>
+        </div>
+        <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
+          className="px-5 py-3 rounded-2xl bg-card border border-card text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+          <option value="all">Todos los roles</option>
+          <option value="client">Cliente</option>
+          <option value="tech">Técnico</option>
+          <option value="store">Tienda</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+
+      {loading ? <div className="py-20 text-center"><div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto"/></div> : (
+        <div className="glass-card overflow-hidden">
+          <div className="px-8 py-4 border-b border-card">
+            <span className="text-sm font-bold text-muted">{filtered.length} usuario{filtered.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead><tr><th>Nombre</th><th>Rol</th><th>Tipo Persona</th><th>Ciudad</th><th>Registro</th><th></th></tr></thead>
+              <tbody>
+                {filtered.map((u, i) => (
+                  <motion.tr key={u.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i*0.03 }}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors cursor-pointer" onClick={() => setSelected(u)}>
+                    <td>
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 flex items-center justify-center font-black text-sm flex-shrink-0">
+                          {(u.names||u.username||'?')[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-black text-sm">{u.names ? `${u.names} ${u.surnames||''}` : u.username}</div>
+                          <div className="text-[11px] text-blue-500 font-bold">{u.email}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td><RoleBadge role={u.role}/></td>
+                    <td className="text-sm font-medium text-muted">{u.person_type === 'natural' ? 'Persona Natural' : 'Persona Jurídica'}</td>
+                    <td><div className="flex items-center gap-1.5 text-muted font-medium text-sm"><MapPin size={12}/>{u.city||'—'}</div></td>
+                    <td className="text-sm text-muted font-medium">{new Date(u.created_at).toLocaleDateString('es-PE')}</td>
+                    <td><button className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 flex items-center justify-center hover:bg-indigo-500 hover:text-white transition-all"><Eye size={14}/></button></td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {filtered.length === 0 && <div className="py-16 text-center text-muted font-bold">No se encontraron usuarios.</div>}
+        </div>
+      )}
+      <AnimatePresence>{selected && <UserModal user={selected} onClose={() => setSelected(null)}/>}</AnimatePresence>
+    </motion.div>
+  );
+};
+
+// ─── SIDEBAR ─────────────────────────────────────────────────
 const Sidebar = ({ user, onLogout }) => {
   const location = useLocation();
   const isActive = (path) => location.pathname === path;
+  const { dark, toggle } = useContext(DarkModeContext);
 
   return (
-    <aside className="sidebar shadow-2xl">
+    <aside className="sidebar">
       <div className="logo-container border-b border-white/10 pb-8">
-        <div className="bg-white p-2 rounded-xl shadow-lg ring-1 ring-white/20">
-          <img src="/assets/logo.png" alt="JyP Logo" className="logo-img" />
+        <div className="bg-white p-2 rounded-xl shadow-lg">
+          <img src="/assets/logo.png" alt="J&P" className="logo-img"/>
         </div>
-        <div className="flex flex-col">
-          <span className="logo-text">JyP Dashboard</span>
-          <span className="text-[10px] text-blue-400 font-black tracking-widest uppercase">Admin Panel</span>
+        <div>
+          <span className="logo-text">J&P Admin</span>
+          <span className="block text-[10px] text-blue-400 font-black tracking-widest uppercase">Panel Central</span>
         </div>
       </div>
-      
-      <nav className="flex-1 mt-6">
-        <ul className="space-y-2">
-          <li>
-            <Link to="/" className={`nav-item ${isActive('/') ? 'active' : ''}`}>
-              <LayoutDashboard size={20} /> Dashboard
-            </Link>
-          </li>
-          <li>
-            <Link to="/appointments" className={`nav-item ${isActive('/appointments') ? 'active' : ''}`}>
-              <Calendar size={20} /> Gestión de Citas
-            </Link>
-          </li>
-          <li>
-            <Link to="/users" className={`nav-item ${isActive('/users') ? 'active' : ''}`}>
-              <Users size={20} /> Clientes y Técnicos
-            </Link>
-          </li>
-          <li>
-            <Link to="/stores" className={`nav-item ${isActive('/stores') ? 'active' : ''}`}>
-              <Store size={20} /> Sucursales
-            </Link>
-          </li>
-        </ul>
+
+      <nav className="flex-1 mt-6 space-y-1">
+        {[
+          { to: '/', label: 'Inicio', icon: <LayoutDashboard size={20}/> },
+          { to: '/citas', label: 'Gestión de Citas', icon: <Calendar size={20}/> },
+          { to: '/usuarios', label: 'Usuarios', icon: <Users size={20}/> },
+          { to: '/sucursales', label: 'Sucursales', icon: <Store size={20}/> },
+        ].map(item => (
+          <Link key={item.to} to={item.to} className={`nav-item ${isActive(item.to) ? 'active' : ''}`}>
+            {item.icon} {item.label}
+          </Link>
+        ))}
       </nav>
 
       <div className="mt-auto">
-        <div className="bg-white/5 p-4 rounded-2xl border border-white/5 mb-6">
+        {/* Dark mode toggle */}
+        <button onClick={toggle}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-white/5 border border-white/5 mb-4 hover:bg-white/10 transition-all group">
+          <div className="flex items-center gap-2">
+            {dark ? <Sun size={14} className="text-yellow-400"/> : <Moon size={14} className="text-slate-400"/>}
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              {dark ? 'Modo Claro' : 'Modo Oscuro'}
+            </span>
+          </div>
+          <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${dark ? 'bg-blue-600' : 'bg-slate-600'}`}>
+            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-300 ${dark ? 'left-5' : 'left-0.5'}`}/>
+          </div>
+        </button>
+
+        <div className="bg-white/5 p-4 rounded-2xl border border-white/5 mb-4">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center font-black text-white shadow-lg ring-1 ring-white/20">
-              {user?.username?.[0].toUpperCase()}
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center font-black text-white shadow-lg">
+              {user?.username?.[0]?.toUpperCase()}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-xs font-black text-white truncate">{user?.username || 'Admin'}</p>
-              <p className="text-[10px] text-slate-500 font-bold truncate">{user?.email}</p>
+              <p className="text-xs font-black text-white truncate">{user?.username||'Admin'}</p>
+              <p className="text-[10px] text-slate-500 truncate">{user?.email}</p>
             </div>
           </div>
-          <button 
-            onClick={onLogout}
-            className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-red-500/10 text-red-400 rounded-xl text-xs font-bold hover:bg-red-500 hover:text-white transition-all duration-300"
-          >
-            <LogOut size={16} /> Cerrar Sesión
+          <button onClick={onLogout} className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-red-500/10 text-red-400 rounded-xl text-xs font-bold hover:bg-red-500 hover:text-white transition-all">
+            <LogOut size={14}/> Cerrar Sesión
           </button>
         </div>
-        <p className="text-[8px] text-slate-600 font-bold uppercase tracking-[0.2em] text-center">
-          v2.4 Premium Enterprise
-        </p>
+        <p className="text-[8px] text-slate-700 font-bold uppercase tracking-[0.2em] text-center">v2.6 · J&P Systems</p>
       </div>
     </aside>
   );
 };
 
+// ─── ROOT APP ─────────────────────────────────────────────────
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [dark, setDark] = useState(() => localStorage.getItem('darkMode') === 'true');
+
+  const toggle = () => setDark(prev => {
+    const next = !prev;
+    localStorage.setItem('darkMode', String(next));
+    return next;
+  });
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('admin_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    const saved = localStorage.getItem('admin_user');
+    if (saved) setUser(JSON.parse(saved));
     setLoading(false);
   }, []);
+
+  // Apply or remove .dark class on <html>
+  useEffect(() => {
+    if (dark) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [dark]);
 
   const handleLogout = () => {
     localStorage.removeItem('admin_token');
@@ -298,64 +551,52 @@ function App() {
   };
 
   if (loading) return (
-    <div className="h-screen bg-slate-900 flex flex-col items-center justify-center">
-      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-      <p className="text-blue-400 font-black text-xs uppercase tracking-widest">Cargando Ecosistema...</p>
+    <div className="h-screen bg-slate-950 flex flex-col items-center justify-center">
+      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"/>
+      <p className="text-blue-400 font-black text-xs uppercase tracking-widest">Cargando...</p>
     </div>
   );
 
-  if (!user) {
-    return <Login onLogin={setUser} />;
-  }
+  if (!user) return <Login onLogin={setUser}/>;
 
   return (
-    <Router>
-      <div className="app-container">
-        <Sidebar user={user} onLogout={handleLogout} />
-        <main className="main-content">
-          <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-2 mb-1 text-slate-400">
-                <LayoutDashboard size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Workspace</span>
+    <DarkModeContext.Provider value={{ dark, toggle }}>
+      <Router>
+        <div className="app-container">
+          <Sidebar user={user} onLogout={handleLogout}/>
+          <main className="main-content">
+            <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div>
+                <div className="flex items-center gap-2 mb-1 text-muted text-[10px] font-black uppercase tracking-widest">
+                  <LayoutDashboard size={13}/> Panel de Control
+                </div>
+                <h1 className="text-4xl font-black tracking-tighter leading-none">
+                  Workspace <span className="text-blue-600">J&P</span>
+                </h1>
+                <p className="text-muted font-medium mt-1 text-sm">Sistema de gestión integral J&P Servicio Técnico</p>
               </div>
-              <h1 className="text-5xl font-black text-slate-900 tracking-tighter leading-none">
-                Panel de <span className="text-blue-600">Control</span>
-              </h1>
-              <p className="text-slate-500 font-medium mt-2">Monitorea el crecimiento y operaciones de JyP</p>
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <div className="glass-card px-6 py-3 flex items-center gap-4 border-none shadow-slate-200">
-                 <div className="bg-blue-600/10 p-2.5 rounded-xl text-blue-600">
-                   <Calendar size={22} strokeWidth={2.5} />
-                 </div>
-                 <div>
-                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Fecha Actual</p>
-                   <span className="font-extrabold text-slate-800 text-sm">{new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
-                 </div>
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-white shadow-lg flex items-center justify-center text-slate-400 hover:text-blue-600 cursor-pointer transition-colors border border-slate-100">
-                <div className="relative">
-                  <Calendar size={20} />
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white"></div>
+              <div className="glass-card px-6 py-3 flex items-center gap-4">
+                <div className="bg-blue-600/10 p-2 rounded-xl text-blue-600"><Calendar size={20} strokeWidth={2.5}/></div>
+                <div>
+                  <p className="text-[9px] font-black text-muted uppercase tracking-widest mb-0.5">Fecha Actual</p>
+                  <span className="font-black text-sm">{new Date().toLocaleDateString('es-PE', { weekday:'long', day:'numeric', month:'long' })}</span>
                 </div>
               </div>
-            </div>
-          </header>
+            </header>
 
-          <AnimatePresence mode="wait">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/users" element={<UserManagement />} />
-              <Route path="/stores" element={<StoreManagement />} />
-              <Route path="/appointments" element={<Dashboard />} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </AnimatePresence>
-        </main>
-      </div>
-    </Router>
+            <AnimatePresence mode="wait">
+              <Routes>
+                <Route path="/" element={<Dashboard/>}/>
+                <Route path="/citas" element={<AppointmentsPage/>}/>
+                <Route path="/usuarios" element={<UsersPage/>}/>
+                <Route path="/sucursales" element={<StoreManagement/>}/>
+                <Route path="*" element={<Navigate to="/"/>}/>
+              </Routes>
+            </AnimatePresence>
+          </main>
+        </div>
+      </Router>
+    </DarkModeContext.Provider>
   );
 }
 

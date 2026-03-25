@@ -25,8 +25,22 @@ export const adminService = {
 };
 
 export const storeService = {
+  getBranches: () => api.get('/admin/sucursales'),
   createBranch: (data) => api.post('/sucursales', data),
   updateBranch: (id, data) => api.put(`/sucursales/${id}`, data),
+  getProducts: (id) => api.get(`/sucursales/${id}/products`),
+  addProduct: (data) => api.post('/sucursales/products', data),
+  updateProduct: (id, data) => api.put(`/sucursales/products/${id}`, data),
+  deleteProduct: (id) => api.delete(`/sucursales/products/${id}`),
+  uploadStoreImage: (formData) => api.post('/sucursales/upload-image', formData, { 
+    headers: { 'Content-Type': 'multipart/form-data' } 
+  }),
+  uploadProductImage: (formData) => api.post('/sucursales/products/upload-image', formData, { 
+    headers: { 'Content-Type': 'multipart/form-data' } 
+  }),
+  getOrders: (storeId) => api.get(`/sucursales/orders/store/${storeId}`),
+  updateOrderStatus: (id, status) => api.patch(`/sucursales/orders/${id}/status`, { status }),
+  getStoreAppointments: (storeId) => api.get(`/sucursales/${storeId}/appointments`),
 };
 
 export default api;

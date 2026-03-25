@@ -11,9 +11,10 @@ import '../../../../core/models/store.dart';
 import '../../../../core/services/store_service.dart';
 
 class StoreMapWidget extends StatefulWidget {
+  final bool isActive;
   final Function(bool)? onLoadingChanged;
 
-  const StoreMapWidget({super.key, this.onLoadingChanged});
+  const StoreMapWidget({super.key, this.isActive = true, this.onLoadingChanged});
 
   @override
   State<StoreMapWidget> createState() => _StoreMapWidgetState();
@@ -247,9 +248,18 @@ class _StoreMapWidgetState extends State<StoreMapWidget> {
   }
 
   @override
+  void didUpdateWidget(covariant StoreMapWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive && !widget.isActive) {
+      _cancelSearch();
+    }
+  }
+
+  @override
   void dispose() {
     _searchTimer?.cancel();
     _mapController.dispose();
+    widget.onLoadingChanged?.call(false);
     super.dispose();
   }
 

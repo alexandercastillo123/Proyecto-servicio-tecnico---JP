@@ -77,10 +77,52 @@ router.delete('/:id', authenticate, sucursalesController.deleteStore);
 router.get('/:id/products', sucursalesController.getStoreProducts);
 
 /**
+ * @route   GET /api/sucursales/:id/appointments
+ * @desc    Get appointments linked to a store
+ */
+router.get('/:id/appointments', authenticate, sucursalesController.getStoreAppointments);
+
+/**
  * @route   POST /api/sucursales/products
  * @desc    Add a product to a store
  */
 router.post('/products', authenticate, sucursalesController.addStoreProduct);
+
+/**
+ * @route   PUT /api/sucursales/products/:id
+ * @desc    Update a store product
+ */
+router.put('/products/:id', authenticate, sucursalesController.updateStoreProduct);
+
+/**
+ * @route   DELETE /api/sucursales/products/:id
+ * @desc    Delete a store product
+ */
+router.delete('/products/:id', authenticate, sucursalesController.deleteStoreProduct);
+
+/**
+ * @route   POST /api/sucursales/orders
+ * @desc    Create a new order for a product
+ */
+router.post('/orders', authenticate, sucursalesController.createOrder);
+
+/**
+ * @route   GET /api/sucursales/orders/my-orders
+ * @desc    Get orders for the logged in client
+ */
+router.get('/orders/my-orders', authenticate, sucursalesController.getMyOrders);
+
+/**
+ * @route   GET /api/sucursales/orders/store/:id
+ * @desc    Get orders for a specific store (for store owner)
+ */
+router.get('/orders/store/:id', authenticate, sucursalesController.getStoreOrders);
+
+/**
+ * @route   PATCH /api/sucursales/orders/:id/status
+ * @desc    Update order status
+ */
+router.patch('/orders/:id/status', authenticate, sucursalesController.updateOrderStatus);
 
 /**
  * @route   POST /api/sucursales/upload-image

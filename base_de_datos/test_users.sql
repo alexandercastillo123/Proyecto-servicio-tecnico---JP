@@ -6,6 +6,7 @@ USE servicio_tecnico_db;
 
 -- Limpiar datos existentes
 SET FOREIGN_KEY_CHECKS = 0;
+TRUNCATE TABLE store_orders;
 TRUNCATE TABLE store_schedules;
 TRUNCATE TABLE store_reviews;
 TRUNCATE TABLE store_products;
@@ -96,10 +97,10 @@ INSERT INTO store_schedules (sucursal_id, day_of_week, open_time, close_time, is
 (@sucursal_id, 'Sunday', '00:00:00', '00:00:00', TRUE);
 
 -- Algunos productos de prueba
-INSERT INTO store_products (sucursal_id, name, description, price, image_url, stock, category, brand) VALUES
-(@sucursal_id, 'Memoria RAM 8GB DDR4', 'Kingston Fury 3200MHz', 150.00, 'uploads/products/ram_8gb.jpg', 20, 'Repuestos', 'Kingston'),
-(@sucursal_id, 'SSD 480GB Kingston', 'SSD A400 SATA 2.5', 180.00, 'uploads/products/ssd_480gb.jpg', 15, 'Almacenamiento', 'Kingston'),
-(@sucursal_id, 'Pantalla Laptop 15.6"', 'Panel LED Slim 30 pins', 250.00, 'uploads/products/pantalla_156.jpg', 5, 'Repuestos', 'LG/Samsung');
+INSERT INTO store_products (sucursal_id, name, description, price, image_url, category, brand) VALUES
+(@sucursal_id, 'Memoria RAM 8GB DDR4', 'Kingston Fury 3200MHz', 150.00, 'uploads/products/ram_8gb.jpg', 'Repuestos', 'Kingston'),
+(@sucursal_id, 'SSD 480GB Kingston', 'SSD A400 SATA 2.5', 180.00, 'uploads/products/ssd_480gb.jpg', 'Almacenamiento', 'Kingston'),
+(@sucursal_id, 'Pantalla Laptop 15.6"', 'Panel LED Slim 30 pins', 250.00, 'uploads/products/pantalla_156.jpg', 'Repuestos', 'LG/Samsung');
 
 -- ===== USUARIO ADMINISTRADOR GENERAL (JyP) =====
 INSERT INTO users (email, username, password_hash, role) VALUES 

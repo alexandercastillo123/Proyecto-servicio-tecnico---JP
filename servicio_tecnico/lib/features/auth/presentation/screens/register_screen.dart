@@ -136,21 +136,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  Future<void> _initializeCamera() async {
-    if (_cameraController != null && _cameraController!.value.isInitialized)
-      return;
+  bool _isInitializingCamera = false;
 
-    final status = await Permission.camera.request();
-    if (status.isGranted) {
-      final controller = await _cameraService.getController();
-      if (mounted) {
-        setState(() {
-          _cameraController = controller;
-          _isCameraInitialized = controller?.value.isInitialized ?? false;
-        });
+  Future<void> _initializeCamera() async {
+    // Guard: prevent concurrent calls that trigger duplicate permission requests
+    if (_isInitializingCamera) return;
+    if (_cameraController != null && _cameraController!.value.isInitialized) return;
+
+    setState(() => _isInitializingCamera = true);
+
+    try {
+      // Request permission first and wait for it to fully resolve
+      final status = await Permission.camera.request();
+      if (!mounted) return;
+
+      if (status.isGranted) {
+        final controller = await _cameraService.getController();
+        if (mounted) {
+          setState(() {
+            _cameraController = controller;
+            _isCameraInitialized = controller?.value.isInitialized ?? false;
+          });
+        }
+      } else if (status.isPermanentlyDenied) {
+        if (mounted) {
+          _showError('Permiso de cámara denegado. Actívalo en la configuración del dispositivo.');
+          openAppSettings();
+        }
+      } else {
+        if (mounted) _showError('Se requiere permiso de cámara para continuar');
       }
-    } else {
-      if (mounted) _showError('Se requiere permiso de cámara para continuar');
+    } catch (e) {
+      if (mounted) _showError('Error al abrir la cámara: ${e.toString()}');
+    } finally {
+      if (mounted) setState(() => _isInitializingCamera = false);
     }
   }
 
