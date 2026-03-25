@@ -207,6 +207,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                 child: ClipRRect(
                   borderRadius: const BorderRadius.all(Radius.circular(24)),
                   child: ServiceLocationMap(
+                    isActive: _currentIndex == 0,
                     onLoadingChanged: (loading) {
                       setState(() => _isLoadingSearch = loading);
                     },
@@ -311,6 +312,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                 child: ClipRRect(
                   borderRadius: const BorderRadius.all(Radius.circular(24)),
                   child: StoreMapWidget(
+                    isActive: _currentIndex == 1,
                     onLoadingChanged: (loading) {
                       setState(() => _isLoadingSearch = loading);
                     },

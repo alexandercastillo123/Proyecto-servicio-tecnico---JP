@@ -14,7 +14,7 @@ const getStores = async (req, res) => {
     let respuesta = new Respuesta();
     try {
         const dbRes = await db.listar(
-            `SELECT * FROM sucursales WHERE status = 'active'`,
+            `SELECT * FROM sucursales WHERE status = 'active' ORDER BY created_at DESC`,
             true
         );
 
@@ -140,19 +140,28 @@ const getStoreProducts = async (req, res) => {
 const addStoreProduct = async (req, res) => {
     let respuesta = new Respuesta();
     try {
-        const { sucursal_id, name, description, price, image_url } = req.body;
+        const { sucursal_id, name, description, price, image_url, category, brand, sku } = req.body;
+        const userId = req.user.id;
 
         if (!sucursal_id || !name || !price) {
             respuesta.mensaje = 'Faltan campos obligatorios';
             return res.status(400).json(respuesta);
         }
 
+        // Verify ownership
+        const store = await db.listar('SELECT id FROM sucursales WHERE id = ? AND user_id = ?', false, [sucursal_id, userId]);
+        if (!store.resultado && req.user.role !== 'admin') {
+            respuesta.estado = 403;
+            respuesta.mensaje = 'No autorizado para añadir productos a esta sucursal';
+            return res.status(403).json(respuesta);
+        }
+
         const query = `
-            INSERT INTO store_products (sucursal_id, name, description, price, image_url)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO store_products (sucursal_id, name, description, price, image_url, category, brand, sku)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
-        await db.listar(query, false, [sucursal_id, name, description, price, image_url]);
+        await db.ejecutar(query, [sucursal_id, name, description, price, image_url, category, brand, sku]);
 
         respuesta.exito = true;
         respuesta.estado = 201;
@@ -506,13 +515,33 @@ const updateStoreProduct = async (req, res) => {
     try {
         const { id } = req.params;
         const fields = req.body;
+        const userId = req.user.id;
+
+        // Verify ownership through sucursal association
+        const productData = await db.listar(
+            'SELECT sp.sucursal_id, s.user_id FROM store_products sp JOIN sucursales s ON sp.sucursal_id = s.id WHERE sp.id = ?',
+            false,
+            [id]
+        );
+
+        if (!productData.resultado) {
+            respuesta.estado = 404;
+            respuesta.mensaje = 'Producto no encontrado';
+            return res.status(404).json(respuesta);
+        }
+
+        if (productData.resultado.user_id !== userId && req.user.role !== 'admin') {
+            respuesta.estado = 403;
+            respuesta.mensaje = 'No autorizado para editar este producto';
+            return res.status(403).json(respuesta);
+        }
         
         let query = 'UPDATE store_products SET ';
         const params = [];
         const updates = [];
 
         Object.keys(fields).forEach(key => {
-            if (key !== 'id' && key !== 'sucursal_id') {
+            if (key !== 'id' && key !== 'sucursal_id' && key !== 'created_at') {
                 updates.push(`${key} = ?`);
                 params.push(fields[key]);
             }
@@ -543,12 +572,225 @@ const deleteStoreProduct = async (req, res) => {
     let respuesta = new Respuesta();
     try {
         const { id } = req.params;
+        const userId = req.user.id;
+
+        // Verify ownership
+        const productData = await db.listar(
+            'SELECT sp.sucursal_id, s.user_id FROM store_products sp JOIN sucursales s ON sp.sucursal_id = s.id WHERE sp.id = ?',
+            false,
+            [id]
+        );
+
+        if (!productData.resultado) {
+            respuesta.estado = 404;
+            respuesta.mensaje = 'Producto no encontrado';
+            return res.status(404).json(respuesta);
+        }
+
+        if (productData.resultado.user_id !== userId && req.user.role !== 'admin') {
+            respuesta.estado = 403;
+            respuesta.mensaje = 'No autorizado para eliminar este producto';
+            return res.status(403).json(respuesta);
+        }
+
         await db.ejecutar('DELETE FROM store_products WHERE id = ?', [id]);
         respuesta.exito = true;
         respuesta.mensaje = 'Producto eliminado';
         res.json(respuesta);
     } catch (error) {
         respuesta.mensaje = 'Error al eliminar producto: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * Create a new store order
+ */
+const createOrder = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const clientId = req.user.id;
+        const { product_id, quantity, delivery_address, latitude, longitude } = req.body;
+
+        if (!product_id || !quantity) {
+            respuesta.mensaje = 'Faltan campos obligatorios (product_id, quantity)';
+            return res.status(400).json(respuesta);
+        }
+
+        // Get product details to pull price and sucursal_id
+        const productRes = await db.listar(
+            'SELECT sucursal_id, price FROM store_products WHERE id = ? AND is_available = TRUE',
+            false,
+            [product_id]
+        );
+
+        if (!productRes.resultado) {
+            respuesta.estado = 404;
+            respuesta.mensaje = 'Producto no disponible o no encontrado';
+            return res.status(404).json(respuesta);
+        }
+
+        const { sucursal_id, price: unit_price } = productRes.resultado;
+        const total_price = unit_price * quantity;
+
+        const query = `
+            INSERT INTO store_orders (client_id, sucursal_id, product_id, quantity, unit_price, total_price, status, delivery_address, latitude, longitude)
+            VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
+        `;
+
+        const dbRes = await db.ejecutar(query, [
+            clientId, sucursal_id, product_id, quantity, unit_price, total_price, delivery_address, latitude, longitude
+        ]);
+
+        respuesta.exito = true;
+        respuesta.estado = 201;
+        respuesta.mensaje = 'Pedido realizado con éxito';
+        respuesta.resultado = { orderId: dbRes.resultado.insertId };
+        res.status(201).json(respuesta);
+
+    } catch (error) {
+        console.error('Create order error:', error);
+        respuesta.mensaje = 'Error al crear pedido: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * Get orders for the current client
+ */
+const getMyOrders = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const clientId = req.user.id;
+        const query = `
+            SELECT o.*, p.name as product_name, p.image_url as product_image, s.name as store_name
+            FROM store_orders o
+            JOIN store_products p ON o.product_id = p.id
+            JOIN sucursales s ON o.sucursal_id = s.id
+            WHERE o.client_id = ?
+            ORDER BY o.created_at DESC
+        `;
+        const dbRes = await db.listar(query, true, [clientId]);
+        respuesta.exito = true;
+        respuesta.resultado = dbRes.resultado || [];
+        res.json(respuesta);
+    } catch (error) {
+        respuesta.mensaje = 'Error al obtener pedidos: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * Get orders for a specific store (for owner)
+ */
+const getStoreOrders = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        // Verify ownership
+        const store = await db.listar('SELECT id FROM sucursales WHERE id = ? AND user_id = ?', false, [id, userId]);
+        if (!store.resultado && req.user.role !== 'admin') {
+            respuesta.estado = 403;
+            respuesta.mensaje = 'No autorizado';
+            return res.status(403).json(respuesta);
+        }
+
+        const query = `
+            SELECT o.*, p.name as product_name, up.names as client_names, up.surnames as client_surnames, up.phone as client_phone
+            FROM store_orders o
+            JOIN store_products p ON o.product_id = p.id
+            JOIN user_profiles up ON o.client_id = up.user_id
+            WHERE o.sucursal_id = ?
+            ORDER BY o.created_at DESC
+        `;
+        const dbRes = await db.listar(query, true, [id]);
+        respuesta.exito = true;
+        respuesta.resultado = dbRes.resultado || [];
+        res.json(respuesta);
+    } catch (error) {
+        respuesta.mensaje = 'Error al obtener pedidos de la tienda: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * Update order status
+ */
+const updateOrderStatus = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+        const userId = req.user.id;
+
+        // Verify authorized user (either store owner or the client who made it - only for cancellation)
+        const orderData = await db.listar(
+            'SELECT o.client_id, s.user_id FROM store_orders o JOIN sucursales s ON o.sucursal_id = s.id WHERE o.id = ?',
+            false,
+            [id]
+        );
+
+        if (!orderData.resultado) {
+            respuesta.estado = 404;
+            respuesta.mensaje = 'Pedido no encontrado';
+            return res.status(404).json(respuesta);
+        }
+
+        const isOwner = orderData.resultado.user_id === userId;
+        const isClient = orderData.resultado.client_id === userId;
+
+        if (!isOwner && !(isClient && status === 'cancelled') && req.user.role !== 'admin') {
+            respuesta.estado = 403;
+            respuesta.mensaje = 'No autorizado para cambiar el estado de este pedido';
+            return res.status(403).json(respuesta);
+        }
+
+        await db.ejecutar('UPDATE store_orders SET status = ? WHERE id = ?', [status, id]);
+        respuesta.exito = true;
+        respuesta.mensaje = 'Estado del pedido actualizado';
+        res.json(respuesta);
+    } catch (error) {
+        respuesta.mensaje = 'Error al actualizar pedido: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * Get appointments linked to a specific store
+ */
+const getStoreAppointments = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        // Verify ownership or admin
+        const store = await db.listar('SELECT id FROM sucursales WHERE id = ? AND user_id = ?', false, [id, userId]);
+        if (!store.resultado && req.user.role !== 'admin') {
+            respuesta.estado = 403;
+            respuesta.mensaje = 'No autorizado';
+            return res.status(403).json(respuesta);
+        }
+
+        const query = `
+            SELECT a.*, 
+                up_c.names as client_names, up_c.surnames as client_surnames, up_c.phone as client_phone,
+                up_t.names as tech_names, up_t.surnames as tech_surnames
+            FROM sucursales_citas sc
+            JOIN appointments a ON sc.cita_id = a.id
+            JOIN user_profiles up_c ON a.client_id = up_c.user_id
+            LEFT JOIN user_profiles up_t ON a.technician_id = up_t.user_id
+            WHERE sc.sucursal_id = ?
+            ORDER BY a.scheduled_date DESC, a.scheduled_time DESC
+        `;
+        const dbRes = await db.listar(query, true, [id]);
+        respuesta.exito = true;
+        respuesta.resultado = dbRes.resultado || [];
+        res.json(respuesta);
+    } catch (error) {
+        respuesta.mensaje = 'Error al obtener citas de la sucursal: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
@@ -570,5 +812,10 @@ module.exports = {
     addStoreReview,
     updateStoreStatus,
     uploadStoreImage,
-    uploadProductImage
+    uploadProductImage,
+    createOrder,
+    getMyOrders,
+    getStoreOrders,
+    updateOrderStatus,
+    getStoreAppointments
 };

@@ -201,6 +201,13 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
               dniRuc,
               style: const TextStyle(color: Color(0xFF3B28FF), fontSize: 18),
             ),
+            if (tech['company_name'] != null && tech['company_name'].toString().isNotEmpty && tech['company_name'] != tech['username']) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Empresa: ${tech['company_name']}',
+                style: const TextStyle(color: Colors.grey, fontSize: 14, fontStyle: FontStyle.italic),
+              ),
+            ],
             const SizedBox(height: 5),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,

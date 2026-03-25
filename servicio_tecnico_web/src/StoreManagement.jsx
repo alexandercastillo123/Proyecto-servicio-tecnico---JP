@@ -1,196 +1,140 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, MapPin, Phone, Mail, Store as StoreIcon, Save, X, Layers, ChevronRight } from 'lucide-react';
+import { Plus, MapPin, Phone, Store as StoreIcon, X, Layers, ChevronRight } from 'lucide-react';
 import { adminService, storeService } from './services/api';
+import StoreDetail from './StoreDetail';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// Fix Leaflet marker icon issue
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
+});
+
+const LocationPicker = ({ position, setPosition }) => {
+  useMapEvents({
+    click(e) {
+      setPosition([e.latlng.lat, e.latlng.lng]);
+    },
+  });
+  return position ? <Marker position={position} /> : null;
+};
 
 const StoreManagement = () => {
-  const [stores, setStores] = useState([]);
+  const [selectedId, setSelectedId] = useState(null);
+  const [stores, setStores]   = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    address: '',
-    city: 'Lima',
-    state: 'Lima',
-    zip_code: '15001',
-    country: 'Perú',
-    phone: '',
-    email: '',
-    opening_time: '09:00:00',
-    closing_time: '18:00:00',
-    admin_email: '',
-    admin_password: ''
-  });
+  const [loading, setLoading]  = useState(true);
 
-  useEffect(() => {
-    fetchStores();
-  }, []);
+  const emptyForm = {
+    name:'', description:'', address:'', city:'Lima', state:'Lima',
+    zip_code:'15001', country:'Perú', phone:'', email:'',
+    opening_time:'09:00:00', closing_time:'18:00:00',
+    admin_email:'', admin_password:'',
+    latitude: -12.046374, longitude: -77.042793 // Default Lima
+  };
+  const [formData, setFormData] = useState(emptyForm);
+
+  useEffect(() => { fetchStores(); }, []);
 
   const fetchStores = async () => {
-    try {
-      const res = await adminService.getBranches();
-      setStores(res.data.resultado || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    try { const r = await adminService.getBranches(); setStores(r.data.resultado || []); }
+    catch (e) { console.error(e); } finally { setLoading(false); }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await storeService.createBranch(formData);
-      setShowForm(false);
-      fetchStores();
-      // Reset form
-      setFormData({
-        name: '', description: '', address: '', city: 'Lima', state: 'Lima', zip_code: '15001',
-        country: 'Perú', phone: '', email: '', opening_time: '09:00:00', closing_time: '18:00:00',
-        admin_email: '', admin_password: ''
-      });
-    } catch (err) {
-      alert('Error: ' + (err.response?.data?.mensaje || err.message));
-    }
+      setShowForm(false); setFormData(emptyForm); fetchStores();
+    } catch (err) { alert('Error: ' + (err.response?.data?.mensaje || err.message)); }
   };
 
+  const f = (k) => ({ value: formData[k], onChange: e => setFormData(p => ({...p, [k]: e.target.value})) });
+
   if (loading) return (
-    <div className="p-12 text-center">
-      <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-      <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Sincronizando Sedes...</p>
+    <div className="p-12 text-center text-muted text-xs font-black uppercase tracking-widest">
+      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"/>
+      Sincronizando...
     </div>
   );
 
+  // Vista de detalle de sucursal
+  if (selectedId) return <StoreDetail storeId={selectedId} onBack={() => setSelectedId(null)} />;
+
   return (
-    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
-      <header className="mb-12 flex flex-col md:flex-row md:items-end justify-between gap-6">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+      {/* Header */}
+      <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 mb-2 text-blue-500 font-black text-[10px] uppercase tracking-[0.2em]">
-            <Layers size={14} /> Infraestructura
+            <Layers size={14}/> Infraestructura
           </div>
-          <h1 className="text-5xl font-black text-slate-900 tracking-tighter leading-none">
+          <h1 className="text-5xl font-black tracking-tighter leading-none">
             Gestión de <span className="text-blue-600">Sucursales</span>
           </h1>
-          <p className="text-slate-500 font-medium mt-3 max-w-xl">Administra los puntos de atención física y coordina la logística operativa de JyP.</p>
+          <p className="text-muted font-medium mt-3">Administra los puntos de atención física de J&P.</p>
         </div>
-        <button 
-          onClick={() => setShowForm(!showForm)}
-          className="btn-primary shadow-blue-500/20"
-        >
-          {showForm ? <><X size={20} /> Cancelar Registro</> : <><Plus size={20} /> Nueva Sucursal</>}
+        <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+          {showForm ? <><X size={18}/> Cancelar</> : <><Plus size={18}/> Nueva Sucursal</>}
         </button>
       </header>
 
+      {/* Formulario nueva sucursal */}
       <AnimatePresence>
         {showForm && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden mb-12"
-          >
-            <div className="glass-card p-10 bg-gradient-to-br from-white to-slate-50/50">
-              <h2 className="text-2xl font-black text-slate-800 mb-8 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-lg">
-                  <Plus size={20} />
-                </div>
-                Registrar Nuevo Punto de Venta
+          <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} exit={{ opacity:0, height:0 }} className="overflow-hidden mb-10">
+            <div className="glass-card p-10">
+              <h2 className="text-2xl font-black mb-8 flex items-center gap-3">
+                <Plus size={22} className="text-blue-600"/> Registrar Sucursal
               </h2>
-              
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                <div className="space-y-6">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-blue-500 border-b border-blue-100 pb-2">Información Básica</h4>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nombre Comercial</label>
-                    <input 
-                      required
-                      className="w-full bg-white border border-slate-200 p-3.5 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-700 shadow-sm"
-                      value={formData.name}
-                      onChange={e => setFormData({...formData, name: e.target.value})}
-                      placeholder="Ej: JyP Wilson - Centro"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Descripción Corta</label>
-                    <textarea 
-                      className="w-full bg-white border border-slate-200 p-3.5 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-700 shadow-sm h-32 resize-none"
-                      value={formData.description}
-                      onChange={e => setFormData({...formData, description: e.target.value})}
-                      placeholder="Pequeña reseña de la ubicación o servicios..."
-                    />
-                  </div>
+              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div className="space-y-4">
+                  <SectionLabel color="blue">Datos básicos</SectionLabel>
+                  <Field label="Nombre" required {...f('name')} />
+                  <Field label="Email admin" type="email" required {...f('admin_email')} />
+                  <Field label="Contraseña" type="password" required {...f('admin_password')} />
                 </div>
-
-                <div className="space-y-6">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-indigo-500 border-b border-indigo-100 pb-2">Credenciales de Acceso</h4>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Email Corporativo (Login)</label>
-                    <input 
-                      required
-                      type="email"
-                      className="w-full bg-white border border-slate-200 p-3.5 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-700 shadow-sm"
-                      value={formData.admin_email}
-                      onChange={e => setFormData({...formData, admin_email: e.target.value})}
-                      placeholder="sucursal_norte@jyp.com"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Contraseña Temporal</label>
-                    <input 
-                      required
-                      type="password"
-                      className="w-full bg-white border border-slate-200 p-3.5 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-700 shadow-sm"
-                      value={formData.admin_password}
-                      onChange={e => setFormData({...formData, admin_password: e.target.value})}
-                      placeholder="Mínimo 8 caracteres"
-                    />
-                  </div>
-                  <div className="bg-indigo-50 p-4 rounded-2xl border border-indigo-100">
-                    <p className="text-[10px] text-indigo-700 font-bold leading-relaxed">
-                      💡 Estas credenciales permitirán a la sucursal gestionar sus propios pedidos, chats y productos desde la App Móvil.
-                    </p>
-                  </div>
+                <div className="space-y-4">
+                  <SectionLabel color="indigo">Ubicación</SectionLabel>
+                  <Field label="Dirección" required {...f('address')} />
+                  <Field label="Ciudad" required {...f('city')} />
+                  <Field label="Teléfono" required {...f('phone')} />
                 </div>
-
-                <div className="space-y-6">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-500 border-b border-emerald-100 pb-2">Ubicación y Contacto</h4>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Dirección Física</label>
-                    <input 
-                      required
-                      className="w-full bg-white border border-slate-200 p-3.5 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-700 shadow-sm"
-                      value={formData.address}
-                      onChange={e => setFormData({...formData, address: e.target.value})}
-                      placeholder="Av. Wilson 1234, Lima"
-                    />
+                <div className="space-y-4">
+                  <SectionLabel color="rose">Ubicación Exacta (Mapa)</SectionLabel>
+                  <div className="h-48 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-600">
+                    <MapContainer center={[formData.latitude, formData.longitude]} zoom={13} style={{ height: '100%', width: '100%' }}>
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <LocationPicker 
+                        position={[formData.latitude, formData.longitude]} 
+                        setPosition={(pos) => setFormData(p => ({...p, latitude: pos[0], longitude: pos[1]}))} 
+                      />
+                    </MapContainer>
                   </div>
                   <div className="flex gap-4">
                     <div className="flex-1">
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Ciudad</label>
-                      <input 
-                        required
-                        className="w-full bg-white border border-slate-200 p-3.5 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-700 shadow-sm"
-                        value={formData.city}
-                        onChange={e => setFormData({...formData, city: e.target.value})}
-                      />
+                      <label className="text-[10px] font-black uppercase text-muted">Latitud</label>
+                      <input readOnly value={formData.latitude.toFixed(6)} className="w-full bg-slate-50 dark:bg-slate-800 p-2 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 outline-none" />
                     </div>
                     <div className="flex-1">
-                      <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Teléfono</label>
-                      <input 
-                        required
-                        className="w-full bg-white border border-slate-200 p-3.5 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all font-medium text-slate-700 shadow-sm"
-                        value={formData.phone}
-                        onChange={e => setFormData({...formData, phone: e.target.value})}
-                      />
+                      <label className="text-[10px] font-black uppercase text-muted">Longitud</label>
+                      <input readOnly value={formData.longitude.toFixed(6)} className="w-full bg-slate-50 dark:bg-slate-800 p-2 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 outline-none" />
                     </div>
                   </div>
-                  
-                  <button 
-                    type="submit" 
-                    className="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl hover:bg-black transition-all active:scale-95 flex items-center justify-center gap-3 mt-4"
-                  >
-                    Finalizar y Activar Sucursal
+                </div>
+                <div className="flex flex-col justify-end">
+                  <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/20 mb-6">
+                    <p className="text-[10px] text-blue-700 dark:text-blue-400 font-bold leading-relaxed">
+                      💡 El usuario de la sucursal gestionará sus propios productos y pedidos desde la app móvil.
+                    </p>
+                  </div>
+                  <button type="submit" className="w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 p-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl hover:opacity-90 transition-all">
+                    Confirmar y Activar
                   </button>
                 </div>
               </form>
@@ -199,76 +143,70 @@ const StoreManagement = () => {
         )}
       </AnimatePresence>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+      {/* Grilla de sucursales */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {stores.map((store, i) => (
-          <motion.div 
-            key={store.id} 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            whileHover={{ y: -10 }}
-            className="group relative"
+          <motion.div
+            key={store.id}
+            initial={{ opacity:0, y:15 }} animate={{ opacity:1, y:0 }} transition={{ delay: i * 0.06 }}
+            onClick={() => setSelectedId(store.id)}
+            className="glass-card overflow-hidden cursor-pointer group hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 flex flex-col"
           >
-            <div className="absolute inset-0 bg-blue-600 rounded-[40px] opacity-0 group-hover:opacity-10 blur-3xl transition-opacity duration-500"></div>
-            <div className="glass-card h-full flex flex-col overflow-hidden relative z-10 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 group-hover:border-blue-200">
-               <div className="p-2">
-                 <div className="bg-slate-50/50 rounded-[28px] p-8 relative overflow-hidden group-hover:bg-blue-50/30 transition-colors duration-500">
-                    <div className="absolute top-0 right-0 p-6">
-                      <div className={`w-3 h-3 rounded-full animate-pulse ${store.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
-                    </div>
-                    
-                    <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center text-blue-600 mb-6 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 shadow-slate-200/50">
-                      <StoreIcon size={32} strokeWidth={2.5} />
-                    </div>
-                    
-                    <h3 className="font-black text-2xl text-slate-900 mb-2 tracking-tight line-clamp-1">{store.name}</h3>
-                    <div className="flex items-center gap-2 text-blue-500 font-bold text-[10px] uppercase tracking-widest mb-3">
-                      <MapPin size={12} /> {store.city}
-                    </div>
-                    <p className="text-slate-500 text-xs font-medium leading-relaxed line-clamp-3 h-12">
-                      {store.description || 'Esta sucursal es un punto clave para las operaciones técnicas de JyP en esta región del país.'}
-                    </p>
-                 </div>
-               </div>
+            {/* Imagen portada */}
+            <div className="h-44 bg-slate-100 dark:bg-slate-700 relative overflow-hidden flex items-center justify-center">
+              {store.image_url
+                ? <img src={`/api/${store.image_url}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={store.name}/>
+                : <StoreIcon size={44} className="text-slate-200 dark:text-slate-600 group-hover:scale-110 transition-transform"/>
+              }
+              <div className={`absolute top-4 left-4 w-2.5 h-2.5 rounded-full ${store.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'} ring-2 ring-white`}/>
+            </div>
 
-               <div className="p-8 space-y-5 flex-1 flex flex-col">
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-4 text-xs font-bold text-slate-700">
-                       <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
-                         <Phone size={14} />
-                       </div>
-                       {store.phone}
-                    </div>
-                    <div className="flex items-center gap-4 text-xs font-bold text-slate-700">
-                       <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
-                         <Mail size={14} />
-                       </div>
-                       <span className="line-clamp-1">{store.email}</span>
-                    </div>
-                    <div className="flex items-center gap-4 text-xs font-bold text-slate-700">
-                       <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
-                         <MapPin size={14} />
-                       </div>
-                       <span className="line-clamp-1">{store.address}</span>
-                    </div>
-                  </div>
-
-                  <div className="pt-6 border-t border-slate-50 mt-auto flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Digital ID</p>
-                      <span className="font-mono text-xs font-bold text-slate-400">#ST-{store.id}00</span>
-                    </div>
-                    <button className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-blue-600 group-hover:text-white group-hover:shadow-lg group-hover:shadow-blue-500/30 transition-all duration-500">
-                      <ChevronRight size={20} strokeWidth={3} />
-                    </button>
-                  </div>
-               </div>
+            {/* Info */}
+            <div className="p-7 flex-1 flex flex-col">
+              <h3 className="text-xl font-black tracking-tight mb-3">{store.name}</h3>
+              <div className="space-y-2 mb-6">
+                <div className="flex items-center gap-2 text-xs font-bold text-muted">
+                  <MapPin size={13} className="text-blue-500 flex-shrink-0"/> {store.address}, {store.city}
+                </div>
+                <div className="flex items-center gap-2 text-xs font-bold text-muted">
+                  <Phone size={13} className="text-blue-500 flex-shrink-0"/> {store.phone}
+                </div>
+              </div>
+              <div className="mt-auto flex items-center justify-between">
+                <span className="text-[9px] font-black text-muted uppercase tracking-widest">#ST-{store.id}</span>
+                <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-muted group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
+                  <ChevronRight size={18} strokeWidth={3}/>
+                </div>
+              </div>
             </div>
           </motion.div>
         ))}
       </div>
+
+      {stores.length === 0 && !showForm && (
+        <div className="py-24 text-center border border-dashed border-slate-200 dark:border-slate-700 rounded-3xl">
+          <StoreIcon size={40} className="text-slate-200 mx-auto mb-4"/>
+          <p className="text-muted font-bold">No hay sucursales registradas aún.</p>
+        </div>
+      )}
     </motion.div>
   );
 };
+
+const Field = ({ label, type = 'text', required, value, onChange }) => (
+  <div>
+    <label className="block text-[10px] font-black uppercase text-muted mb-1.5 tracking-widest">{label}</label>
+    <input
+      type={type} required={required} value={value} onChange={onChange}
+      className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 p-3 rounded-xl outline-none focus:ring-2 focus:ring-blue-500 font-bold text-sm transition-all"
+    />
+  </div>
+);
+
+const SectionLabel = ({ children, color }) => (
+  <h4 className={`text-[10px] font-black uppercase tracking-widest text-${color}-500 pb-2 border-b border-${color}-100 dark:border-${color}-500/20`}>
+    {children}
+  </h4>
+);
 
 export default StoreManagement;

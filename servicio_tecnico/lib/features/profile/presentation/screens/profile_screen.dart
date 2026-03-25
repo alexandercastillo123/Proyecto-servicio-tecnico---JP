@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/services/message_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,14 +16,33 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService();
   final ImagePicker _picker = ImagePicker();
+  final MessageService _messageService = MessageService();
   Map<String, dynamic>? _userData;
+  List<dynamic> _recentTechs = [];
   bool _isLoading = true;
+  bool _isLoadingRecent = false;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
     _loadProfile();
+    _loadRecentTechs();
+  }
+
+  Future<void> _loadRecentTechs() async {
+    if (mounted) setState(() => _isLoadingRecent = true);
+    try {
+      final res = await _messageService.getConversations();
+      if (res.success && mounted) {
+        setState(() {
+          _recentTechs = res.data ?? [];
+          _isLoadingRecent = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingRecent = false);
+    }
   }
 
   Future<void> _pickAndUploadImage() async {
@@ -339,34 +359,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: const Color(0xFFE8E8E8),
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  child: Column(
-                    children: [
-                      _buildServiceItem('Nombre Técnico Ejemplo'),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: 200,
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFCDCDCD),
-                            foregroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                  child: _isLoadingRecent
+                      ? const Center(child: CircularProgressIndicator())
+                      : _recentTechs.isEmpty
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20),
+                                child: Text('No has contactado técnicos aún', style: TextStyle(color: Colors.grey)),
+                              ),
+                            )
+                          : Column(
+                              children: [
+                                ..._recentTechs.take(3).map((tech) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 12),
+                                      child: GestureDetector(
+                                        onTap: () => context.push('/technician-profile', extra: tech['other_user_id']),
+                                        child: _buildServiceItem(
+                                          tech['username'] ?? 'Técnico',
+                                          tech['profile_image_url'],
+                                          (tech['rating'] ?? 5.0).toDouble(),
+                                        ),
+                                      ),
+                                    )),
+                                if (_recentTechs.length > 3)
+                                  SizedBox(
+                                    width: 200,
+                                    child: ElevatedButton(
+                                      onPressed: () {
+                                        // Redirigir a vista de chats o similar
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFFCDCDCD),
+                                        foregroundColor: AppColors.primary,
+                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        elevation: 0,
+                                      ),
+                                      child: const Text(
+                                        'Mostrar Más',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            'Mostrar Más',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
                 const SizedBox(height: 60),
                 SizedBox(
@@ -439,7 +480,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildServiceItem(String name) {
+  Widget _buildServiceItem(String name, String? imageUrl, double rating) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -449,41 +490,51 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(color: AppColors.primary, width: 2),
             ),
-            child: const Icon(
-              Icons.person_outline,
-              color: AppColors.primary,
-              size: 32,
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor: AppColors.primaryLight,
+              backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
+                  ? NetworkImage(
+                      imageUrl.startsWith('http') ? imageUrl : '${ApiConstants.baseUrl}/$imageUrl',
+                    )
+                  : null,
+              child: (imageUrl == null || imageUrl.isEmpty)
+                  ? const Icon(Icons.person, color: AppColors.primary, size: 20)
+                  : null,
             ),
           ),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              Row(
-                children: List.generate(
-                  5,
-                  (index) => const Icon(
-                    Icons.star,
-                    color: Color(0xFFFFD700),
-                    size: 22,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
                   ),
                 ),
-              ),
-            ],
+                Row(
+                  children: List.generate(
+                    5,
+                    (index) => Icon(
+                      index < rating.round() ? Icons.star : Icons.star_border,
+                      color: const Color(0xFFFFD700),
+                      size: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
+          const Icon(Icons.chevron_right, color: AppColors.primary, size: 18),
         ],
       ),
     );

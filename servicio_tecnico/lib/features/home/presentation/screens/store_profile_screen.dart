@@ -43,6 +43,79 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
     }
   }
 
+  void _showOrderDialog(StoreProduct product) {
+    int quantity = 1;
+    final addressController = TextEditingController(text: _store?.address ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: Text('Pedir ${product.name}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Precio unitario: S/ ${product.price.toStringAsFixed(2)}'),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove_circle_outline),
+                    onPressed: quantity > 1 ? () => setDialogState(() => quantity--) : null,
+                  ),
+                  Text('$quantity', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  IconButton(
+                    icon: const Icon(Icons.add_circle_outline),
+                    onPressed: () => setDialogState(() => quantity++),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: addressController,
+                decoration: const InputDecoration(
+                  labelText: 'Dirección de entrega',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.map),
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Total: S/ ${(product.price * quantity).toStringAsFixed(2)}',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: () async {
+                final res = await _storeService.createOrder(
+                  productId: product.id,
+                  quantity: quantity,
+                  address: addressController.text,
+                );
+                if (mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(res.success ? '¡Pedido realizado con éxito!' : 'Error: ${res.message}'),
+                      backgroundColor: res.success ? Colors.green : Colors.red,
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+              child: const Text('Confirmar Pedido'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading)
@@ -178,9 +251,20 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                                       maxLines: 1,
                                     ),
                                     const SizedBox(height: 4),
-                                    Text(
-                                      'S/ ${p.price.toStringAsFixed(2)}',
-                                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),
+                                    const SizedBox(height: 8),
+                                    SizedBox(
+                                      width: double.infinity,
+                                      child: ElevatedButton(
+                                        onPressed: () => _showOrderDialog(p),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.primary,
+                                          foregroundColor: Colors.white,
+                                          padding: EdgeInsets.zero,
+                                          visualDensity: VisualDensity.compact,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                        ),
+                                        child: const Text('Pedir', style: TextStyle(fontSize: 12)),
+                                      ),
                                     ),
                                   ],
                                 ),

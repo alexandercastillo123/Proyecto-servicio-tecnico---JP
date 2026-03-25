@@ -154,4 +154,34 @@ class StoreService {
       fieldName: 'image',
     );
   }
+
+  /// Create a new store order
+  Future<ApiResponse<dynamic>> createOrder({
+    required int productId,
+    required int quantity,
+    required String address,
+    double? lat,
+    double? lng,
+  }) async {
+    return await _apiService.post(
+      ApiConstants.createStoreOrder,
+      {
+        'product_id': productId,
+        'quantity': quantity,
+        'delivery_address': address,
+        'latitude': lat,
+        'longitude': lng,
+      },
+      requiresAuth: true,
+    );
+  }
+
+  /// Get current client's orders
+  Future<ApiResponse<List<Map<String, dynamic>>>> getMyOrders() async {
+    return await _apiService.get<List<Map<String, dynamic>>>(
+      ApiConstants.myOrders,
+      requiresAuth: true,
+      fromJson: (data) => (data as List).map((o) => o as Map<String, dynamic>).toList(),
+    );
+  }
 }
