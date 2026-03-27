@@ -604,54 +604,85 @@ const deleteStoreProduct = async (req, res) => {
 };
 
 /**
- * Create a new store order
+ * Crear un nuevo pedido en una sucursal
  */
 const createOrder = async (req, res) => {
     let respuesta = new Respuesta();
+    const connection = await db.pool.getConnection();
     try {
+        await connection.beginTransaction();
+
         const clientId = req.user.id;
         const { product_id, quantity, delivery_address, latitude, longitude } = req.body;
 
         if (!product_id || !quantity) {
-            respuesta.mensaje = 'Faltan campos obligatorios (product_id, quantity)';
+            respuesta.mensaje = 'Faltan campos obligatorios (product_id, cantidad)';
             return res.status(400).json(respuesta);
         }
 
-        // Get product details to pull price and sucursal_id
-        const productRes = await db.listar(
-            'SELECT sucursal_id, price FROM store_products WHERE id = ? AND is_available = TRUE',
-            false,
+        // Obtener detalles del producto para el precio y sucursal_id
+        const [productRes] = await connection.query(
+            'SELECT sucursal_id, name, price FROM store_products WHERE id = ? AND is_available = TRUE',
             [product_id]
         );
 
-        if (!productRes.resultado) {
+        if (!productRes || productRes.length === 0) {
+            await connection.rollback();
             respuesta.estado = 404;
             respuesta.mensaje = 'Producto no disponible o no encontrado';
             return res.status(404).json(respuesta);
         }
 
-        const { sucursal_id, price: unit_price } = productRes.resultado;
+        const product = productRes[0];
+        const { sucursal_id, name: product_name, price: unit_price } = product;
         const total_price = unit_price * quantity;
 
-        const query = `
+        // Insertar el pedido
+        const queryOrder = `
             INSERT INTO store_orders (client_id, sucursal_id, product_id, quantity, unit_price, total_price, status, delivery_address, latitude, longitude)
             VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
         `;
 
-        const dbRes = await db.ejecutar(query, [
+        const [orderResult] = await connection.query(queryOrder, [
             clientId, sucursal_id, product_id, quantity, unit_price, total_price, delivery_address, latitude, longitude
         ]);
+
+        const orderId = orderResult.insertId;
+
+        // Obtener el user_id de la sucursal para el mensaje de chat
+        const [storeRes] = await connection.query('SELECT user_id FROM sucursales WHERE id = ?', [sucursal_id]);
+        
+        if (storeRes && storeRes.length > 0) {
+            const storeUserId = storeRes[0].user_id;
+
+            // Insertar mensaje automático en el chat tipo 'order'
+            const chatMsg = `🛒 *Nuevo Pedido Recibido*
+Producto: ${product_name}
+Cantidad: ${quantity}
+Total: S/ ${total_price.toFixed(2)}
+Forma de pago: Coordinar por aquí.`;
+
+            await connection.query(
+                'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, order_id) VALUES (?, ?, ?, "order", ?)',
+                [clientId, storeUserId, chatMsg, orderId]
+            );
+        }
+
+        await connection.commit();
 
         respuesta.exito = true;
         respuesta.estado = 201;
         respuesta.mensaje = 'Pedido realizado con éxito';
-        respuesta.resultado = { orderId: dbRes.resultado.insertId };
+        respuesta.resultado = { orderId };
         res.status(201).json(respuesta);
 
     } catch (error) {
-        console.error('Create order error:', error);
+        if (connection) await connection.rollback();
+        console.error('Error al crear pedido:', error);
         respuesta.mensaje = 'Error al crear pedido: ' + error.message;
         res.status(500).json(respuesta);
+    } finally {
+        if (connection) connection.release();
     }
 };
 
@@ -716,44 +747,77 @@ const getStoreOrders = async (req, res) => {
 };
 
 /**
- * Update order status
+ * Actualizar el estado de un pedido
  */
 const updateOrderStatus = async (req, res) => {
     let respuesta = new Respuesta();
+    const connection = await db.pool.getConnection();
     try {
+        await connection.beginTransaction();
+
         const { id } = req.params;
         const { status } = req.body;
         const userId = req.user.id;
 
-        // Verify authorized user (either store owner or the client who made it - only for cancellation)
-        const orderData = await db.listar(
-            'SELECT o.client_id, s.user_id FROM store_orders o JOIN sucursales s ON o.sucursal_id = s.id WHERE o.id = ?',
-            false,
+        // Verificar autorización (dueño de sucursal o cliente)
+        const [orderRes] = await connection.query(
+            `SELECT o.*, s.user_id as store_user_id, p.name as product_name
+             FROM store_orders o 
+             JOIN sucursales s ON o.sucursal_id = s.id 
+             JOIN store_products p ON o.product_id = p.id
+             WHERE o.id = ?`,
             [id]
         );
 
-        if (!orderData.resultado) {
+        if (!orderRes || orderRes.length === 0) {
+            await connection.rollback();
             respuesta.estado = 404;
             respuesta.mensaje = 'Pedido no encontrado';
             return res.status(404).json(respuesta);
         }
 
-        const isOwner = orderData.resultado.user_id === userId;
-        const isClient = orderData.resultado.client_id === userId;
+        const order = orderRes[0];
+        const isOwner = order.store_user_id === userId;
+        const isClient = order.client_id === userId;
 
-        if (!isOwner && !(isClient && status === 'cancelled') && req.user.role !== 'admin') {
+        if (!isOwner && !(isClient && (status === 'cancelled' || status === 'delivered')) && req.user.role !== 'admin') {
+            await connection.rollback();
             respuesta.estado = 403;
             respuesta.mensaje = 'No autorizado para cambiar el estado de este pedido';
             return res.status(403).json(respuesta);
         }
 
-        await db.ejecutar('UPDATE store_orders SET status = ? WHERE id = ?', [status, id]);
+        // Actualizar el estado
+        await connection.query('UPDATE store_orders SET status = ? WHERE id = ?', [status, id]);
+
+        // Notificar por chat sobre el cambio de estado si es relevante
+        let msg = '';
+        if (status === 'confirmed') msg = `📦 *Pedido Confirmado*: Tu pedido de "${order.product_name}" ha sido aceptado por la tienda.`;
+        if (status === 'shipped') msg = `🚚 *Pedido en Camino*: Tu pedido de "${order.product_name}" ya fue enviado.`;
+        if (status === 'delivered') msg = `✅ *Pedido Entregado*: El cliente ha marcado el pedido de "${order.product_name}" como entregado. El flujo de pedido ha finalizado.`;
+
+        if (msg) {
+            const senderId = isOwner ? order.store_user_id : order.client_id;
+            const receiverId = isOwner ? order.client_id : order.store_user_id;
+
+            await connection.query(
+                'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, order_id) VALUES (?, ?, ?, "order", ?)',
+                [senderId, receiverId, msg, id]
+            );
+        }
+
+        await connection.commit();
         respuesta.exito = true;
         respuesta.mensaje = 'Estado del pedido actualizado';
         res.json(respuesta);
+
     } catch (error) {
+        if (connection) await connection.rollback();
+        console.error('Error al actualizar pedido:', error);
         respuesta.mensaje = 'Error al actualizar pedido: ' + error.message;
         res.status(500).json(respuesta);
+    } finally {
+        if (connection) connection.release();
     }
 };
 

@@ -142,7 +142,11 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
       });
     }
 
-    widget.onLoadingChanged?.call(true);
+    if (mounted && widget.onLoadingChanged != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onLoadingChanged!(true);
+      });
+    }
 
     // Solo inicia el timer de expansión si es búsqueda activa
     if (_isSearchActive && isManual) {
@@ -182,7 +186,11 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
             _loadingTechs = false;
           });
 
-          widget.onLoadingChanged?.call(false);
+          if (mounted && widget.onLoadingChanged != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              widget.onLoadingChanged!(false);
+            });
+          }
 
           if (filtered.isEmpty) {
             // No encontró - el timer sigue corriendo para expandir automáticamente
@@ -199,7 +207,11 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
       } else {
         if (mounted) {
           setState(() => _loadingTechs = false);
-          widget.onLoadingChanged?.call(false);
+          if (mounted && widget.onLoadingChanged != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              widget.onLoadingChanged!(false);
+            });
+          }
           _stopSearchTimer();
           _isSearchActive = false;
           _showSnack(
@@ -211,7 +223,11 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
     } catch (e) {
       if (mounted) {
         setState(() => _loadingTechs = false);
-        widget.onLoadingChanged?.call(false);
+        if (mounted && widget.onLoadingChanged != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            widget.onLoadingChanged!(false);
+          });
+        }
         _stopSearchTimer();
         _isSearchActive = false;
         _showSnack('Sin conexión al servidor', Colors.red);
@@ -262,7 +278,11 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
     _isSearchActive = false;
     if (mounted) {
       setState(() => _loadingTechs = false);
-      widget.onLoadingChanged?.call(false);
+      if (mounted && widget.onLoadingChanged != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.onLoadingChanged!(false);
+        });
+      }
     }
   }
 
@@ -278,7 +298,13 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
   void dispose() {
     _searchTimer?.cancel();
     // Ensure parent stops showing loading if we are disposed suddenly
-    widget.onLoadingChanged?.call(false);
+    if (widget.onLoadingChanged != null) {
+      // Use a microtask or similar to avoid calling during dispose if needed,
+      // but postFrameCallback is generally safer to ensure parent state doesn't break.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onLoadingChanged!(false);
+      });
+    }
     super.dispose();
   }
 

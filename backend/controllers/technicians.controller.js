@@ -2,7 +2,7 @@ const db = require('../config/database');
 const Respuesta = require('../utils/Respuesta');
 
 /**
- * Get list of technicians with optional filters
+ * Obtener lista de técnicos con filtros opcionales
  */
 const getTechnicians = async (req, res) => {
     let respuesta = new Respuesta();
@@ -46,7 +46,7 @@ const getTechnicians = async (req, res) => {
             return res.status(400).json(dbRes);
         }
 
-        // Get total count
+        // Obtener conteo total
         let countQuery = 'SELECT COUNT(*) as total FROM users u INNER JOIN user_profiles up ON u.id = up.user_id WHERE u.role = "tech" AND (up.is_available IS NULL OR up.is_available = TRUE)';
         const countParams = [];
 
@@ -79,21 +79,21 @@ const getTechnicians = async (req, res) => {
         res.json(respuesta);
 
     } catch (error) {
-        console.error('Get technicians error:', error);
-        respuesta.mensaje = 'Failed to retrieve technicians: ' + error.message;
+        console.error('Error al obtener técnicos:', error);
+        respuesta.mensaje = 'Error al recuperar técnicos: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
 
 /**
- * Get technician details with schedule
+ * Obtener detalles del técnico con su horario
  */
 const getTechnicianById = async (req, res) => {
     let respuesta = new Respuesta();
     try {
         const { id } = req.params;
 
-        // Get technician profile
+        // Obtener perfil del técnico
         const dbRes = await db.listar(
             `SELECT 
         u.id, u.email, u.username,
@@ -111,11 +111,11 @@ const getTechnicianById = async (req, res) => {
 
         if (!dbRes.exito || !dbRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Technician not found';
+            respuesta.mensaje = 'Técnico no encontrado';
             return res.status(404).json(respuesta);
         }
 
-        // Get schedule
+        // Obtener horario
         const schedRes = await db.listar(
             `SELECT id, day_of_week, start_time, end_time, is_active
        FROM technician_schedules
@@ -136,15 +136,15 @@ const getTechnicianById = async (req, res) => {
         res.json(respuesta);
 
     } catch (error) {
-        console.error('Get technician by ID error:', error);
-        respuesta.mensaje = 'Failed to retrieve technician: ' + error.message;
+        console.error('Error al obtener técnico por ID:', error);
+        respuesta.mensaje = 'Error al recuperar técnico: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
 
 /**
- * Get technicians near a location using Haversine formula
- * Query params: lat, lng, radius (km, default 5)
+ * Obtener técnicos cercanos usando la fórmula de Haversine
+ * Parámetros: lat, lng, radius (km, por defecto 5)
  */
 const getNearbyTechnicians = async (req, res) => {
     let respuesta = new Respuesta();
@@ -203,14 +203,14 @@ const getNearbyTechnicians = async (req, res) => {
         res.json(respuesta);
 
     } catch (error) {
-        console.error('Get nearby technicians error:', error);
+        console.error('Error al obtener técnicos cercanos:', error);
         respuesta.mensaje = 'Error al obtener técnicos cercanos: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
 
 /**
- * Get technician schedule
+ * Obtener horario del técnico
  */
 const getTechnicianSchedule = async (req, res) => {
     let respuesta = new Respuesta();
@@ -233,14 +233,14 @@ const getTechnicianSchedule = async (req, res) => {
         res.json(respuesta);
 
     } catch (error) {
-        console.error('Get schedule error:', error);
-        respuesta.mensaje = 'Failed to retrieve schedule: ' + error.message;
+        console.error('Error al obtener horario:', error);
+        respuesta.mensaje = 'Error al recuperar el horario: ' + error.message;
         res.status(500).json(respuesta);
     }
 };
 
 /**
- * Create or update technician schedule
+ * Crear o actualizar horario del técnico
  */
 const createSchedule = async (req, res) => {
     let respuesta = new Respuesta();

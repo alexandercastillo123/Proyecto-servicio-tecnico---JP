@@ -176,12 +176,30 @@ class StoreService {
     );
   }
 
-  /// Get current client's orders
+  /// Obtener pedidos pendientes de un cliente (para el cliente)
   Future<ApiResponse<List<Map<String, dynamic>>>> getMyOrders() async {
     return await _apiService.get<List<Map<String, dynamic>>>(
       ApiConstants.myOrders,
       requiresAuth: true,
       fromJson: (data) => (data as List).map((o) => o as Map<String, dynamic>).toList(),
+    );
+  }
+
+  /// Obtener pedidos de una sucursal (para el dueño)
+  Future<ApiResponse<List<Map<String, dynamic>>>> getStoreOrders(int storeId) async {
+    return await _apiService.get<List<Map<String, dynamic>>>(
+      ApiConstants.storeOrders(storeId),
+      requiresAuth: true,
+      fromJson: (data) => (data as List).map((o) => o as Map<String, dynamic>).toList(),
+    );
+  }
+
+  /// Actualizar el estado de un pedido (dueño o cliente)
+  Future<ApiResponse<dynamic>> updateOrderStatus(int orderId, String status) async {
+    return await _apiService.patch(
+      ApiConstants.updateOrderStatus(orderId),
+      {'status': status},
+      requiresAuth: true,
     );
   }
 }

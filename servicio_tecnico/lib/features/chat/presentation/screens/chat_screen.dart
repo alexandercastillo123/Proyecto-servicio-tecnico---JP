@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../../../../core/services/message_service.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/services/technician_service.dart';
+import '../../../../core/services/store_service.dart';
 import '../../../../core/theme/app_colors.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -18,6 +21,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final UserService _userService = UserService();
   final AppointmentService _appointmentService = AppointmentService();
   final TechnicianService _technicianService = TechnicianService();
+  final StoreService _storeService = StoreService(); // Añadido StoreService
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   List<dynamic> _messages = [];
@@ -343,6 +347,18 @@ class _ChatScreenState extends State<ChatScreen> {
                           paymentStatus: msg['appointment_payment_status'],
                           paymentMethod: msg['appointment_payment_method'],
                         );
+                      } else if (msg['message_type'] == 'order') {
+                        bubble = _buildOrderBubble(
+                          orderId: msg['order_id'],
+                          productName: msg['order_product_name'] ?? 'Producto',
+                          status: msg['order_status'] ?? 'pending',
+                          orderAddress: msg['order_address'],
+                          orderLat: msg['order_lat'],
+                          orderLng: msg['order_lng'],
+                          message: msg['message_text'] ?? '',
+                          time: time,
+                          isMe: isMe,
+                        );
                       } else {
                         bubble = _buildMessageBubble(
                           message: msg['message_text'] ?? '',
@@ -414,11 +430,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                        appointmentStatus == 'cancelled' 
+                         appointmentStatus == 'cancelled' 
                           ? '❌ Cita Cancelada$cancelText'
                           : appointmentStatus == 'completed'
                             ? '✅ Chamba Terminada'
-                            : (price == null ? '🔧 Propuesta de Chamba' : '💼 Chamba Activa'),
+                            : appointmentStatus == 'expired'
+                              ? '⌛ Cita Expirada'
+                              : '📅 Cita', // Simplificado a "Cita" por solicitud del usuario
                         style: TextStyle(
                           color: isMe ? Colors.white : AppColors.primary,
                           fontSize: 16,
@@ -426,7 +444,8 @@ class _ChatScreenState extends State<ChatScreen> {
                           decoration:
                               (appointmentId == -1 ||
                                   appointmentId == null ||
-                                  appointmentStatus == 'cancelled')
+                                  appointmentStatus == 'cancelled' ||
+                                  appointmentStatus == 'expired')
                               ? TextDecoration.lineThrough
                               : null,
                         ),
@@ -1434,5 +1453,341 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       },
     );
+  }
+
+  Widget _buildOrderBubble({
+    int? orderId,
+    required String productName,
+    required String status,
+    String? orderAddress,
+    dynamic orderLat,
+    dynamic orderLng,
+    required String message,
+    required String time,
+    required bool isMe,
+  }) {
+    Color statusColor = Colors.orange;
+    String statusText = 'Pendiente';
+
+    switch (status) {
+      case 'confirmed':
+        statusColor = Colors.blue;
+        statusText = 'Confirmado';
+        break;
+      case 'shipped':
+        statusColor = Colors.purple;
+        statusText = 'En camino';
+        break;
+      case 'delivered':
+        statusColor = Colors.teal;
+        statusText = 'Entregado';
+        break;
+      case 'completed':
+        statusColor = Colors.green;
+        statusText = 'Completado';
+        break;
+      case 'cancelled':
+        statusColor = Colors.red;
+        statusText = 'Cancelado';
+        break;
+      case 'expired':
+        statusColor = Colors.grey;
+        statusText = 'Expirado';
+        break;
+    }
+
+    final bool canConfirmOrder = status == 'pending' && !isMe;
+    final bool canMarkAsShipped = status == 'confirmed' && !isMe;
+    final bool canMarkAsDelivered = status == 'shipped' && isMe;
+    final double? lat = double.tryParse(orderLat?.toString() ?? '');
+    final double? lng = double.tryParse(orderLng?.toString() ?? '');
+
+    return Align(
+      alignment: !isMe ? Alignment.centerLeft : Alignment.centerRight,
+      child: Column(
+        crossAxisAlignment:
+            !isMe ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+        children: [
+          Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.all(16),
+            width: 280,
+            decoration: BoxDecoration(
+              color: isMe ? AppColors.primary : const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: AppColors.softShadow,
+              border: Border.all(
+                color: (status == 'completed' || status == 'delivered') ? Colors.green : statusColor.withOpacity(0.3),
+                width: (status == 'completed' || status == 'delivered') ? 2 : 1,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.shopping_bag,
+                          color: isMe ? Colors.white : AppColors.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Pedido',
+                          style: TextStyle(
+                            color: isMe ? Colors.white : AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (status == 'completed' || status == 'delivered')
+                      const Icon(Icons.verified, color: Colors.green, size: 18),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  productName,
+                  style: TextStyle(
+                    color: isMe ? Colors.white : Colors.black87,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  message,
+                  style: TextStyle(
+                    color: isMe ? Colors.white70 : Colors.black54,
+                    fontSize: 13,
+                  ),
+                ),
+                if (orderAddress != null && orderAddress.isNotEmpty) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.0),
+                    child: Divider(height: 1),
+                  ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on,
+                        size: 14,
+                        color: isMe ? Colors.white70 : Colors.grey,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          orderAddress,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isMe ? Colors.white70 : Colors.grey[700],
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (lat != null && lng != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 32,
+                        child: TextButton.icon(
+                          onPressed: () => _openMap(lat, lng),
+                          icon: const Icon(Icons.map, size: 14),
+                          label: const Text('VER UBICACIÓN', style: TextStyle(fontSize: 11)),
+                          style: TextButton.styleFrom(
+                            backgroundColor: isMe ? Colors.white24 : AppColors.primary.withOpacity(0.1),
+                            foregroundColor: isMe ? Colors.white : AppColors.primary,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: statusColor.withOpacity(0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        statusText.toUpperCase(),
+                        style: TextStyle(
+                          color: statusColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (canConfirmOrder) ...[
+                  const SizedBox(height: 15),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () =>
+                          _updateStoreOrderStatus(orderId!, 'confirmed'),
+                      icon: const Icon(Icons.check_circle, size: 18),
+                      label: const Text('CONFIRMAR PEDIDO'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+                if (canMarkAsShipped) ...[
+                  const SizedBox(height: 15),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () =>
+                          _updateStoreOrderStatus(orderId!, 'shipped'),
+                      icon: const Icon(Icons.local_shipping, size: 18),
+                      label: const Text('MARCAR "EN CAMINO"'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+                if (canMarkAsDelivered) ...[
+                  const SizedBox(height: 15),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () =>
+                          _updateStoreOrderStatus(orderId!, 'delivered'),
+                      icon: const Icon(Icons.check_circle_outline, size: 18),
+                      label: const Text('RECIBÍ MI PEDIDO'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: AppColors.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.only(
+              right: isMe ? 8 : 0,
+              left: !isMe ? 8 : 0,
+              bottom: 8,
+            ),
+            child: Text(
+              time,
+              style: TextStyle(
+                color: Colors.blue.withOpacity(0.6),
+                fontSize: 10,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _openMap(double lat, double lng) {
+    // Implementación simple para abrir mapa externo o interno si se prefiere
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: 400,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('Ubicación de entrega', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ),
+            Expanded(
+              child: FlutterMap(
+                options: MapOptions(initialCenter: LatLng(lat, lng), initialZoom: 15),
+                children: [
+                  TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: LatLng(lat, lng),
+                        width: 80,
+                        height: 80,
+                        child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                  child: const Text('CERRAR'),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _updateStoreOrderStatus(int orderId, String newStatus) async {
+    final res = await _storeService.updateOrderStatus(orderId, newStatus);
+    if (res.success) {
+      _loadMessages(_otherUserId!);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Pedido actualizado a $newStatus')),
+        );
+      }
+    }
   }
 }

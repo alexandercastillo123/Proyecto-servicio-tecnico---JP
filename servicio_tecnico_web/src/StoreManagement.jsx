@@ -96,6 +96,7 @@ const StoreManagement = () => {
                 <div className="space-y-4">
                   <SectionLabel color="blue">Datos básicos</SectionLabel>
                   <Field label="Nombre" required {...f('name')} />
+                  <Field label="Email de contacto" type="email" required {...f('email')} />
                   <Field label="Email admin" type="email" required {...f('admin_email')} />
                   <Field label="Contraseña" type="password" required {...f('admin_password')} />
                 </div>
@@ -170,6 +171,9 @@ const StoreManagement = () => {
                 </div>
                 <div className="flex items-center gap-2 text-xs font-bold text-muted">
                   <Phone size={13} className="text-blue-500 flex-shrink-0"/> {store.phone}
+                </div>
+                <div className="flex items-center gap-2 text-xs font-bold text-muted">
+                  <Plus size={13} className="text-blue-500 flex-shrink-0 opacity-0"/> {store.email}
                 </div>
               </div>
               <div className="mt-auto flex items-center justify-between">

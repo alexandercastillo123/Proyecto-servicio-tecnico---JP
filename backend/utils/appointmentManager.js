@@ -9,17 +9,16 @@ const autoUpdateAppointments = async () => {
     try {
         console.log('[AppointmentManager] Checking for appointments to complete...');
         
-        // Find appointments that are 'active' but past scheduled_date + scheduled_time
-        // and haven't been updated in the last 12 hours (to avoid constant updates if needed)
-        // More simply: status = 'active' AND (scheduled_date < CURDATE() OR (scheduled_date = CURDATE() AND scheduled_time < SUBTIME(CURTIME(), "12:00:00")))
+        // Find appointments that are 'pending' or 'confirmed' but past scheduled_date + scheduled_time
+        // We set them to 'expired' to match the controller logic.
         
         const query = `
             UPDATE appointments 
-            SET status = 'completed' 
-            WHERE status = 'active' 
+            SET status = 'expired' 
+            WHERE status IN ('pending', 'confirmed') 
               AND (
                 scheduled_date < CURDATE() 
-                OR (scheduled_date = CURDATE() AND scheduled_time < SUBTIME(CURTIME(), '12:00:00'))
+                OR (scheduled_date = CURDATE() AND scheduled_time < CURTIME())
               )
         `;
         
