@@ -8,14 +8,12 @@ import 'core/providers/auth_provider.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Pre-initialize camera service
+  // Pre-iniciacion de uso de la camara
   await CameraService().initialize();
 
   runApp(
     MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-      ],
+      providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
       child: const MyApp(),
     ),
   );

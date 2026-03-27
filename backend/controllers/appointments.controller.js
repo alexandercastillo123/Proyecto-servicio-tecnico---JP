@@ -88,6 +88,15 @@ const getAppointments = async (req, res) => {
         const userId = req.user.id;
         const { status } = req.query;
 
+        // Auto-expirar citas pasadas que sigan pendientes o confirmadas
+        await db.ejecutar(
+            `UPDATE appointments 
+             SET status = 'expired' 
+             WHERE status IN ('pending', 'confirmed') 
+             AND (scheduled_date < CURDATE() OR (scheduled_date = CURDATE() AND scheduled_time < CURTIME()))`,
+            []
+        );
+
         let query = `
       SELECT 
         a.id, a.scheduled_date, a.scheduled_time, a.description, a.status, a.created_at,

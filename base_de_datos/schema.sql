@@ -34,75 +34,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- 3. Horarios de Técnicos
-CREATE TABLE IF NOT EXISTS technician_schedules (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    technician_id INT NOT NULL,
-    day_of_week ENUM('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday') NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    FOREIGN KEY (technician_id) REFERENCES users(id) ON DELETE CASCADE
-);
-
--- 4. Citas / Servicios
-CREATE TABLE IF NOT EXISTS appointments (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    client_id INT NOT NULL,
-    technician_id INT NOT NULL,
-    scheduled_date DATE NOT NULL,
-    scheduled_time TIME NOT NULL,
-    description TEXT,
-    status ENUM('pending', 'confirmed', 'completed', 'cancelled', 'cancellation_pending') DEFAULT 'pending',
-    cancelled_by INT DEFAULT NULL,
-    price DECIMAL(10, 2) DEFAULT NULL,
-    payment_method ENUM('yape', 'plin', 'transfer', 'cash') DEFAULT NULL,
-    payment_status ENUM('pending', 'waiting_confirmation', 'paid') DEFAULT 'pending',
-    payment_confirmed_at TIMESTAMP NULL DEFAULT NULL,
-    service_type ENUM('local', 'domicilio') DEFAULT 'local',
-    service_lat DECIMAL(10, 7) DEFAULT NULL,
-    service_lng DECIMAL(10, 7) DEFAULT NULL,
-    service_address TEXT DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (client_id) REFERENCES users(id),
-    FOREIGN KEY (technician_id) REFERENCES users(id),
-    FOREIGN KEY (cancelled_by) REFERENCES users(id)
-);
-
--- 5. Chat y Ofertas
-CREATE TABLE IF NOT EXISTS chat_messages (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    sender_id INT NOT NULL,
-    receiver_id INT NOT NULL,
-    appointment_id INT DEFAULT NULL,
-    message_text TEXT,
-    message_type ENUM('text', 'offer', 'appointment') DEFAULT 'text',
-    offer_price DECIMAL(10, 2),
-    offer_status ENUM('pending', 'accepted', 'rejected', 'cancelled') DEFAULT 'pending',
-    cancelled_by INT DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    is_read BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (sender_id) REFERENCES users(id),
-    FOREIGN KEY (receiver_id) REFERENCES users(id),
-    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
-    FOREIGN KEY (cancelled_by) REFERENCES users(id)
-);
-
--- 6. Reseñas / Reviews
-CREATE TABLE IF NOT EXISTS reviews (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    appointment_id INT DEFAULT NULL,
-    client_id INT NOT NULL,
-    technician_id INT NOT NULL,
-    rating TINYINT NOT NULL CHECK (rating >= 1 AND rating <= 5),
-    comment TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
-    FOREIGN KEY (client_id) REFERENCES users(id),
-    FOREIGN KEY (technician_id) REFERENCES users(id)
-);
-
--- 7. Sucursales
+-- 3. Sucursales
 CREATE TABLE IF NOT EXISTS sucursales (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,   
@@ -132,17 +64,7 @@ CREATE TABLE IF NOT EXISTS sucursales (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- 8. Citas en Sucursales
-CREATE TABLE IF NOT EXISTS sucursales_citas (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    sucursal_id INT NOT NULL,
-    cita_id INT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE,
-    FOREIGN KEY (cita_id) REFERENCES appointments(id) ON DELETE CASCADE
-);
-
--- 9. Productos de Tiendas (Sucursales)
+-- 4. Productos de Tiendas (Sucursales)
 CREATE TABLE IF NOT EXISTS store_products (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sucursal_id INT NOT NULL,
@@ -158,7 +80,106 @@ CREATE TABLE IF NOT EXISTS store_products (
     FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE
 );
 
--- 10. Reseñas de Tiendas
+-- 5. Pedidos de Tiendas
+CREATE TABLE IF NOT EXISTS store_orders (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    client_id INT NOT NULL,
+    sucursal_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT DEFAULT 1,
+    unit_price DECIMAL(10, 2) NOT NULL,
+    total_price DECIMAL(10, 2) NOT NULL,
+    status ENUM('pending', 'confirmed', 'shipped', 'delivered', 'completed', 'cancelled') DEFAULT 'pending',
+    delivery_address TEXT,
+    latitude DECIMAL(10, 8),
+    longitude DECIMAL(11, 8),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES users(id),
+    FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES store_products(id) ON DELETE CASCADE
+);
+
+-- 6. Horarios de Técnicos
+CREATE TABLE IF NOT EXISTS technician_schedules (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    technician_id INT NOT NULL,
+    day_of_week ENUM('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday') NOT NULL,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (technician_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 7. Citas / Servicios
+CREATE TABLE IF NOT EXISTS appointments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    client_id INT NOT NULL,
+    technician_id INT NOT NULL,
+    scheduled_date DATE NOT NULL,
+    scheduled_time TIME NOT NULL,
+    description TEXT,
+    status ENUM('pending', 'confirmed', 'completed', 'cancelled', 'cancellation_pending', 'expired') DEFAULT 'pending',
+    cancelled_by INT DEFAULT NULL,
+    price DECIMAL(10, 2) DEFAULT NULL,
+    payment_method ENUM('yape', 'plin', 'transfer', 'cash') DEFAULT NULL,
+    payment_status ENUM('pending', 'waiting_confirmation', 'paid') DEFAULT 'pending',
+    payment_confirmed_at TIMESTAMP NULL DEFAULT NULL,
+    service_type ENUM('local', 'domicilio') DEFAULT 'local',
+    service_lat DECIMAL(10, 7) DEFAULT NULL,
+    service_lng DECIMAL(10, 7) DEFAULT NULL,
+    service_address TEXT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (client_id) REFERENCES users(id),
+    FOREIGN KEY (technician_id) REFERENCES users(id),
+    FOREIGN KEY (cancelled_by) REFERENCES users(id)
+);
+
+-- 8. Chat y Ofertas
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sender_id INT NOT NULL,
+    receiver_id INT NOT NULL,
+    appointment_id INT DEFAULT NULL,
+    message_text TEXT,
+    message_type ENUM('text', 'offer', 'appointment', 'order') DEFAULT 'text',
+    offer_price DECIMAL(10, 2),
+    offer_status ENUM('pending', 'accepted', 'rejected', 'cancelled') DEFAULT 'pending',
+    order_id INT DEFAULT NULL,
+    cancelled_by INT DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_read BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (sender_id) REFERENCES users(id),
+    FOREIGN KEY (receiver_id) REFERENCES users(id),
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
+    FOREIGN KEY (order_id) REFERENCES store_orders(id) ON DELETE SET NULL,
+    FOREIGN KEY (cancelled_by) REFERENCES users(id)
+);
+
+-- 9. Reseñas / Reviews
+CREATE TABLE IF NOT EXISTS reviews (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    appointment_id INT DEFAULT NULL,
+    client_id INT NOT NULL,
+    technician_id INT NOT NULL,
+    rating TINYINT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
+    FOREIGN KEY (client_id) REFERENCES users(id),
+    FOREIGN KEY (technician_id) REFERENCES users(id)
+);
+
+-- 10. Citas en Sucursales
+CREATE TABLE IF NOT EXISTS sucursales_citas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    sucursal_id INT NOT NULL,
+    cita_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE,
+    FOREIGN KEY (cita_id) REFERENCES appointments(id) ON DELETE CASCADE
+);
+
+-- 11. Reseñas de Tiendas
 CREATE TABLE IF NOT EXISTS store_reviews (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sucursal_id INT NOT NULL,
@@ -170,7 +191,7 @@ CREATE TABLE IF NOT EXISTS store_reviews (
     FOREIGN KEY (client_id) REFERENCES users(id)
 );
 
--- 11. Horarios Detallados de Tiendas
+-- 12. Horarios Detallados de Tiendas
 CREATE TABLE IF NOT EXISTS store_schedules (
     id INT AUTO_INCREMENT PRIMARY KEY,
     sucursal_id INT NOT NULL,
@@ -179,25 +200,6 @@ CREATE TABLE IF NOT EXISTS store_schedules (
     close_time TIME,
     is_closed BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE
-);
-
--- 12. Pedidos de Tiendas
-CREATE TABLE IF NOT EXISTS store_orders (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    client_id INT NOT NULL,
-    sucursal_id INT NOT NULL,
-    product_id INT NOT NULL,
-    quantity INT DEFAULT 1,
-    unit_price DECIMAL(10, 2) NOT NULL,
-    total_price DECIMAL(10, 2) NOT NULL,
-    status ENUM('pending', 'completed', 'cancelled') DEFAULT 'pending',
-    delivery_address TEXT,
-    latitude DECIMAL(10, 8),
-    longitude DECIMAL(11, 8),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (client_id) REFERENCES users(id),
-    FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES store_products(id) ON DELETE CASCADE
 );
 
 -- 13. Password Resets

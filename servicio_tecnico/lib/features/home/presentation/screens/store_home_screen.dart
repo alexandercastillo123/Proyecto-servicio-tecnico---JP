@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/store_service.dart';
 import '../../../../core/services/message_service.dart';
-import '../../../../core/services/api_service.dart';
 import '../../../../core/models/store.dart';
 import '../../../../core/models/store_product.dart';
 import '../../../../core/providers/auth_provider.dart';
@@ -23,8 +22,10 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
   final MessageService _messageService = MessageService();
   List<StoreProduct> _products = [];
   List<dynamic> _recentChats = [];
+  List<dynamic> _orders = []; // Nueva lista para pedidos
   bool _loadingProducts = true;
   bool _loadingRecent = false;
+  bool _loadingOrders = false; // Estado de carga de pedidos
   Store? _myStore;
 
   @override
@@ -32,6 +33,26 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
     super.initState();
     _loadStoreData();
     _loadRecentChats();
+    _loadOrders(); // Cargar pedidos al iniciar
+  }
+
+  /// Cargar pedidos de la sucursal
+  Future<void> _loadOrders() async {
+    if (_myStore == null) return;
+    if (mounted) setState(() => _loadingOrders = true);
+    try {
+      final res = await _storeService.getStoreOrders(_myStore!.id);
+      if (res.success && mounted) {
+        setState(() {
+          _orders = res.data ?? [];
+          _loadingOrders = false;
+        });
+      } else {
+        if (mounted) setState(() => _loadingOrders = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loadingOrders = false);
+    }
   }
 
   Future<void> _loadRecentChats() async {
@@ -59,6 +80,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
         });
         if (_myStore != null) {
           _loadProducts();
+          _loadOrders(); // Cargar pedidos una vez obtenida la sucursal
         } else {
           setState(() => _loadingProducts = false);
         }
@@ -95,6 +117,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
           children: [
             _buildDashboard(),
             _buildCatalog(),
+            _buildOrdersTab(), // Nueva pestaña de pedidos
             _buildMessagesTab(),
             _buildProfile(),
           ],
@@ -111,13 +134,15 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
         currentIndex: _selectedIndex,
         onTap: (i) {
           setState(() => _selectedIndex = i);
-          if (i == 2) _loadRecentChats();
+          if (i == 2) _loadOrders();
+          if (i == 3) _loadRecentChats();
         },
         selectedItemColor: AppColors.primary,
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Panel'),
           BottomNavigationBarItem(icon: Icon(Icons.inventory_2), label: 'Catálogo'),
+          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Pedidos'),
           BottomNavigationBarItem(icon: Icon(Icons.chat_bubble), label: 'Mensajes'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
         ],
@@ -243,6 +268,112 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
         ],
       ),
     );
+  }
+
+  /// Construir la pestaña de Gestión de Pedidos
+  Widget _buildOrdersTab() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Gestión de Pedidos', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              IconButton(onPressed: _loadOrders, icon: const Icon(Icons.refresh, color: AppColors.primary)),
+            ],
+          ),
+        ),
+        if (_loadingOrders)
+          const Expanded(child: Center(child: CircularProgressIndicator()))
+        else if (_orders.isEmpty)
+          Expanded(child: Center(child: _buildEmptyState(Icons.shopping_cart_outlined, 'No hay pedidos registrados')))
+        else
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              itemCount: _orders.length,
+              itemBuilder: (context, index) => _buildOrderCard(_orders[index]),
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// Tarjeta de pedido individual
+  Widget _buildOrderCard(dynamic order) {
+    final status = order['status'] ?? 'pending';
+    final product = order['product_name'] ?? 'Producto';
+    final client = order['client_name'] ?? 'Cliente';
+    final total = double.tryParse(order['total_price']?.toString() ?? '0') ?? 0.0;
+    
+    Color statusColor = Colors.orange;
+    String statusText = 'Pendiente';
+    
+    switch(status) {
+      case 'confirmed': statusColor = Colors.blue; statusText = 'Confirmado'; break;
+      case 'shipped': statusColor = Colors.purple; statusText = 'En camino'; break;
+      case 'delivered': statusColor = Colors.teal; statusText = 'Entregado'; break;
+      case 'completed': statusColor = Colors.green; statusText = 'Completado'; break;
+      case 'cancelled': statusColor = Colors.red; statusText = 'Cancelado'; break;
+    }
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Column(
+        children: [
+          ListTile(
+            title: Text(product, style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text('Cliente: $client • Cantidad: ${order['quantity']}'),
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Total: S/ ${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                Row(
+                  children: [
+                    if (status == 'pending')
+                      TextButton(
+                        onPressed: () => _updateStatus(order['id'], 'confirmed'),
+                        child: const Text('CONFIRMAR'),
+                      ),
+                    if (status == 'confirmed')
+                      TextButton(
+                        onPressed: () => _updateStatus(order['id'], 'shipped'),
+                        child: const Text('ENVIAR'),
+                      ),
+                    IconButton(
+                      icon: const Icon(Icons.chat_outlined, color: Colors.blue),
+                      onPressed: () => context.push('/chat', extra: order['client_id']),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Cambiar estado de un pedido
+  Future<void> _updateStatus(int orderId, String newStatus) async {
+    final res = await _storeService.updateOrderStatus(orderId, newStatus);
+    if (res.success) {
+      _loadOrders();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Pedido actualizado a $newStatus')));
+      }
+    }
   }
 
   Widget _buildMessagesTab() {

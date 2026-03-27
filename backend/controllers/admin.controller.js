@@ -100,8 +100,44 @@ const getAllBranches = async (req, res) => {
     }
 };
 
+/**
+ * Get all orders in the system with filters
+ */
+const getAllOrders = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { status } = req.query;
+        let query = `
+            SELECT o.*, p.name as product_name, s.name as store_name,
+                   up.names as client_names, up.surnames as client_surnames
+            FROM store_orders o
+            JOIN store_products p ON o.product_id = p.id
+            JOIN sucursales s ON o.sucursal_id = s.id
+            JOIN user_profiles up ON o.client_id = up.user_id
+            WHERE 1=1
+        `;
+        const params = [];
+
+        if (status) {
+            query += ' AND o.status = ?';
+            params.push(status);
+        }
+
+        query += ' ORDER BY o.created_at DESC';
+
+        const dbRes = await db.listar(query, true, params);
+        respuesta.exito = true;
+        respuesta.resultado = dbRes.resultado || [];
+        res.json(respuesta);
+    } catch (error) {
+        respuesta.mensaje = 'Error al obtener pedidos: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
 module.exports = {
     getAllAppointments,
     getAllUsers,
-    getAllBranches
+    getAllBranches,
+    getAllOrders
 };

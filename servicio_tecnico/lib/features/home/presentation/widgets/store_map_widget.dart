@@ -127,7 +127,11 @@ class _StoreMapWidgetState extends State<StoreMapWidget> {
       if (isManual) _nearbyStores = [];
       _selectedStore = null;
     });
-    widget.onLoadingChanged?.call(true);
+    if (mounted && widget.onLoadingChanged != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onLoadingChanged!(true);
+      });
+    }
 
     if (_isSearchActive) {
       _startSearchTimer();
@@ -150,7 +154,11 @@ class _StoreMapWidgetState extends State<StoreMapWidget> {
           // Si es la primera carga y _loadingLocation era true, la apagamos ahora
           if (_loadingLocation) _loadingLocation = false;
         });
-        widget.onLoadingChanged?.call(false);
+        if (mounted && widget.onLoadingChanged != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            widget.onLoadingChanged!(false);
+          });
+        }
 
         if (_nearbyStores.isEmpty && _isSearchActive) {
           if (_radius >= 25.0) {
@@ -170,7 +178,11 @@ class _StoreMapWidgetState extends State<StoreMapWidget> {
           _loadingStores = false;
           if (_loadingLocation) _loadingLocation = false;
         });
-        widget.onLoadingChanged?.call(false);
+        if (mounted && widget.onLoadingChanged != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            widget.onLoadingChanged!(false);
+          });
+        }
         _stopSearchTimer();
         _isSearchActive = false;
         _showErrorSnack('Error al buscar tiendas: $e');
@@ -214,7 +226,11 @@ class _StoreMapWidgetState extends State<StoreMapWidget> {
     _stopSearchTimer();
     _isSearchActive = false;
     setState(() => _loadingStores = false);
-    widget.onLoadingChanged?.call(false);
+    if (mounted && widget.onLoadingChanged != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onLoadingChanged!(false);
+      });
+    }
   }
 
   void _showNoStoresSnack() {
@@ -259,7 +275,11 @@ class _StoreMapWidgetState extends State<StoreMapWidget> {
   void dispose() {
     _searchTimer?.cancel();
     _mapController.dispose();
-    widget.onLoadingChanged?.call(false);
+    if (widget.onLoadingChanged != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onLoadingChanged!(false);
+      });
+    }
     super.dispose();
   }
 

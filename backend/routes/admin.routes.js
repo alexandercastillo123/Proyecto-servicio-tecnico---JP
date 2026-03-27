@@ -25,4 +25,10 @@ router.get('/users', adminController.getAllUsers);
  */
 router.get('/sucursales', adminController.getAllBranches);
 
+/**
+ * @route   GET /api/admin/orders
+ * @desc    Get all store orders
+ */
+router.get('/orders', adminController.getAllOrders);
+
 module.exports = router;

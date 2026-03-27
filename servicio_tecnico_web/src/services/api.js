@@ -22,6 +22,7 @@ export const adminService = {
   getAppointments: (params) => api.get('/admin/appointments', { params }),
   getUsers: (params) => api.get('/admin/users', { params }),
   getBranches: () => api.get('/admin/sucursales'),
+  getOrders: (params) => api.get('/admin/orders', { params }),
 };
 
 export const storeService = {

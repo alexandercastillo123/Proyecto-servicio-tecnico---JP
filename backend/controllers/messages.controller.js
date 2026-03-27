@@ -61,16 +61,20 @@ const getMessages = async (req, res) => {
             `SELECT 
         cm.id, cm.sender_id, cm.receiver_id, cm.message_text,
         cm.message_type, cm.offer_price, cm.offer_status, cm.cancelled_by,
-        cm.created_at, cm.is_read, cm.appointment_id,
+        cm.created_at, cm.is_read, cm.appointment_id, cm.order_id,
         a.status as appointment_status,
         a.price as appointment_price,
         a.payment_method as appointment_payment_method,
         a.payment_status as appointment_payment_status,
         a.payment_confirmed_at as appointment_payment_confirmed_at,
         a.cancelled_by as app_cancelled_by,
-        (SELECT role FROM users WHERE id = a.cancelled_by) as canceller_role
+        (SELECT role FROM users WHERE id = a.cancelled_by) as canceller_role,
+        o.status as order_status,
+        p.name as order_product_name
       FROM chat_messages cm
       LEFT JOIN appointments a ON cm.appointment_id = a.id
+      LEFT JOIN store_orders o ON cm.order_id = o.id
+      LEFT JOIN store_products p ON o.product_id = p.id
       WHERE (cm.sender_id = ? AND cm.receiver_id = ?)
          OR (cm.sender_id = ? AND cm.receiver_id = ?)
       ORDER BY cm.created_at ASC`,

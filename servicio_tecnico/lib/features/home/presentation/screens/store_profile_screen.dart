@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:animate_do/animate_do.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/store.dart';
 import '../../../../core/models/store_product.dart';
 import '../../../../core/services/store_service.dart';
 import '../../../../core/constants/api_constants.dart';
-import 'package:animate_do/animate_do.dart';
 
 class StoreProfileScreen extends StatefulWidget {
   final int storeId;
@@ -20,6 +24,8 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
   Store? _store;
   List<StoreProduct> _products = [];
   bool _isLoading = true;
+  LatLng? _selectedOrderLocation; // Nueva ubicación de entrega seleccionada
+  String _selectedAddress = '';
 
   @override
   void initState() {
@@ -45,57 +51,118 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
 
   void _showOrderDialog(StoreProduct product) {
     int quantity = 1;
-    final addressController = TextEditingController(text: _store?.address ?? '');
+    final addressController = TextEditingController(text: _selectedAddress.isNotEmpty ? _selectedAddress : (_store?.address ?? ''));
+    
+    // Si no hay ubicación aún, intentamos obtenerla
+    if (_selectedOrderLocation == null) {
+      Geolocator.getCurrentPosition().then((pos) {
+        _selectedOrderLocation = LatLng(pos.latitude, pos.longitude);
+      });
+    }
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Text('Pedir ${product.name}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+          title: Row(
             children: [
-              Text('Precio unitario: S/ ${product.price.toStringAsFixed(2)}'),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.remove_circle_outline),
-                    onPressed: quantity > 1 ? () => setDialogState(() => quantity--) : null,
-                  ),
-                  Text('$quantity', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle_outline),
-                    onPressed: () => setDialogState(() => quantity++),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: addressController,
-                decoration: const InputDecoration(
-                  labelText: 'Dirección de entrega',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.map),
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Total: S/ ${(product.price * quantity).toStringAsFixed(2)}',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
-              ),
+              const Icon(Icons.shopping_cart, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Expanded(child: Text('Pedir ${product.name}')),
             ],
           ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Precio unitario: S/ ${product.price.toStringAsFixed(2)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                      onPressed: quantity > 1 ? () => setDialogState(() => quantity--) : null,
+                    ),
+                    Text('$quantity', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline, color: Colors.green),
+                      onPressed: () => setDialogState(() => quantity++),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: addressController,
+                  onChanged: (val) => _selectedAddress = val,
+                  decoration: const InputDecoration(
+                    labelText: 'Dirección de entrega',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.map_outlined),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () => _openLocationPicker((LatLng loc, String addr) {
+                    setDialogState(() {
+                      _selectedOrderLocation = loc;
+                      _selectedAddress = addr;
+                      addressController.text = addr;
+                    });
+                  }),
+                  icon: const Icon(Icons.location_on),
+                  label: const Text('Confirmar en el Mapa'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primary,
+                    side: const BorderSide(color: AppColors.primary),
+                  ),
+                ),
+                if (_selectedOrderLocation != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8.0),
+                    child: Text(
+                      '📌 Ubicación confirmada',
+                      style: TextStyle(color: Colors.green[700], fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Total:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(
+                        'S/ ${(product.price * quantity).toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
             ElevatedButton(
               onPressed: () async {
                 final res = await _storeService.createOrder(
                   productId: product.id,
                   quantity: quantity,
                   address: addressController.text,
+                  lat: _selectedOrderLocation?.latitude,
+                  lng: _selectedOrderLocation?.longitude,
                 );
                 if (mounted) {
                   Navigator.pop(context);
@@ -105,12 +172,86 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                       backgroundColor: res.success ? Colors.green : Colors.red,
                     ),
                   );
+                  if (res.success && _store?.userId != null) {
+                    // Navegar al chat con el dueño de la tienda
+                    context.push('/chat', extra: _store!.userId);
+                  }
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
               child: const Text('Confirmar Pedido'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _openLocationPicker(Function(LatLng, String) onPicked) {
+    LatLng pickingLoc = _selectedOrderLocation ?? const LatLng(-12.0453, -77.0428);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setPickerState) => Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+          ),
+          child: Column(
+            children: [
+              const SizedBox(height: 12),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('Mueve el marcador a tu ubicación de entrega', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              ),
+              Expanded(
+                child: FlutterMap(
+                  options: MapOptions(
+                    initialCenter: pickingLoc,
+                    initialZoom: 15,
+                    onTap: (tapPos, p) => setPickerState(() => pickingLoc = p),
+                  ),
+                  children: [
+                    TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                    MarkerLayer(
+                      markers: [
+                        Marker(
+                          point: pickingLoc,
+                          width: 80,
+                          height: 80,
+                          child: const Icon(Icons.location_on, color: Colors.red, size: 45),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      final addr = 'Lat: ${pickingLoc.latitude.toStringAsFixed(4)}, Lng: ${pickingLoc.longitude.toStringAsFixed(4)}';
+                      onPicked(pickingLoc, addr);
+                      Navigator.pop(context);
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, padding: const EdgeInsets.all(16)),
+                    child: const Text('CONFIRMAR ESTA UBICACIÓN'),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -249,22 +390,40 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                                       p.name,
                                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                                       maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
-                                    const SizedBox(height: 8),
-                                    SizedBox(
-                                      width: double.infinity,
-                                      child: ElevatedButton(
-                                        onPressed: () => _showOrderDialog(p),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.primary,
-                                          foregroundColor: Colors.white,
-                                          padding: EdgeInsets.zero,
-                                          visualDensity: VisualDensity.compact,
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                        ),
-                                        child: const Text('Pedir', style: TextStyle(fontSize: 12)),
+                                    if (p.description != null)
+                                      Text(
+                                        p.description!,
+                                        style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'S/ ${p.price.toStringAsFixed(2)}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.primary,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                        ElevatedButton(
+                                          onPressed: () => _showOrderDialog(p),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.primary,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                                            minimumSize: const Size(0, 32),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                          ),
+                                          child: const Text('Pedir', style: TextStyle(fontSize: 12)),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),

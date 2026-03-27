@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } f
 import {
   LayoutDashboard, Calendar, Users, Store, LogOut, Sun, Moon,
   ChevronRight, MapPin, Home, Map, TrendingUp, X, Eye,
-  CheckCircle, XCircle, Clock, AlertCircle, Search, Filter
+  CheckCircle, XCircle, Clock, AlertCircle, Search, Filter, Package
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -21,9 +21,14 @@ const STATUS_LABELS = {
   pending: 'Pendiente', confirmed: 'Confirmada', completed: 'Completada',
   cancelled: 'Cancelada', cancellation_pending: 'Cancel. Pend.'
 };
+const ORDER_STATUS_LABELS = {
+  pending: 'Pendiente', confirmed: 'Confirmado', shipped: 'En camino',
+  delivered: 'Entregado', completed: 'Completado', cancelled: 'Cancelado'
+};
 const STATUS_COLORS_HEX = {
   pending: '#F59E0B', confirmed: '#3B82F6', completed: '#10B981',
-  cancelled: '#EF4444', cancellation_pending: '#F97316'
+  cancelled: '#EF4444', cancellation_pending: '#F97316',
+  shipped: '#8B5CF6', delivered: '#14B8A6'
 };
 const ROLE_COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981'];
 const ROLE_LABELS = { client: 'Cliente', tech: 'Técnico', store: 'Tienda', admin: 'Admin' };
@@ -39,7 +44,7 @@ const StatusBadge = ({ status }) => {
   };
   return (
     <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${colors[status] || 'bg-slate-100 text-slate-600'}`}>
-      {STATUS_LABELS[status] || status}
+      {STATUS_LABELS[status] || ORDER_STATUS_LABELS[status] || status}
     </span>
   );
 };
@@ -451,6 +456,91 @@ const UsersPage = () => {
   );
 };
 
+// ─── ORDERS PAGE ──────────────────────────────────────────────
+const OrdersPage = () => {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const r = await adminService.getOrders();
+        setOrders(r.data.resultado || []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetch();
+  }, []);
+
+  const filtered = orders.filter(o => {
+    const q = search.toLowerCase();
+    const matchSearch = !q || `${o.client_names} ${o.client_surnames} ${o.product_name} ${o.store_name}`.toLowerCase().includes(q);
+    const matchStatus = statusFilter === 'all' || o.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+      <header className="mb-8">
+        <div className="text-emerald-500 text-[10px] font-black uppercase tracking-widest mb-2 flex items-center gap-2"><Package size={13}/> Logística</div>
+        <h1 className="text-5xl font-black tracking-tighter">Gestión de <span className="text-emerald-600">Pedidos</span></h1>
+        <p className="text-muted text-sm mt-2 font-medium">Control general de ventas y envíos de productos.</p>
+      </header>
+
+      <div className="flex flex-col md:flex-row gap-4 mb-8">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted"/>
+          <input type="text" placeholder="Buscar por cliente, producto o tienda..." value={search} onChange={e => setSearch(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 rounded-2xl bg-card border border-card text-sm font-medium focus:ring-2 focus:ring-emerald-500 outline-none transition-all"/>
+        </div>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          className="px-5 py-3 rounded-2xl bg-card border border-card text-sm font-bold focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer">
+          <option value="all">Todos los estados</option>
+          <option value="pending">Pendiente</option>
+          <option value="confirmed">Confirmado</option>
+          <option value="shipped">En camino</option>
+          <option value="delivered">Entregado</option>
+          <option value="completed">Completado</option>
+          <option value="cancelled">Cancelado</option>
+        </select>
+      </div>
+
+      {loading ? <div className="py-20 text-center"><div className="w-8 h-8 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto"/></div> : (
+        <div className="glass-card overflow-hidden">
+          <div className="px-8 py-4 border-b border-card">
+            <span className="text-sm font-bold text-muted">{filtered.length} pedido{filtered.length !== 1 ? 's' : ''}</span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead><tr><th>ID</th><th>Cliente</th><th>Tienda</th><th>Producto</th><th>Fecha</th><th>Total</th><th>Estado</th></tr></thead>
+              <tbody>
+                {filtered.map((o, i) => (
+                  <motion.tr key={o.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i*0.02 }}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                    <td className="font-mono text-xs font-bold text-emerald-600">#{o.id}</td>
+                    <td><div className="font-bold text-sm">{o.client_names} {o.client_surnames}</div></td>
+                    <td className="text-sm font-medium">{o.store_name}</td>
+                    <td><div className="font-bold text-xs">{o.product_name}</div><div className="text-[10px] text-muted">Cant: {o.quantity}</div></td>
+                    <td><div className="font-bold text-xs">{new Date(o.created_at).toLocaleDateString('es-PE')}</div></td>
+                    <td><span className="font-black text-emerald-600">S/ {parseFloat(o.total_price).toFixed(2)}</span></td>
+                    <td><StatusBadge status={o.status}/></td>
+                  </motion.tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {filtered.length === 0 && <div className="py-16 text-center text-muted font-bold">No se encontraron pedidos.</div>}
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
 // ─── SIDEBAR ─────────────────────────────────────────────────
 const Sidebar = ({ user, onLogout }) => {
   const location = useLocation();
@@ -474,6 +564,7 @@ const Sidebar = ({ user, onLogout }) => {
           { to: '/', label: 'Inicio', icon: <LayoutDashboard size={20}/> },
           { to: '/citas', label: 'Gestión de Citas', icon: <Calendar size={20}/> },
           { to: '/usuarios', label: 'Usuarios', icon: <Users size={20}/> },
+          { to: '/pedidos', label: 'Pedidos', icon: <Package size={20}/> },
           { to: '/sucursales', label: 'Sucursales', icon: <Store size={20}/> },
         ].map(item => (
           <Link key={item.to} to={item.to} className={`nav-item ${isActive(item.to) ? 'active' : ''}`}>
@@ -589,6 +680,7 @@ function App() {
                 <Route path="/" element={<Dashboard/>}/>
                 <Route path="/citas" element={<AppointmentsPage/>}/>
                 <Route path="/usuarios" element={<UsersPage/>}/>
+                <Route path="/pedidos" element={<OrdersPage/>}/>
                 <Route path="/sucursales" element={<StoreManagement/>}/>
                 <Route path="*" element={<Navigate to="/"/>}/>
               </Routes>
