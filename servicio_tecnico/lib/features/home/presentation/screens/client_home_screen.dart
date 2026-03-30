@@ -33,74 +33,38 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           _isLoading = false;
         });
       } else if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
-            // 1. Custom Header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  // Logo
-                  // Logo
-                  Image.asset(AppAssets.logo, height: 50, fit: BoxFit.contain),
+            // Header
+            _buildHeader(),
 
-                  // Profile Icon
-                  GestureDetector(
-                    onTap: () => context.push('/profile'),
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColors.primary,
-                          width: 2.5,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.person_outline,
-                        color: AppColors.primary,
-                        size: 34,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // 2. Map Container with rounded corners
+            // Map
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(24),
                   child: Stack(
                     children: [
-                      // The Map Widget
                       ServiceLocationMap(technicians: _technicians),
-
                       if (_isLoading)
-                        const Center(child: CircularProgressIndicator()),
-
-                      // 3. Search Button inside the Map Card
+                        Container(
+                          color: AppColors.surface.withOpacity(0.8),
+                          child: const Center(child: CircularProgressIndicator()),
+                        ),
+                      // Search Button
                       Positioned(
                         bottom: 24,
                         left: 20,
@@ -108,25 +72,30 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                         child: Center(
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 280),
-                            child: ElevatedButton(
-                              onPressed: () => context.push('/technician-list'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFFF0F0F0),
-                                foregroundColor: AppColors.primary,
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: AppColors.primaryGradient,
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: AppColors.elevatedShadow,
                               ),
-                              child: const Center(
-                                child: Text(
+                              child: ElevatedButton.icon(
+                                onPressed: () => context.push('/technician-list'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  elevation: 0,
+                                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                ),
+                                icon: const Icon(Icons.search_rounded, color: Colors.white, size: 22),
+                                label: const Text(
                                   'Buscar Técnicos',
                                   style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
@@ -141,6 +110,27 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Image.asset(AppAssets.logo, height: 44, fit: BoxFit.contain),
+        ],
       ),
     );
   }

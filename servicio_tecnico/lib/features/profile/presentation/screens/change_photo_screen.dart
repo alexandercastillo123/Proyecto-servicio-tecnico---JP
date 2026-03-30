@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/constants/assets.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class ChangePhotoScreen extends StatelessWidget {
   const ChangePhotoScreen({super.key});
@@ -8,127 +9,126 @@ class ChangePhotoScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        leadingWidth: 120,
+        leading: TextButton.icon(
+          onPressed: () => context.pop(),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          label: const Text('Regresar', style: TextStyle(fontWeight: FontWeight.w600)),
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.only(left: 8),
+            alignment: Alignment.centerLeft,
+          ),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
           child: Column(
             children: [
-              const SizedBox(height: 10),
-              // Back Button
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => context.pop(),
-                    icon: const Icon(
-                      Icons.arrow_left,
-                      color: Color(0xFF3B28FF),
-                    ),
-                    label: const Text(
-                      'Regresar',
-                      style: TextStyle(
-                        color: Color(0xFF3B28FF),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 10),
-
+              const SizedBox(height: 16),
               const Text(
                 'Cambiar Foto de Perfil',
                 style: TextStyle(
-                  color: Color(0xFF3B28FF),
-                  fontSize: 28,
-                  fontWeight: FontWeight.w500,
+                  color: AppColors.textPrimary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-
-              const SizedBox(height: 20),
-
-              // Top Image Preview
+              const SizedBox(height: 8),
+              const Text(
+                'Seleccione una nueva foto',
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              ),
+              const SizedBox(height: 28),
               Center(
                 child: Container(
-                  width: 250,
-                  height: 250,
-                  decoration: const BoxDecoration(
+                  width: 200,
+                  height: 200,
+                  decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 10,
-                        spreadRadius: 2,
-                      ),
-                    ],
+                    gradient: AppColors.primaryGradient,
+                    boxShadow: AppColors.elevatedShadow,
                   ),
+                  padding: const EdgeInsets.all(4),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(150),
+                    borderRadius: BorderRadius.circular(100),
                     child: Image.asset(
                       AppAssets.providerPhoto,
                       fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          Container(
+                        color: AppColors.primarySoft.withOpacity(0.3),
+                        child: const Center(child: Icon(Icons.person_rounded, size: 80, color: AppColors.primary)),
+                      ),
                     ),
                   ),
                 ),
               ),
-
-              const SizedBox(height: 30),
-
-              // Gallery Section
+              const SizedBox(height: 28),
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 24),
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0F0F0),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(30),
-                  ),
+                  color: AppColors.surface,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
+                  boxShadow: AppColors.cardShadow,
                 ),
                 child: Column(
                   children: [
-                    const Text(
-                      'Seleccione una foto de su galería:',
-                      style: TextStyle(
-                        color: Color(0xFF3B28FF),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySoft.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.photo_library_rounded, color: AppColors.primary, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'Seleccione de su galería',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Container(
-                      height: 1,
-                      width: 150,
-                      color: const Color(0xFF3B28FF),
-                    ),
                     const SizedBox(height: 20),
-                    // 6x3 Grid Mock
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                          ),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                      ),
                       itemCount: 18,
                       itemBuilder: (context, index) {
                         return Container(
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(4),
-                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(14),
+                            color: AppColors.surfaceLight,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(14),
                             child: Image.network(
                               'https://picsum.photos/seed/${index + 42}/200',
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(Icons.image, color: Colors.white),
+                                  const Center(child: Icon(Icons.image_rounded, color: AppColors.textLight, size: 32)),
                             ),
                           ),
                         );

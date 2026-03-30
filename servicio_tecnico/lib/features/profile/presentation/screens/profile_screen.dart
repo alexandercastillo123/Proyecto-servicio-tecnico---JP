@@ -46,15 +46,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
+    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     if (_errorMessage != null) {
-      return Scaffold(
-        appBar: AppBar(),
-        body: Center(child: Text(_errorMessage!)),
-      );
+      return Scaffold(appBar: AppBar(), body: Center(child: Text(_errorMessage!)));
     }
 
     final user = _userData!;
@@ -66,202 +60,222 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final profileImg = user['profile_image_url'] ?? '';
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
+      backgroundColor: AppColors.background,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 0,
+            pinned: true,
+            backgroundColor: AppColors.surface,
+            automaticallyImplyLeading: false,
+            title: const Row(
               children: [
-                const SizedBox(height: 10),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: TextButton.icon(
-                    onPressed: () => context.pop(),
-                    icon: const Icon(
-                      Icons.arrow_left,
-                      color: AppColors.primary,
-                    ),
-                    label: const Text(
-                      'Regresar',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: AppColors.primary, width: 4),
-                  ),
-                  child: CircleAvatar(
-                    radius: 75,
-                    backgroundColor: Colors.white,
-                    backgroundImage: profileImg.isNotEmpty
-                        ? NetworkImage(profileImg)
-                        : null,
-                    child: profileImg.isEmpty
-                        ? const Icon(
-                            Icons.person_outline,
-                            color: AppColors.primary,
-                            size: 80,
-                          )
-                        : null,
-                  ),
-                ),
-                const SizedBox(height: 24),
+                Icon(Icons.person_rounded, color: AppColors.primary, size: 22),
+                SizedBox(width: 10),
                 Text(
-                  name,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  dniRuc,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                Text(
-                  email,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 18,
-                    decoration: TextDecoration.underline,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 48),
-                const Text(
-                  'Ultimos servicios:',
+                  'Mi Perfil',
                   style: TextStyle(
-                    color: AppColors.primary,
+                    color: AppColors.textPrimary,
                     fontSize: 20,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8E8E8),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Column(
-                    children: [
-                      _buildServiceItem('Nombre Técnico Ejemplo'),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        width: 200,
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFCDCDCD),
-                            foregroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: const Text(
-                            'Mostrar Más',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 60),
-                SizedBox(
-                  width: double.infinity,
-                  height: 60,
-                  child: ElevatedButton(
-                    onPressed: () => context.go('/login'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFCDCDCD),
-                      foregroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Cerrar Sesión',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 40),
               ],
             ),
           ),
-        ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  // Profile Header Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      borderRadius: BorderRadius.circular(24),
+                      boxShadow: AppColors.elevatedShadow,
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white.withOpacity(0.4), width: 3),
+                          ),
+                          child: CircleAvatar(
+                            radius: 52,
+                            backgroundColor: Colors.white.withOpacity(0.2),
+                            backgroundImage: profileImg.isNotEmpty ? NetworkImage(profileImg) : null,
+                            child: profileImg.isEmpty
+                                ? const Icon(Icons.person_rounded, color: Colors.white, size: 48)
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          dniRuc,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          email,
+                          style: TextStyle(
+                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Recent Services
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+                      boxShadow: AppColors.cardShadow,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.history_rounded, color: AppColors.primary, size: 22),
+                            SizedBox(width: 8),
+                            Text(
+                              'Últimos Servicios',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _buildServiceItem('Nombre Técnico Ejemplo'),
+                        const SizedBox(height: 12),
+                        Center(
+                          child: SizedBox(
+                            width: 180,
+                            child: OutlinedButton(
+                              onPressed: () {},
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.primary,
+                                side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              ),
+                              child: const Text('Mostrar Más', style: TextStyle(fontWeight: FontWeight.w600)),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // Logout Button
+                  SizedBox(
+                    width: double.infinity,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                        boxShadow: AppColors.cardShadow,
+                      ),
+                      child: ElevatedButton.icon(
+                        onPressed: () => context.go('/login'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        ),
+                        icon: const Icon(Icons.logout_rounded, color: AppColors.error, size: 22),
+                        label: const Text(
+                          'Cerrar Sesión',
+                          style: TextStyle(
+                            color: AppColors.error,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildServiceItem(String name) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(6),
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary, width: 2),
+              color: AppColors.primarySoft.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              Icons.person_outline,
-              color: AppColors.primary,
-              size: 32,
-            ),
+            child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 24),
           ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: const TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              Row(
-                children: List.generate(
-                  5,
-                  (index) => const Icon(
-                    Icons.star,
-                    color: Color(0xFFFFD700),
-                    size: 22,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Row(
+                  children: List.generate(
+                    5,
+                    (index) => const Icon(Icons.star_rounded, color: Color(0xFFFBBF24), size: 16),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/services/message_service.dart';
 import '../../../../core/constants/assets.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class ProviderHomeScreen extends StatefulWidget {
   const ProviderHomeScreen({super.key});
@@ -28,13 +29,8 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
 
   Future<void> _loadData() async {
     try {
-      final proposalsRes = await _appointmentService.getAppointments(
-        status:
-            'pending', // Ensure backend uses 'pending'. If not, we might need to fetch all and filter.
-      );
-      final completedRes = await _appointmentService.getAppointments(
-        status: 'completed',
-      );
+      final proposalsRes = await _appointmentService.getAppointments(status: 'pending');
+      final completedRes = await _appointmentService.getAppointments(status: 'completed');
       final consultRes = await _messageService.getConversations();
 
       if (proposalsRes.success && completedRes.success && consultRes.success) {
@@ -42,29 +38,19 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
           setState(() {
             _proposals = proposalsRes.data ?? [];
             _completedJobs = completedRes.data ?? [];
-
-            // Filter consultations: exclude those who have ANY active/pending proposal
             final allConsultations = consultRes.data ?? [];
-            final proposalClientIds = _proposals
-                .map((p) => p['client_id'].toString())
-                .toSet();
-
-            // Debugging help: ensure we compare Strings
+            final proposalClientIds = _proposals.map((p) => p['client_id'].toString()).toSet();
             _consultations = allConsultations.where((c) {
               final otherId = c['other_user_id'].toString();
               return !proposalClientIds.contains(otherId);
             }).toList();
-
             _isLoading = false;
           });
         }
       } else {
         if (mounted) {
           setState(() {
-            _errorMessage =
-                proposalsRes.message ??
-                completedRes.message ??
-                consultRes.message;
+            _errorMessage = proposalsRes.message ?? completedRes.message ?? consultRes.message;
             _isLoading = false;
           });
         }
@@ -82,106 +68,85 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _errorMessage != null
-            ? Center(child: Text(_errorMessage!))
-            : RefreshIndicator(
-                onRefresh: _loadData,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Column(
-                    children: [
-                      // Header
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Image.asset(
-                              AppAssets.logo,
-                              height: 40,
-                              fit: BoxFit.contain,
-                            ),
-                            GestureDetector(
-                              onTap: () => context.push('/provider-profile'),
-                              child: Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: const Color(0xFF3B28FF),
-                                    width: 2,
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.person_outline,
-                                  size: 40,
-                                  color: Color(0xFF3B28FF),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                ? Center(child: Text(_errorMessage!))
+                : RefreshIndicator(
+                    onRefresh: _loadData,
+                    color: AppColors.primary,
+                    child: SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: Column(
+                        children: [
+                          _buildHeader(),
+                          const SizedBox(height: 16),
+                          _buildSectionTitle('Consultas de Clientes', Icons.chat_bubble_outline_rounded),
+                          const SizedBox(height: 10),
+                          _buildSection(_consultations, 'No hay consultas nuevas', isConsultation: true),
+                          const SizedBox(height: 24),
+                          _buildSectionTitle('Propuestas de Trabajo', Icons.work_outline_rounded),
+                          const SizedBox(height: 10),
+                          _buildSection(_proposals, 'No hay propuestas pendientes'),
+                          const SizedBox(height: 24),
+                          _buildSectionTitle('Trabajos Completados', Icons.check_circle_outline_rounded),
+                          const SizedBox(height: 10),
+                          _buildSection(_completedJobs, 'No hay trabajos completados'),
+                          const SizedBox(height: 24),
+                        ],
                       ),
-
-                      const SizedBox(height: 10),
-
-                      const Text(
-                        'Consultas de Clientes:',
-                        style: TextStyle(
-                          color: Color(0xFF3B28FF),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      _buildSection(
-                        _consultations,
-                        'No hay consultas nuevas',
-                        isConsultation: true,
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      const Text(
-                        'Propuestas de Chamba:',
-                        style: TextStyle(
-                          color: Color(0xFF3B28FF),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      _buildSection(_proposals, 'No hay propuestas pendientes'),
-
-                      const SizedBox(height: 30),
-
-                      const Text(
-                        'Trabajos Completados',
-                        style: TextStyle(
-                          color: Color(0xFF3B28FF),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      _buildSection(
-                        _completedJobs,
-                        'No hay trabajos completados',
-                      ),
-
-                      const SizedBox(height: 20),
-                    ],
+                    ),
                   ),
-                ),
-              ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Image.asset(AppAssets.logo, height: 44, fit: BoxFit.contain),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title, IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.primarySoft.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            title,
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -193,17 +158,26 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
   }) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE0E0E0),
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+        boxShadow: AppColors.cardShadow,
       ),
       child: items.isEmpty
           ? Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Text(
-                emptyMessage,
-                style: const TextStyle(color: Colors.grey),
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inbox_rounded, color: AppColors.textLight, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    emptyMessage,
+                    style: const TextStyle(color: AppColors.textLight, fontSize: 14),
+                  ),
+                ],
               ),
             )
           : Column(
@@ -213,30 +187,19 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                     padding: const EdgeInsets.only(bottom: 10),
                     child: _buildUserItem(
                       isConsultation
-                          ? '${item['names'] ?? ''} ${item['surnames'] ?? ''}'
-                                    .trim()
-                                    .isEmpty
-                                ? (item['email'] ?? 'Usuario')
-                                : '${item['names'] ?? ''} ${item['surnames'] ?? ''}'
-                                      .trim()
-                          : '${item['client_names'] ?? ''} ${item['client_surnames'] ?? ''}'
-                                .trim()
-                                .isEmpty
-                          ? 'Cliente'
-                          : '${item['client_names'] ?? ''} ${item['client_surnames'] ?? ''}'
-                                .trim(),
+                          ? '${item['names'] ?? ''} ${item['surnames'] ?? ''}'.trim().isEmpty
+                              ? (item['email'] ?? 'Usuario')
+                              : '${item['names'] ?? ''} ${item['surnames'] ?? ''}'.trim()
+                          : '${item['client_names'] ?? ''} ${item['client_surnames'] ?? ''}'.trim().isEmpty
+                              ? 'Cliente'
+                              : '${item['client_names'] ?? ''} ${item['client_surnames'] ?? ''}'.trim(),
                       item['rating']?.toInt() ?? 5,
-                      unreadCount: isConsultation
-                          ? (item['unread_count'] ?? 0)
-                          : 0,
+                      unreadCount: isConsultation ? (item['unread_count'] ?? 0) : 0,
                       onTap: () async {
-                        final otherId = isConsultation
-                            ? item['other_user_id']
-                            : item['client_id'];
-
+                        final otherId = isConsultation ? item['other_user_id'] : item['client_id'];
                         if (otherId != null) {
                           await context.push('/chat', extra: otherId);
-                          _loadData(); // Refresh after return
+                          _loadData();
                         }
                       },
                     ),
@@ -244,25 +207,15 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                 ),
                 if (items.length > 5)
                   SizedBox(
-                    width: 200,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFC4C4C4),
-                        foregroundColor: const Color(0xFF3B28FF),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
+                    width: 180,
+                    child: OutlinedButton(
                       onPressed: () {},
-                      child: const Text(
-                        'Mostrar Más',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
+                      child: const Text('Mostrar Más', style: TextStyle(fontWeight: FontWeight.w600)),
                     ),
                   ),
               ],
@@ -279,24 +232,21 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
+          color: AppColors.surfaceLight,
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(5),
+              width: 44,
+              height: 44,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF3B28FF), width: 2),
+                color: AppColors.primarySoft.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(
-                Icons.person_outline,
-                size: 25,
-                color: Color(0xFF3B28FF),
-              ),
+              child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 24),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -306,17 +256,18 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                   Text(
                     name,
                     style: const TextStyle(
-                      color: Color(0xFF3B28FF),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const SizedBox(height: 4),
                   Row(
                     children: List.generate(5, (index) {
                       return Icon(
-                        index < rating ? Icons.star : Icons.star_outline,
-                        color: const Color(0xFFFFD700),
-                        size: 20,
+                        index < rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                        color: const Color(0xFFFBBF24),
+                        size: 16,
                       );
                     }),
                   ),
@@ -325,22 +276,24 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
             ),
             if (unreadCount > 0)
               Container(
-                padding: const EdgeInsets.all(8),
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.error,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '$unreadCount',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
-            if (onTap != null)
-              const Icon(Icons.chevron_right, color: Color(0xFF3B28FF)),
+            if (onTap != null) ...[
+              const SizedBox(width: 4),
+              const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textLight, size: 16),
+            ],
           ],
         ),
       ),

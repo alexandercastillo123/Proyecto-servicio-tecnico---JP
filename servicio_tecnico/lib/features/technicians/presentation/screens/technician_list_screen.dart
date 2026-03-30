@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/services/technician_service.dart';
 import '../../domain/models/technician.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/custom_button.dart';
 
 class TechnicianListScreen extends StatefulWidget {
   const TechnicianListScreen({super.key});
@@ -53,66 +54,167 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8E8E8),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leadingWidth: 115,
-        leading: TextButton.icon(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_left, color: AppColors.primary),
-          label: const Text(
-            'Regresar',
-            style: TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold,
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildHeader(),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _errorMessage != null
+                      ? _buildErrorState()
+                      : _technicians.isEmpty
+                          ? _buildEmptyState()
+                          : _buildTechnicianList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => context.pop(),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.primarySoft.withOpacity(0.3),
+              padding: const EdgeInsets.all(10),
             ),
           ),
-        ),
-        title: const Text(
-          'Lista de Técnicos Cercanos',
-          style: TextStyle(
-            color: AppColors.primary,
-            fontWeight: FontWeight.bold,
-            fontSize: 18,
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Técnicos Cercanos',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  'Encuentre el técnico ideal',
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        centerTitle: true,
+          IconButton(
+            onPressed: _loadTechnicians,
+            icon: const Icon(Icons.refresh_rounded, size: 22),
+            style: IconButton.styleFrom(
+              backgroundColor: AppColors.primarySoft.withOpacity(0.3),
+              padding: const EdgeInsets.all(10),
+            ),
+          ),
+        ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-          ? Center(child: Text(_errorMessage!))
-          : _technicians.isEmpty
-          ? _buildEmptyState()
-          : _buildTechnicianList(),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: AppColors.errorLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              _errorMessage ?? 'Error desconocido',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: 160,
+              child: CustomButton(
+                text: 'Reintentar',
+                onPressed: _loadTechnicians,
+                icon: Icons.refresh_rounded,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildEmptyState() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            'No se han encontrado técnicos en su area',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.primary,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: AppColors.primarySoft.withOpacity(0.3),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.search_off_rounded,
+                size: 56,
+                color: AppColors.primary,
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _loadTechnicians,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
+            const SizedBox(height: 20),
+            const Text(
+              'No se encontraron técnicos',
+              style: TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            child: const Text('Reintentar'),
-          ),
-        ],
+            const SizedBox(height: 8),
+            const Text(
+              'No hay técnicos disponibles en su área\nen este momento',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14, height: 1.4),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: 160,
+              child: CustomButton(
+                text: 'Reintentar',
+                onPressed: _loadTechnicians,
+                icon: Icons.refresh_rounded,
+                variant: ButtonVariant.outline,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -122,10 +224,11 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
       children: [
         Expanded(
           child: ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
+            physics: const BouncingScrollPhysics(),
             itemCount: _technicians.length,
             itemBuilder: (context, index) {
-              return _buildTechnicianCard(context, _technicians[index]);
+              return _buildTechnicianCard(context, _technicians[index], index);
             },
           ),
         ),
@@ -135,99 +238,180 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
   }
 
   Widget _buildFooter() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
       child: Column(
         children: [
-          const Text(
-            'No se han encontrado más resultados en su area',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.primary,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.primarySoft.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.support_agent_rounded, color: AppColors.primary, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        '¿Necesita ayuda?',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Llame al 999 999 999 (8am - 10pm)\no escriba por WhatsApp',
+                        style: TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 12,
+                          height: 1.3,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 30),
-          const Text(
-            'Para solicitar asistencia, puede llamar al 999 999 999\nentre las 8 am y las 10 pm, o puede escribirnos por whatsapp\npara obtener asistencia de un chatbot',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.primary,
-              fontSize: 12,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _buildTechnicianCard(BuildContext context, Technician tech) {
-    return GestureDetector(
-      onTap: () => context.push('/technician-profile', extra: tech.id),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primary, width: 2),
-              ),
-              child: CircleAvatar(
-                radius: 24,
-                backgroundColor: Colors.white,
-                backgroundImage: tech.profileImageUrl.isNotEmpty
-                    ? NetworkImage(tech.profileImageUrl)
-                    : null,
-                child: tech.profileImageUrl.isEmpty
-                    ? const Icon(
-                        Icons.person_outline,
-                        color: AppColors.primary,
-                        size: 32,
-                      )
-                    : null,
-              ),
+  Widget _buildTechnicianCard(BuildContext context, Technician tech, int index) {
+    return TweenAnimationBuilder<double>(
+      duration: Duration(milliseconds: 400 + (index * 100)),
+      tween: Tween(begin: 0.0, end: 1.0),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: GestureDetector(
+        onTap: () => context.push('/technician-profile', extra: tech.id),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 14),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppColors.divider.withOpacity(0.5),
+              width: 1,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    tech.name,
-                    style: const TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 18,
+            boxShadow: AppColors.cardShadow,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.primary.withOpacity(0.15),
+                    width: 2,
+                  ),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: tech.profileImageUrl.isNotEmpty
+                      ? Image.network(
+                          tech.profileImageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildAvatarPlaceholder(),
+                        )
+                      : _buildAvatarPlaceholder(),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tech.name,
+                      style: const TextStyle(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: List.generate(5, (index) {
-                      return const Padding(
-                        padding: EdgeInsets.only(right: 2.0),
-                        child: Icon(
-                          Icons.star,
-                          color: Color(0xFFFFD700),
-                          size: 24,
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        ...List.generate(5, (index) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 2),
+                            child: Icon(
+                              Icons.star_rounded,
+                              color: index < 4
+                                  ? const Color(0xFFFBBF24)
+                                  : AppColors.divider,
+                              size: 18,
+                            ),
+                          );
+                        }),
+                        const SizedBox(width: 6),
+                        const Text(
+                          '4.0',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      );
-                    }),
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: AppColors.primary,
+                  size: 16,
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildAvatarPlaceholder() {
+    return Container(
+      color: AppColors.primarySoft.withOpacity(0.3),
+      child: const Center(
+        child: Icon(Icons.person_rounded, color: AppColors.primary, size: 28),
       ),
     );
   }

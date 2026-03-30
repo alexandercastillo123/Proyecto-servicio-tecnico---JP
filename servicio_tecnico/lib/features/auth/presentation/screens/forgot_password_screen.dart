@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/constants/assets.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/custom_text_field.dart';
+import '../../../../shared/widgets/custom_button.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -14,25 +15,21 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final _emailController = TextEditingController();
 
   @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surface,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leadingWidth: 120, // Give more space for "Regresar" text
+        leadingWidth: 120,
         leading: TextButton.icon(
           onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_left, color: AppColors.primary),
-          // Icon might differ slightly from design, using standard for now
-          // Design shows "< Regresar"
-          label: const Text(
-            'Regresar',
-            style: TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          label: const Text('Regresar', style: TextStyle(fontWeight: FontWeight.w600)),
           style: TextButton.styleFrom(
             padding: const EdgeInsets.only(left: 8),
             alignment: Alignment.centerLeft,
@@ -41,75 +38,74 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 28),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 32),
-              // Logo (Same as Login)
-              Center(
-                child: Image.asset(
-                  AppAssets.logo,
-                  height: 120,
-                  fit: BoxFit.contain,
-                ),
-              ),
-
-              const SizedBox(height: 100),
-
-              // Email Input
               Container(
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8E8E8), // Light grey background
-                  borderRadius: BorderRadius.circular(12),
+                  color: AppColors.primarySoft.withOpacity(0.3),
+                  shape: BoxShape.circle,
                 ),
-                child: TextField(
-                  controller: _emailController,
-                  textAlign: TextAlign.center,
-                  decoration: const InputDecoration(
-                    hintText: 'Usuario o Correo Electrónico',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                    hintStyle: TextStyle(
-                      color: Color(0xFF9CA3AF), // Lighter grey for hint
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: const Icon(
+                  Icons.lock_reset_rounded,
+                  size: 56,
+                  color: AppColors.primary,
                 ),
               ),
-
-              const SizedBox(height: 24),
-
-              // Send Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE8E8E8),
-                    foregroundColor: AppColors.primary,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: () {
-                    // Navigate to Verification Code Screen
-                    context.push('/forgot-password/verify');
-                  },
-                  child: const Text(
-                    'Enviar Correo de Verificación',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+              const SizedBox(height: 32),
+              const Text(
+                'Recuperar Contraseña',
+                style: TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
+              const SizedBox(height: 8),
+              const Text(
+                'Ingrese su correo electrónico para recibir\nun código de verificación',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 15,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 40),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+                  boxShadow: AppColors.cardShadow,
+                ),
+                child: Column(
+                  children: [
+                    CustomTextField(
+                      label: 'Correo Electrónico',
+                      hint: 'correo@ejemplo.com',
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      prefixIcon: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16),
+                        child: Icon(Icons.email_outlined, color: AppColors.textLight, size: 22),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    CustomButton(
+                      text: 'Enviar Código',
+                      onPressed: () => context.push('/forgot-password/verify'),
+                      icon: Icons.send_rounded,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 32),
             ],
           ),
         ),

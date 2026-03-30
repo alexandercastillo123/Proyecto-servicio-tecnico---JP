@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/services/technician_service.dart';
 import '../../../../core/services/message_service.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class AppointmentSchedulingScreen extends StatefulWidget {
   const AppointmentSchedulingScreen({super.key});
@@ -12,19 +13,17 @@ class AppointmentSchedulingScreen extends StatefulWidget {
       _AppointmentSchedulingScreenState();
 }
 
-class _AppointmentSchedulingScreenState
-    extends State<AppointmentSchedulingScreen> {
+class _AppointmentSchedulingScreenState extends State<AppointmentSchedulingScreen> {
   final AppointmentService _appointmentService = AppointmentService();
   final TechnicianService _technicianService = TechnicianService();
+  final MessageService _messageService = MessageService();
 
   Map<String, dynamic>? _techInfo;
   List<dynamic> _schedule = [];
   bool _isLoading = true;
   String? _errorMessage;
 
-  final TextEditingController _timeController = TextEditingController(
-    text: '10:00',
-  );
+  final TextEditingController _timeController = TextEditingController(text: '10:00');
   final TextEditingController _descriptionController = TextEditingController();
   DateTime? _selectedDate;
   String _dateLabel = 'Seleccionar fecha';
@@ -55,18 +54,12 @@ class _AppointmentSchedulingScreenState
           _isLoading = false;
         });
       } else {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
-
-  final MessageService _messageService = MessageService();
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -78,9 +71,9 @@ class _AppointmentSchedulingScreenState
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: Color(0xFF3B28FF),
+              primary: AppColors.primary,
               onPrimary: Colors.white,
-              onSurface: Color(0xFF3B28FF),
+              onSurface: AppColors.textPrimary,
             ),
           ),
           child: child!,
@@ -100,29 +93,20 @@ class _AppointmentSchedulingScreenState
     if (_techInfo == null) return;
 
     if (_selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor selecciona una fecha')),
-      );
+      _showSnackBar('Por favor selecciona una fecha', AppColors.warning);
       return;
     }
 
     final description = _descriptionController.text.trim();
     if (description.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor ingrese una descripción')),
-      );
+      _showSnackBar('Por favor ingrese una descripción', AppColors.warning);
       return;
     }
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Agendando cita...')));
+    _showSnackBar('Agendando cita...', AppColors.info);
 
     try {
-      // Check for active appointments first
-      final appsResponse = await _appointmentService.getAppointments(
-        status: 'pending',
-      );
+      final appsResponse = await _appointmentService.getAppointments(status: 'pending');
       if (appsResponse.success) {
         final existingApps = appsResponse.data as List<dynamic>;
         final hasActive = existingApps.any(
@@ -130,16 +114,8 @@ class _AppointmentSchedulingScreenState
               app['technician_id'] == _techInfo!['id'] &&
               (app['status'] == 'pending' || app['status'] == 'confirmed'),
         );
-
         if (hasActive) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Ya tienes una cita activa con este técnico'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
+          if (mounted) _showSnackBar('Ya tienes una cita activa con este técnico', AppColors.warning);
           return;
         }
       }
@@ -155,280 +131,311 @@ class _AppointmentSchedulingScreenState
 
       if (mounted) {
         if (response.success) {
-          // Send automatic message to chat
           await _messageService.sendMessage(
             receiverId: _techInfo!['id'],
-            messageText:
-                'Cita agendada para $scheduledDate a las ${_timeController.text}\nMotivo: $description',
+            messageText: 'Cita agendada para $scheduledDate a las ${_timeController.text}\nMotivo: $description',
             messageType: 'appointment',
             appointmentId: response.data?['appointmentId'],
           );
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Cita agendada con éxito')),
-          );
-
-          // Redirect to Chat Screen
+          _showSnackBar('Cita agendada con éxito', AppColors.success);
           context.pushReplacement('/chat', extra: _techInfo!['id']);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message ?? 'Error al agendar cita'),
-            ),
-          );
+          _showSnackBar(response.message ?? 'Error al agendar cita', AppColors.error);
         }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Error de conexión')));
-      }
+      if (mounted) _showSnackBar('Error de conexión', AppColors.error);
     }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: color,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
+    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
     if (_errorMessage != null) {
-      return Scaffold(
-        appBar: AppBar(),
-        body: Center(child: Text(_errorMessage!)),
-      );
+      return Scaffold(appBar: AppBar(), body: Center(child: Text(_errorMessage!)));
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leadingWidth: 115,
-        leading: TextButton.icon(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_left, color: Color(0xFF3B28FF)),
-          label: const Text(
-            'Regresar',
-            style: TextStyle(
-              color: Color(0xFF3B28FF),
-              fontWeight: FontWeight.bold,
+      backgroundColor: AppColors.background,
+      body: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 0,
+            pinned: true,
+            backgroundColor: AppColors.surface,
+            leadingWidth: 120,
+            leading: TextButton.icon(
+              onPressed: () => context.pop(),
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+              label: const Text('Regresar', style: TextStyle(fontWeight: FontWeight.w600)),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.only(left: 8),
+                alignment: Alignment.centerLeft,
+              ),
             ),
           ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 10),
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF3B28FF), width: 4),
-                ),
-                child: const Icon(
-                  Icons.person_outline,
-                  size: 80,
-                  color: Color(0xFF3B28FF),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              _techInfo?['name'] ?? 'Técnico',
-              style: const TextStyle(
-                color: Color(0xFF3B28FF),
-                fontSize: 24,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Horario de Atencion
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  const Text(
-                    'Horario de Atencion',
-                    style: TextStyle(
-                      color: Color(0xFF3B28FF),
-                      fontSize: 20,
-                      fontWeight: FontWeight.w500,
+                  const SizedBox(height: 8),
+                  // Tech Info
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primarySoft.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: const [
-                      Text(
-                        'Dia',
-                        style: TextStyle(
-                          color: Color(0xFF3B28FF),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: AppColors.softShadow,
+                          ),
+                          child: const Icon(Icons.person_rounded, color: AppColors.primary, size: 28),
                         ),
-                      ),
-                      Text(
-                        'Horario',
-                        style: TextStyle(
-                          color: Color(0xFF3B28FF),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Divider(color: Color(0xFFBDBDBD)),
-                  if (_schedule.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(8.0),
-                      child: Text(
-                        'Cargando horario...',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    )
-                  else
-                    ..._schedule.map(
-                      (s) => _buildScheduleRow(
-                        '${s['day_of_week']}:',
-                        '${s['start_time']} - ${s['end_time']}',
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-            const Text(
-              'Coordinar Cita',
-              style: TextStyle(
-                color: Color(0xFF3B28FF),
-                fontSize: 22,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 24),
-              child: Divider(color: Color(0xFFBDBDBD)),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              child: Column(
-                children: [
-                  _buildFormField(
-                    label: 'Dia:',
-                    child: GestureDetector(
-                      onTap: () => _selectDate(context),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8E8E8),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              _dateLabel,
-                              style: TextStyle(
-                                color: _selectedDate == null
-                                    ? Colors.grey[600]
-                                    : const Color(0xFF3B28FF),
-                                fontSize: 16,
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _techInfo?['name'] ?? 'Técnico',
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                            ),
-                            const Icon(
-                              Icons.calendar_today,
-                              color: Color(0xFF3B28FF),
-                              size: 20,
+                              const Text(
+                                'Agendar cita de servicio',
+                                style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Schedule
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+                      boxShadow: AppColors.cardShadow,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.schedule_rounded, color: AppColors.primary, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Horario de Atención',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: 14),
+                        if (_schedule.isEmpty)
+                          const Padding(
+                            padding: EdgeInsets.all(12),
+                            child: Text(
+                              'No hay horario disponible',
+                              style: TextStyle(color: AppColors.textLight),
+                            ),
+                          )
+                        else
+                          ..._schedule.map(
+                            (s) => _buildScheduleRow(
+                              '${s['day_of_week']}',
+                              '${s['start_time']} - ${s['end_time']}',
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  _buildFormField(
-                    label: 'Hora:',
-                    child: _buildTextField(
-                      '10:00',
-                      controller: _timeController,
+                  const SizedBox(height: 24),
+
+                  // Form
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+                      boxShadow: AppColors.cardShadow,
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildFormField(
-                    label: 'Descripcion:',
-                    alignTop: true,
-                    child: _buildTextField(
-                      '¿Qué problema tiene?',
-                      maxLines: 4,
-                      controller: _descriptionController,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: 200,
-                    child: ElevatedButton(
-                      onPressed: _createAppointment,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFE8E8E8),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.edit_calendar_rounded, color: AppColors.primary, size: 20),
+                            SizedBox(width: 8),
+                            Text(
+                              'Coordinar Cita',
+                              style: TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 17,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      child: const Text(
-                        'Agendar Cita',
-                        style: TextStyle(
-                          color: Color(0xFF3B28FF),
-                          fontWeight: FontWeight.w500,
-                          fontSize: 18,
+                        const SizedBox(height: 20),
+                        _buildFormField(
+                          label: 'Fecha',
+                          child: GestureDetector(
+                            onTap: () => _selectDate(context),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              decoration: BoxDecoration(
+                                color: AppColors.inputFill,
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(color: AppColors.inputBorder, width: 1.5),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _dateLabel,
+                                    style: TextStyle(
+                                      color: _selectedDate == null
+                                          ? AppColors.textLight
+                                          : AppColors.textPrimary,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const Icon(Icons.calendar_today_rounded, color: AppColors.primary, size: 20),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        _buildFormField(
+                          label: 'Hora',
+                          child: TextField(
+                            controller: _timeController,
+                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w500),
+                            decoration: InputDecoration(
+                              hintText: '10:00',
+                              filled: true,
+                              fillColor: AppColors.inputFill,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: AppColors.inputBorder, width: 1.5),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: AppColors.inputBorder, width: 1.5),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                              ),
+                              prefixIcon: const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 16),
+                                child: Icon(Icons.access_time_rounded, color: AppColors.textLight, size: 22),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildFormField(
+                          label: 'Descripción',
+                          child: TextField(
+                            controller: _descriptionController,
+                            maxLines: 4,
+                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 15, fontWeight: FontWeight.w500),
+                            decoration: InputDecoration(
+                              hintText: '¿Qué problema tiene?',
+                              filled: true,
+                              fillColor: AppColors.inputFill,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: AppColors.inputBorder, width: 1.5),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: AppColors.inputBorder, width: 1.5),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(color: AppColors.primary, width: 2),
+                              ),
+                              contentPadding: const EdgeInsets.all(16),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: AppColors.primaryGradient,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: AppColors.elevatedShadow,
+                            ),
+                            child: ElevatedButton.icon(
+                              onPressed: _createAppointment,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              ),
+                              icon: const Icon(Icons.calendar_month_rounded, color: Colors.white, size: 20),
+                              label: const Text(
+                                'Agendar Cita',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 40),
                 ],
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildScheduleRow(String day, String time) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 1,
-            child: Text(
-              day,
-              style: const TextStyle(color: Color(0xFF7A8DFF), fontSize: 13),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              time,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Color(0xFF7A8DFF), fontSize: 13),
             ),
           ),
         ],
@@ -436,47 +443,41 @@ class _AppointmentSchedulingScreenState
     );
   }
 
-  Widget _buildFormField({
-    required String label,
-    required Widget child,
-    bool alignTop = false,
-  }) {
-    return Row(
-      crossAxisAlignment: alignTop
-          ? CrossAxisAlignment.start
-          : CrossAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 100,
-          child: Text(
-            label,
-            style: const TextStyle(color: Color(0xFF3B28FF), fontSize: 16),
-          ),
-        ),
-        Expanded(child: child),
-      ],
+  Widget _buildScheduleRow(String day, String time) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceLight,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(day, style: const TextStyle(color: AppColors.textPrimary, fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(time, style: const TextStyle(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.w600)),
+        ],
+      ),
     );
   }
 
-  Widget _buildTextField(
-    String hint, {
-    int maxLines = 1,
-    TextEditingController? controller,
-  }) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      style: const TextStyle(color: Color(0xFF3B28FF), fontSize: 14),
-      decoration: InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: const Color(0xFFE8E8E8),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
+  Widget _buildFormField({required String label, required Widget child}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(
+            label,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      ),
+        child,
+      ],
     );
   }
 }
