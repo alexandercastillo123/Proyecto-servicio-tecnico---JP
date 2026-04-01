@@ -382,8 +382,14 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     final lastMsg = recent['last_message'] ?? 'Sin mensajes recientes';
 
     return GestureDetector(
-      onTap: () =>
-          context.push('/technician-profile', extra: recent['other_user_id']),
+      onTap: () => context.push(
+        '/chat',
+        extra: {
+          'receiverId': recent['other_user_id'],
+          'receiverName': name,
+          'receiverRole': recent['other_user_role'] ?? 'tech',
+        },
+      ),
       child: Container(
         margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -671,8 +677,14 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                 style: TextStyle(color: Colors.grey, fontSize: 12),
               ),
         trailing: const Icon(Icons.chevron_right, color: AppColors.primary),
-        onTap: () =>
-            context.push('/technician-profile', extra: chat['other_user_id']),
+        onTap: () => context.push(
+          '/chat',
+          extra: {
+            'receiverId': chat['other_user_id'],
+            'receiverName': name,
+            'receiverRole': chat['other_user_role'] ?? 'tech',
+          },
+        ),
       ),
     );
   }

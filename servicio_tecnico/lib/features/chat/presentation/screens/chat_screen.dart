@@ -28,6 +28,8 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   int? _otherUserId;
+  String? _otherUserName;
+  String? _otherUserRole;
   String? _userRole;
 
   String _formatTime(String? timestamp) {
@@ -80,23 +82,21 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_isLoading && _otherUserId == null) {
       final extra = GoRouterState.of(context).extra;
       if (extra != null) {
-        int? userId;
-        if (extra is int) {
-          userId = extra;
-        } else if (extra is String) {
-          userId = int.tryParse(extra);
+        if (extra is Map<String, dynamic>) {
+          _otherUserId = int.tryParse(extra['receiverId']?.toString() ?? '');
+          _otherUserName = extra['receiverName']?.toString();
+          _otherUserRole = extra['receiverRole']?.toString();
         } else {
-          // Fallback: try converting to string and parsing if it's some other type (e.g. double)
-          userId = int.tryParse(extra.toString());
+          // Soporte para formato antiguo (solo ID)
+          _otherUserId = int.tryParse(extra.toString());
         }
 
-        if (userId != null) {
-          _otherUserId = userId;
-          _loadInitialData(userId);
+        if (_otherUserId != null) {
+          _loadInitialData(_otherUserId!);
           return;
         }
       }
-      
+
       setState(() {
         _isLoading = false;
         _errorMessage = 'ID de usuario no proporcionado o inválido';
@@ -186,17 +186,66 @@ class _ChatScreenState extends State<ChatScreen> {
       backgroundColor: const Color(0xFFF1F1F1),
       appBar: AppBar(
         backgroundColor: Colors.white,
-        elevation: 0,
-        leadingWidth: 115,
-        leading: TextButton.icon(
+        elevation: 0.5,
+        leadingWidth: 40,
+        leading: IconButton(
           onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_left, color: AppColors.primary),
-          label: const Text(
-            'Regresar',
-            style: TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold,
-            ),
+          icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+        ),
+        title: InkWell(
+          onTap: () {
+            if (_otherUserId != null) {
+              // Navegar al perfil dependiendo del rol
+              if (_otherUserRole == 'tech' || _otherUserRole == 'technician') {
+                context.push('/technician-profile', extra: _otherUserId);
+              } else {
+                // Si es cliente, podrías navegar a un ClientProfile si existiera
+                // Por ahora usamos el mismo o mostramos un snackbar
+                context.push('/technician-profile', extra: _otherUserId);
+              }
+            }
+          },
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.primary.withOpacity(0.1),
+                child: Text(
+                  (_otherUserName ?? '?')[0].toUpperCase(),
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _otherUserName ?? 'Cargando...',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      _otherUserRole == 'tech' || _otherUserRole == 'technician'
+                          ? 'Técnico Especialista'
+                          : 'Cliente',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
@@ -231,13 +280,15 @@ class _ChatScreenState extends State<ChatScreen> {
           ? Center(child: Text(_errorMessage!))
           : Column(
               children: [
+                if (_buildActiveOrderBar() != null) _buildActiveOrderBar()!,
                 Expanded(
                   child: ListView.builder(
                     controller: _scrollController,
                     padding: const EdgeInsets.all(16),
-                    itemCount: _messages.length,
+                    itemCount: _getFilteredMessages().length,
                     itemBuilder: (context, index) {
-                      final msg = _messages[index];
+                      final messages = _getFilteredMessages();
+                      final msg = messages[index];
                       final isMe =
                           msg['is_me'] == true ||
                           msg['sender_id'] == 'me' ||
@@ -382,6 +433,35 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  List<dynamic> _getFilteredMessages() {
+    if (_messages.isEmpty) return [];
+
+    final Map<int, int> lastOrderIndex = {};
+    final List<int> toRemove = [];
+
+    // Identificar el último índice para cada order_id
+    for (int i = 0; i < _messages.length; i++) {
+      final msg = _messages[i];
+      if (msg['message_type'] == 'order' && msg['order_id'] != null) {
+        final orderId = msg['order_id'];
+        if (lastOrderIndex.containsKey(orderId)) {
+          toRemove.add(lastOrderIndex[orderId]!);
+        }
+        lastOrderIndex[orderId] = i;
+      }
+    }
+
+    if (toRemove.isEmpty) return _messages;
+
+    final List<dynamic> filtered = [];
+    for (int i = 0; i < _messages.length; i++) {
+      if (!toRemove.contains(i)) {
+        filtered.add(_messages[i]);
+      }
+    }
+    return filtered;
+  }
+
   Widget _buildAppointmentBubble({
     int? appointmentId,
     required String message,
@@ -430,13 +510,13 @@ class _ChatScreenState extends State<ChatScreen> {
                   children: [
                     Expanded(
                       child: Text(
-                         appointmentStatus == 'cancelled' 
-                          ? '❌ Cita Cancelada$cancelText'
-                          : appointmentStatus == 'completed'
+                        appointmentStatus == 'cancelled'
+                            ? '❌ Cita Cancelada$cancelText'
+                            : appointmentStatus == 'completed'
                             ? '✅ Chamba Terminada'
                             : appointmentStatus == 'expired'
-                              ? '⌛ Cita Expirada'
-                              : '📅 Cita', // Simplificado a "Cita" por solicitud del usuario
+                            ? '⌛ Cita Expirada'
+                            : '📅 Cita', // Simplificado a "Cita" por solicitud del usuario
                         style: TextStyle(
                           color: isMe ? Colors.white : AppColors.primary,
                           fontSize: 16,
@@ -596,12 +676,21 @@ class _ChatScreenState extends State<ChatScreen> {
                             context: context,
                             builder: (context) => AlertDialog(
                               title: const Text('Confirmar Cancelación'),
-                              content: const Text('¿Estás seguro de que deseas cancelar esta cita? Esta acción no se puede deshacer.'),
+                              content: const Text(
+                                '¿Estás seguro de que deseas cancelar esta cita? Esta acción no se puede deshacer.',
+                              ),
                               actions: [
-                                TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('NO, VOLVER')),
                                 TextButton(
-                                  onPressed: () => Navigator.pop(context, true), 
-                                  child: const Text('SÍ, CANCELAR', style: TextStyle(color: Colors.red))
+                                  onPressed: () =>
+                                      Navigator.pop(context, false),
+                                  child: const Text('NO, VOLVER'),
+                                ),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, true),
+                                  child: const Text(
+                                    'SÍ, CANCELAR',
+                                    style: TextStyle(color: Colors.red),
+                                  ),
                                 ),
                               ],
                             ),
@@ -1455,21 +1544,222 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Widget _buildOrderBubble({
-    int? orderId,
-    required String productName,
-    required String status,
-    String? orderAddress,
-    dynamic orderLat,
-    dynamic orderLng,
-    required String message,
-    required String time,
-    required bool isMe,
-  }) {
+  Widget? _buildActiveOrderBar() {
+    if (_messages.isEmpty) return null;
+
+    dynamic latestOrderMsg;
+    try {
+      latestOrderMsg = _messages.reversed.firstWhere(
+        (m) => m['message_type'] == 'order',
+        orElse: () => null,
+      );
+    } catch (_) {
+      return null;
+    }
+
+    if (latestOrderMsg == null) return null;
+
+    final String status = latestOrderMsg['order_status'] ?? 'pending';
+    if (status == 'completed' ||
+        status == 'cancelled' ||
+        status == 'delivered') {
+      return null;
+    }
+
+    final int? orderId = latestOrderMsg['order_id'];
+    final String productName =
+        latestOrderMsg['order_product_name'] ?? 'Producto';
+
+    final bool isUserSender = latestOrderMsg['is_me'] == true ||
+        latestOrderMsg['sender_id'] == 'me' ||
+        (latestOrderMsg['sender_id'] != null &&
+            latestOrderMsg['sender_id'].toString() !=
+                _otherUserId?.toString());
+
+    final List<dynamic> statusInfo = _getOrderStatusInfo(status);
+    final Color statusColor = statusInfo[0];
+    final String statusText = statusInfo[1];
+
+    final bool canConfirmOrder =
+        status == 'pending' && !isUserSender && (_userRole != 'client');
+    final bool canMarkAsShipped =
+        status == 'confirmed' && !isUserSender && (_userRole != 'client');
+    final bool canMarkAsDelivered =
+        status == 'shipped' && isUserSender && (_userRole == 'client');
+
+    final String? deliveryAddress = latestOrderMsg['order_address'];
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.shopping_bag,
+                    color: AppColors.primary, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      productName,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 16),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                              color: statusColor, shape: BoxShape.circle),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          statusText.toUpperCase(),
+                          style: TextStyle(
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    'PEDIDO',
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                  Text(
+                    'ACTIVO',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          if (deliveryAddress != null &&
+              (_userRole != 'client')) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.location_on, color: Colors.redAccent, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Enviar a: $deliveryAddress',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          if (canConfirmOrder || canMarkAsShipped || canMarkAsDelivered) ...[
+            const SizedBox(height: 15),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  if (orderId == null) return;
+                  if (canConfirmOrder) {
+                    _updateStoreOrderStatus(orderId, 'confirmed');
+                  }
+                  if (canMarkAsShipped) {
+                    _updateStoreOrderStatus(orderId, 'shipped');
+                  }
+                  if (canMarkAsDelivered) {
+                    _updateStoreOrderStatus(orderId, 'delivered');
+                  }
+                },
+                icon: Icon(
+                  canConfirmOrder
+                      ? Icons.check_circle
+                      : (canMarkAsShipped ? Icons.local_shipping : Icons.done_all),
+                  size: 20,
+                ),
+                label: Text(
+                  canConfirmOrder
+                      ? 'CONFIRMAR PEDIDO'
+                      : (canMarkAsShipped
+                          ? 'MARCAR "EN CAMINO"'
+                          : 'RECIBA MI PEDIDO'),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      canMarkAsDelivered ? Colors.green : AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(15)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  List<dynamic> _getOrderStatusInfo(String status) {
     Color statusColor = Colors.orange;
     String statusText = 'Pendiente';
 
     switch (status) {
+      case 'pending':
+        statusColor = Colors.orange;
+        statusText = 'Pendiente';
+        break;
       case 'confirmed':
         statusColor = Colors.blue;
         statusText = 'Confirmado';
@@ -1495,10 +1785,24 @@ class _ChatScreenState extends State<ChatScreen> {
         statusText = 'Expirado';
         break;
     }
+    return [statusColor, statusText];
+  }
 
-    final bool canConfirmOrder = status == 'pending' && !isMe;
-    final bool canMarkAsShipped = status == 'confirmed' && !isMe;
-    final bool canMarkAsDelivered = status == 'shipped' && isMe;
+  Widget _buildOrderBubble({
+    int? orderId,
+    required String productName,
+    required String status,
+    String? orderAddress,
+    dynamic orderLat,
+    dynamic orderLng,
+    required String message,
+    required String time,
+    required bool isMe,
+  }) {
+    final List<dynamic> statusInfo = _getOrderStatusInfo(status);
+    final Color statusColor = statusInfo[0];
+    final String statusText = statusInfo[1];
+
     final double? lat = double.tryParse(orderLat?.toString() ?? '');
     final double? lng = double.tryParse(orderLng?.toString() ?? '');
 
@@ -1510,67 +1814,55 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Container(
             margin: const EdgeInsets.symmetric(vertical: 8),
-            padding: const EdgeInsets.all(16),
-            width: 280,
+            padding: const EdgeInsets.all(12),
+            width: 250,
             decoration: BoxDecoration(
               color: isMe ? AppColors.primary : const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(15),
               boxShadow: AppColors.softShadow,
-              border: Border.all(
-                color: (status == 'completed' || status == 'delivered') ? Colors.green : statusColor.withOpacity(0.3),
-                width: (status == 'completed' || status == 'delivered') ? 2 : 1,
-              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.shopping_bag,
-                          color: isMe ? Colors.white : AppColors.primary,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Pedido',
-                          style: TextStyle(
-                            color: isMe ? Colors.white : AppColors.primary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
+                    Icon(
+                      Icons.shopping_bag_outlined,
+                      color: isMe ? Colors.white70 : AppColors.primary,
+                      size: 16,
                     ),
-                    if (status == 'completed' || status == 'delivered')
-                      const Icon(Icons.verified, color: Colors.green, size: 18),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Pedido #${orderId ?? ""}',
+                      style: TextStyle(
+                        color: isMe ? Colors.white70 : AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Text(
                   productName,
                   style: TextStyle(
                     color: isMe ? Colors.white : Colors.black87,
                     fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                    fontSize: 14,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  message,
-                  style: TextStyle(
-                    color: isMe ? Colors.white70 : Colors.black54,
-                    fontSize: 13,
+                if (message.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    message,
+                    style: TextStyle(
+                      color: isMe ? Colors.white70 : Colors.black54,
+                      fontSize: 12,
+                    ),
                   ),
-                ),
+                ],
                 if (orderAddress != null && orderAddress.isNotEmpty) ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8.0),
-                    child: Divider(height: 1),
-                  ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
                       Icon(
@@ -1583,126 +1875,52 @@ class _ChatScreenState extends State<ChatScreen> {
                         child: Text(
                           orderAddress,
                           style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 11,
                             color: isMe ? Colors.white70 : Colors.grey[700],
                           ),
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  if (lat != null && lng != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: SizedBox(
-                        width: double.infinity,
-                        height: 32,
-                        child: TextButton.icon(
-                          onPressed: () => _openMap(lat, lng),
-                          icon: const Icon(Icons.map, size: 14),
-                          label: const Text('VER UBICACIÓN', style: TextStyle(fontSize: 11)),
-                          style: TextButton.styleFrom(
-                            backgroundColor: isMe ? Colors.white24 : AppColors.primary.withOpacity(0.1),
-                            foregroundColor: isMe ? Colors.white : AppColors.primary,
-                            padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                        ),
-                      ),
-                    ),
                 ],
                 const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: statusColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
+                      child: Text(
                         statusText.toUpperCase(),
                         style: TextStyle(
                           color: statusColor,
                           fontWeight: FontWeight.bold,
-                          fontSize: 10,
+                          fontSize: 8,
                           letterSpacing: 0.5,
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    if (lat != null && lng != null)
+                      GestureDetector(
+                        onTap: () => _openMap(lat, lng),
+                        child: Text(
+                          'VER MAPA',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: isMe ? Colors.white : AppColors.primary,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-                if (canConfirmOrder) ...[
-                  const SizedBox(height: 15),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () =>
-                          _updateStoreOrderStatus(orderId!, 'confirmed'),
-                      icon: const Icon(Icons.check_circle, size: 18),
-                      label: const Text('CONFIRMAR PEDIDO'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                ],
-                if (canMarkAsShipped) ...[
-                  const SizedBox(height: 15),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () =>
-                          _updateStoreOrderStatus(orderId!, 'shipped'),
-                      icon: const Icon(Icons.local_shipping, size: 18),
-                      label: const Text('MARCAR "EN CAMINO"'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                ],
-                if (canMarkAsDelivered) ...[
-                  const SizedBox(height: 15),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () =>
-                          _updateStoreOrderStatus(orderId!, 'delivered'),
-                      icon: const Icon(Icons.check_circle_outline, size: 18),
-                      label: const Text('RECIBÍ MI PEDIDO'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
@@ -1714,8 +1932,8 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             child: Text(
               time,
-              style: TextStyle(
-                color: Colors.blue.withOpacity(0.6),
+              style: const TextStyle(
+                color: Colors.grey,
                 fontSize: 10,
               ),
             ),
@@ -1739,23 +1957,43 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Column(
           children: [
             const SizedBox(height: 12),
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
             const Padding(
               padding: EdgeInsets.all(16.0),
-              child: Text('Ubicación de entrega', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+              child: Text(
+                'Ubicación de entrega',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+              ),
             ),
             Expanded(
               child: FlutterMap(
-                options: MapOptions(initialCenter: LatLng(lat, lng), initialZoom: 15),
+                options: MapOptions(
+                  initialCenter: LatLng(lat, lng),
+                  initialZoom: 15,
+                ),
                 children: [
-                  TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                  TileLayer(
+                    urlTemplate:
+                        'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  ),
                   MarkerLayer(
                     markers: [
                       Marker(
                         point: LatLng(lat, lng),
                         width: 80,
                         height: 80,
-                        child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.red,
+                          size: 40,
+                        ),
                       ),
                     ],
                   ),
@@ -1768,7 +2006,10 @@ class _ChatScreenState extends State<ChatScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
                   child: const Text('CERRAR'),
                 ),
               ),

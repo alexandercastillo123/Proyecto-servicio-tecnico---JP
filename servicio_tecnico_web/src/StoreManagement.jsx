@@ -15,10 +15,21 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png',
 });
 
-const LocationPicker = ({ position, setPosition }) => {
+const LocationPicker = ({ position, onSelect }) => {
   useMapEvents({
-    click(e) {
-      setPosition([e.latlng.lat, e.latlng.lng]);
+    async click(e) {
+      const { lat, lng } = e.latlng;
+      onSelect(lat, lng);
+
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        if (data && data.display_name) {
+          onSelect(lat, lng, data.display_name);
+        }
+      } catch (err) {
+        console.error("Reverse geocoding error:", err);
+      }
     },
   });
   return position ? <Marker position={position} /> : null;
@@ -26,18 +37,20 @@ const LocationPicker = ({ position, setPosition }) => {
 
 const StoreManagement = () => {
   const [selectedId, setSelectedId] = useState(null);
-  const [stores, setStores]   = useState([]);
+  const [stores, setStores] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [loading, setLoading]  = useState(true);
+  const [loading, setLoading] = useState(true);
 
   const emptyForm = {
-    name:'', description:'', address:'', city:'Lima', state:'Lima',
-    zip_code:'15001', country:'Perú', phone:'', email:'',
-    opening_time:'09:00:00', closing_time:'18:00:00',
-    admin_email:'', admin_password:'',
+    name: '', description: '', address: '', city: 'Lima', state: 'Lima',
+    zip_code: '15001', country: 'Perú', phone: '', email: '',
+    opening_time: '09:00:00', closing_time: '18:00:00',
+    admin_email: '', admin_password: '',
+    image_url: '',
     latitude: -12.046374, longitude: -77.042793 // Default Lima
   };
   const [formData, setFormData] = useState(emptyForm);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => { fetchStores(); }, []);
 
@@ -54,11 +67,24 @@ const StoreManagement = () => {
     } catch (err) { alert('Error: ' + (err.response?.data?.mensaje || err.message)); }
   };
 
-  const f = (k) => ({ value: formData[k], onChange: e => setFormData(p => ({...p, [k]: e.target.value})) });
+  const handleImage = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append('image', file);
+      const res = await storeService.uploadStoreImage(fd);
+      if (res.data.resultado?.url) setFormData(p => ({ ...p, image_url: res.data.resultado.url }));
+    } catch (err) { alert('Error al subir imagen: ' + (err.response?.data?.mensaje || err.message)); }
+    finally { setUploading(false); }
+  };
+
+  const f = (k) => ({ value: formData[k], onChange: e => setFormData(p => ({ ...p, [k]: e.target.value })) });
 
   if (loading) return (
     <div className="p-12 text-center text-muted text-xs font-black uppercase tracking-widest">
-      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"/>
+      <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
       Sincronizando...
     </div>
   );
@@ -72,7 +98,7 @@ const StoreManagement = () => {
       <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 mb-2 text-blue-500 font-black text-[10px] uppercase tracking-[0.2em]">
-            <Layers size={14}/> Infraestructura
+            <Layers size={14} /> Infraestructura
           </div>
           <h1 className="text-5xl font-black tracking-tighter leading-none">
             Gestión de <span className="text-blue-600">Sucursales</span>
@@ -80,17 +106,17 @@ const StoreManagement = () => {
           <p className="text-muted font-medium mt-3">Administra los puntos de atención física de J&P.</p>
         </div>
         <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-          {showForm ? <><X size={18}/> Cancelar</> : <><Plus size={18}/> Nueva Sucursal</>}
+          {showForm ? <><X size={18} /> Cancelar</> : <><Plus size={18} /> Nueva Sucursal</>}
         </button>
       </header>
 
       {/* Formulario nueva sucursal */}
       <AnimatePresence>
         {showForm && (
-          <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:'auto' }} exit={{ opacity:0, height:0 }} className="overflow-hidden mb-10">
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden mb-10">
             <div className="glass-card p-10">
               <h2 className="text-2xl font-black mb-8 flex items-center gap-3">
-                <Plus size={22} className="text-blue-600"/> Registrar Sucursal
+                <Plus size={22} className="text-blue-600" /> Registrar Sucursal
               </h2>
               <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="space-y-4">
@@ -111,9 +137,16 @@ const StoreManagement = () => {
                   <div className="h-48 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-600">
                     <MapContainer center={[formData.latitude, formData.longitude]} zoom={13} style={{ height: '100%', width: '100%' }}>
                       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                      <LocationPicker 
-                        position={[formData.latitude, formData.longitude]} 
-                        setPosition={(pos) => setFormData(p => ({...p, latitude: pos[0], longitude: pos[1]}))} 
+                      <LocationPicker
+                        position={[formData.latitude, formData.longitude]}
+                        onSelect={(lat, lng, addr) => {
+                          setFormData(p => ({
+                            ...p,
+                            latitude: lat,
+                            longitude: lng,
+                            address: addr || p.address
+                          }));
+                        }}
                       />
                     </MapContainer>
                   </div>
@@ -125,6 +158,25 @@ const StoreManagement = () => {
                     <div className="flex-1">
                       <label className="text-[10px] font-black uppercase text-muted">Longitud</label>
                       <input readOnly value={formData.longitude.toFixed(6)} className="w-full bg-slate-50 dark:bg-slate-800 p-2 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 outline-none" />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <SectionLabel color="emerald">Identidad Visual</SectionLabel>
+                  <label className="block text-[10px] font-black uppercase text-muted mb-2 tracking-widest">Logo / Imagen de Sucursal</label>
+                  <div className="flex gap-4 items-center">
+                    <div className="w-24 h-24 rounded-3xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden">
+                      {formData.image_url 
+                        ? <img src={`/api/${formData.image_url}`} className="w-full h-full object-cover" alt="Preview" /> 
+                        : <StoreIcon className="text-slate-300" size={32} />
+                      }
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <input type="file" accept="image/*" onChange={handleImage} className="hidden" id="simg" />
+                      <label htmlFor="simg" className="flex items-center justify-center w-full py-4 rounded-2xl bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-widest cursor-pointer hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-all border border-blue-200 dark:border-blue-500/20">
+                        {uploading ? 'Subiendo...' : 'Seleccionar logo'}
+                      </label>
+                      <p className="text-[9px] text-muted font-medium text-center">JPG o PNG. Máx 2MB.</p>
                     </div>
                   </div>
                 </div>
@@ -149,17 +201,17 @@ const StoreManagement = () => {
         {stores.map((store, i) => (
           <motion.div
             key={store.id}
-            initial={{ opacity:0, y:15 }} animate={{ opacity:1, y:0 }} transition={{ delay: i * 0.06 }}
+            initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
             onClick={() => setSelectedId(store.id)}
             className="glass-card overflow-hidden cursor-pointer group hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-xl hover:shadow-blue-500/10 transition-all duration-300 flex flex-col"
           >
             {/* Imagen portada */}
             <div className="h-44 bg-slate-100 dark:bg-slate-700 relative overflow-hidden flex items-center justify-center">
               {store.image_url
-                ? <img src={`/api/${store.image_url}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={store.name}/>
-                : <StoreIcon size={44} className="text-slate-200 dark:text-slate-600 group-hover:scale-110 transition-transform"/>
+                ? <img src={`/api/${store.image_url}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={store.name} />
+                : <StoreIcon size={44} className="text-slate-200 dark:text-slate-600 group-hover:scale-110 transition-transform" />
               }
-              <div className={`absolute top-4 left-4 w-2.5 h-2.5 rounded-full ${store.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'} ring-2 ring-white`}/>
+              <div className={`absolute top-4 left-4 w-2.5 h-2.5 rounded-full ${store.status === 'active' ? 'bg-emerald-500' : 'bg-rose-500'} ring-2 ring-white`} />
             </div>
 
             {/* Info */}
@@ -167,19 +219,19 @@ const StoreManagement = () => {
               <h3 className="text-xl font-black tracking-tight mb-3">{store.name}</h3>
               <div className="space-y-2 mb-6">
                 <div className="flex items-center gap-2 text-xs font-bold text-muted">
-                  <MapPin size={13} className="text-blue-500 flex-shrink-0"/> {store.address}, {store.city}
+                  <MapPin size={13} className="text-blue-500 flex-shrink-0" /> {store.address}, {store.city}
                 </div>
                 <div className="flex items-center gap-2 text-xs font-bold text-muted">
-                  <Phone size={13} className="text-blue-500 flex-shrink-0"/> {store.phone}
+                  <Phone size={13} className="text-blue-500 flex-shrink-0" /> {store.phone}
                 </div>
                 <div className="flex items-center gap-2 text-xs font-bold text-muted">
-                  <Plus size={13} className="text-blue-500 flex-shrink-0 opacity-0"/> {store.email}
+                  <Plus size={13} className="text-blue-500 flex-shrink-0 opacity-0" /> {store.email}
                 </div>
               </div>
               <div className="mt-auto flex items-center justify-between">
                 <span className="text-[9px] font-black text-muted uppercase tracking-widest">#ST-{store.id}</span>
                 <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-muted group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">
-                  <ChevronRight size={18} strokeWidth={3}/>
+                  <ChevronRight size={18} strokeWidth={3} />
                 </div>
               </div>
             </div>
@@ -189,7 +241,7 @@ const StoreManagement = () => {
 
       {stores.length === 0 && !showForm && (
         <div className="py-24 text-center border border-dashed border-slate-200 dark:border-slate-700 rounded-3xl">
-          <StoreIcon size={40} className="text-slate-200 mx-auto mb-4"/>
+          <StoreIcon size={40} className="text-slate-200 mx-auto mb-4" />
           <p className="text-muted font-bold">No hay sucursales registradas aún.</p>
         </div>
       )}
