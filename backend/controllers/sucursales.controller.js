@@ -320,7 +320,8 @@ const uploadStoreImage = async (req, res) => {
         const userId = req.user.id;
         const fileUrl = 'uploads/stores/' + req.file.filename;
 
-        await db.ejecutar('UPDATE sucursales SET image_url = ? WHERE user_id = ?', [fileUrl, userId]);
+        // Intentar actualizar si ya existe la sucursal, pero no fallar si no existe (creación)
+        await db.ejecutar('UPDATE sucursales SET image_url = ? WHERE user_id = ?', [fileUrl, userId]).catch(() => {});
 
         respuesta.exito = true;
         respuesta.resultado = { url: fileUrl };
@@ -364,7 +365,7 @@ const createStore = async (req, res) => {
 
         const { 
             name, description, address, city, state, zip_code, country, 
-            phone, email, whatsapp, website_url, latitude, longitude, 
+            phone, email, whatsapp, website_url, image_url, latitude, longitude, 
             specialties, opening_time, closing_time, open_days,
             // For admin creation
             admin_email, admin_password 
@@ -414,14 +415,14 @@ const createStore = async (req, res) => {
         const query = `
             INSERT INTO sucursales (
                 user_id, name, description, address, city, state, zip_code, country, 
-                phone, email, whatsapp, website_url, latitude, longitude, 
+                phone, email, whatsapp, website_url, image_url, latitude, longitude, 
                 specialties, opening_time, closing_time, open_days
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
         await connection.query(query, [
             targetUserId, name, description, address, city, state, zip_code, country, 
-            phone, email, whatsapp, website_url, latitude, longitude, 
+            phone, email, whatsapp, website_url, image_url, latitude, longitude, 
             specialties, opening_time || '09:00:00', closing_time || '18:00:00', open_days || 'Lunes-Sábado'
         ]);
 
