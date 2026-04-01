@@ -316,11 +316,47 @@ const addReview = async (req, res) => {
     }
 };
 
+/**
+ * Get reviews for a technician
+ */
+const getTechnicianReviews = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+
+        const dbRes = await db.listar(
+            `SELECT 
+                r.id, r.rating, r.comment, r.created_at,
+                up.person_type, up.names, up.surnames, up.company_name
+            FROM reviews r
+            INNER JOIN users u ON r.client_id = u.id
+            INNER JOIN user_profiles up ON u.id = up.user_id
+            WHERE r.technician_id = ?
+            ORDER BY r.created_at DESC`,
+            true,
+            [id]
+        );
+
+        respuesta.exito = true;
+        respuesta.estado = 200;
+        respuesta.mensaje = "exito";
+        respuesta.resultado = dbRes.resultado || [];
+
+        res.json(respuesta);
+
+    } catch (error) {
+        console.error('Get technician reviews error:', error);
+        respuesta.mensaje = 'Failed to retrieve reviews: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
 module.exports = {
     getTechnicians,
     getTechnicianById,
     getTechnicianSchedule,
     createSchedule,
     updateSchedule,
-    addReview
+    addReview,
+    getTechnicianReviews
 };

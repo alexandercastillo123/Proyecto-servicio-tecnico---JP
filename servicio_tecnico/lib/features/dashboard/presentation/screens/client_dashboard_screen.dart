@@ -160,7 +160,7 @@ class _ClientDashboardScreenState extends State<ClientDashboardScreen>
                     'Mis Citas',
                     Icons.calendar_month_rounded,
                     AppColors.accent,
-                    () {},
+                    () => context.push('/my-appointments'),
                   ),
                 ),
               ],

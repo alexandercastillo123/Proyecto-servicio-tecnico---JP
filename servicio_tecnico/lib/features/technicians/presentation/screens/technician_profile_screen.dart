@@ -14,7 +14,9 @@ class TechnicianProfileScreen extends StatefulWidget {
 class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
   final TechnicianService _technicianService = TechnicianService();
   Map<String, dynamic>? _technicianData;
+  List<dynamic> _reviews = [];
   bool _isLoading = true;
+  bool _isLoadingReviews = false;
   String? _errorMessage;
 
   @override
@@ -41,6 +43,7 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
           _technicianData = response.data;
           _isLoading = false;
         });
+        _fetchReviews(id);
       } else {
         setState(() {
           _errorMessage = response.message;
@@ -52,6 +55,23 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
         _errorMessage = 'Error al cargar detalles del técnico';
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _fetchReviews(int technicianId) async {
+    setState(() => _isLoadingReviews = true);
+    try {
+      final response = await _technicianService.getTechnicianReviews(technicianId);
+      if (response.success) {
+        setState(() {
+          _reviews = response.data ?? [];
+          _isLoadingReviews = false;
+        });
+      } else {
+        setState(() => _isLoadingReviews = false);
+      }
+    } catch (e) {
+      setState(() => _isLoadingReviews = false);
     }
   }
 
@@ -222,11 +242,11 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.reviews_rounded, color: AppColors.primary, size: 22),
-                            SizedBox(width: 8),
-                            Text(
+                            const Icon(Icons.reviews_rounded, color: AppColors.primary, size: 22),
+                            const SizedBox(width: 8),
+                            const Text(
                               'Reseñas',
                               style: TextStyle(
                                 color: AppColors.textPrimary,
@@ -234,29 +254,70 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
+                            const Spacer(),
+                            Text(
+                              '${_reviews.length}',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ],
                         ),
                         const SizedBox(height: 16),
-                        _buildReviewItem('Usuario Ejemplo', 5, 'Excelente servicio'),
-                        const SizedBox(height: 10),
-                        _buildReviewItem('Otro Usuario', 4, 'Muy profesional'),
-                        const SizedBox(height: 16),
-                        Center(
-                          child: SizedBox(
-                            width: 180,
-                            child: OutlinedButton(
-                              onPressed: () {},
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.primary,
-                                side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                        if (_isLoadingReviews)
+                          const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator(),
+                            ),
+                          )
+                        else if (_reviews.isEmpty)
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                children: [
+                                  Icon(Icons.rate_review_outlined, color: AppColors.textSecondary.withOpacity(0.5), size: 40),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Sin reseñas aún',
+                                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                                  ),
+                                ],
                               ),
-                              child: const Text('Mostrar Más', style: TextStyle(fontWeight: FontWeight.w600)),
+                            ),
+                          )
+                        else
+                          ..._reviews.take(3).map((review) {
+                            final name = review['person_type'] == 'natural'
+                                ? '${review['names'] ?? ''} ${review['surnames'] ?? ''}'.trim()
+                                : review['company_name'] ?? 'Usuario';
+                            final rating = review['rating'] ?? 0;
+                            final comment = review['comment'] ?? '';
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: _buildReviewItem(name, rating, comment),
+                            );
+                          }),
+                        if (_reviews.length > 3)
+                          Center(
+                            child: SizedBox(
+                              width: 180,
+                              child: OutlinedButton(
+                                onPressed: () => _showAllReviews(context),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppColors.primary,
+                                  side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: Text('Ver ${_reviews.length - 3} más', style: const TextStyle(fontWeight: FontWeight.w600)),
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
                   ),
@@ -400,6 +461,7 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
 
   void _showRatingDialog(BuildContext context, String techName) {
     int selectedStars = 5;
+    final commentController = TextEditingController();
 
     showDialog(
       context: context,
@@ -422,41 +484,64 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                 textAlign: TextAlign.center,
                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Puntua tu satisfacción de 1 a 5 estrellas',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
-                      return GestureDetector(
-                        onTap: () => setDialogState(() => selectedStars = index + 1),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
-                          child: Icon(
-                            Icons.star_rounded,
-                            color: index < selectedStars
-                                ? const Color(0xFFFBBF24)
-                                : AppColors.divider,
-                            size: 40,
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'Puntua tu satisfacción de 1 a 5 estrellas',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return GestureDetector(
+                          onTap: () => setDialogState(() => selectedStars = index + 1),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Icon(
+                              Icons.star_rounded,
+                              color: index < selectedStars
+                                  ? const Color(0xFFFBBF24)
+                                  : AppColors.divider,
+                              size: 40,
+                            ),
                           ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 20),
+                    TextField(
+                      controller: commentController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Escribe un comentario (opcional)...',
+                        hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.divider),
                         ),
-                      );
-                    }),
-                  ),
-                ],
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: AppColors.primary),
+                        ),
+                        contentPadding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               actionsAlignment: MainAxisAlignment.spaceEvenly,
               actions: [
                 SizedBox(
                   width: 110,
                   child: OutlinedButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () {
+                      commentController.dispose();
+                      Navigator.pop(context);
+                    },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.textSecondary,
                       side: const BorderSide(color: AppColors.divider),
@@ -473,11 +558,12 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                       final response = await _technicianService.addReview(
                         technicianId: techId,
                         rating: selectedStars,
-                        comment: '',
+                        comment: commentController.text.trim(),
                         appointmentId: null,
                       );
 
                       if (context.mounted) {
+                        commentController.dispose();
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -488,7 +574,9 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                             margin: const EdgeInsets.all(16),
                           ),
                         );
-                        if (response.success) _fetchDetails(techId);
+                        if (response.success) {
+                          _fetchDetails(techId);
+                        }
                       }
                     },
                     style: ElevatedButton.styleFrom(
@@ -502,6 +590,79 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
               ],
             );
           },
+        );
+      },
+    );
+  }
+
+  void _showAllReviews(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.divider,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    const Icon(Icons.reviews_rounded, color: AppColors.primary, size: 22),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Todas las Reseñas',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${_reviews.length}',
+                      style: const TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  itemCount: _reviews.length,
+                  itemBuilder: (context, index) {
+                    final review = _reviews[index];
+                    final name = review['person_type'] == 'natural'
+                        ? '${review['names'] ?? ''} ${review['surnames'] ?? ''}'.trim()
+                        : review['company_name'] ?? 'Usuario';
+                    final rating = review['rating'] ?? 0;
+                    final comment = review['comment'] ?? '';
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: _buildReviewItem(name, rating, comment),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         );
       },
     );

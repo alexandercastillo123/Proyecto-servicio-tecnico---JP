@@ -10,6 +10,7 @@ import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/presentation/screens/verification_code_screen.dart';
 import '../../features/technicians/presentation/screens/technician_profile_screen.dart';
 import '../../features/appointments/presentation/screens/appointment_scheduling_screen.dart';
+import '../../features/appointments/presentation/screens/my_appointments_screen.dart';
 import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/profile/presentation/screens/edit_data_screen.dart';
 import '../../features/profile/presentation/screens/change_photo_screen.dart';
@@ -69,6 +70,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/appointment-scheduling',
       builder: (context, state) => const AppointmentSchedulingScreen(),
+    ),
+    GoRoute(
+      path: '/my-appointments',
+      builder: (context, state) => const MyAppointmentsScreen(),
     ),
     GoRoute(path: '/chat', builder: (context, state) => const ChatScreen()),
   ],

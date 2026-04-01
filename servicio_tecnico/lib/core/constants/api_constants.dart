@@ -26,6 +26,7 @@ class ApiConstants {
   static const String createSchedule = '$baseUrl/technicians/schedule';
   static String updateSchedule(int id) => '$baseUrl/technicians/schedule/$id';
   static const String addReview = '$baseUrl/technicians/review';
+  static String technicianReviews(int id) => '$baseUrl/technicians/$id/reviews';
 
   // Appointment Endpoints
   static const String appointments = '$baseUrl/appointments';

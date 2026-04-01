@@ -78,11 +78,19 @@ class TechnicianService {
       {
         'technicianId': technicianId,
         'rating': rating,
-        if (comment != null) 'comment': comment,
+        if (comment != null && comment.isNotEmpty) 'comment': comment,
         if (appointmentId != null) 'appointmentId': appointmentId,
       },
       requiresAuth: true,
       fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  /// Get reviews for a technician
+  Future<ApiResponse<List<dynamic>>> getTechnicianReviews(int technicianId) async {
+    return await _apiService.get<List<dynamic>>(
+      ApiConstants.technicianReviews(technicianId),
+      fromJson: (data) => data as List<dynamic>,
     );
   }
 }

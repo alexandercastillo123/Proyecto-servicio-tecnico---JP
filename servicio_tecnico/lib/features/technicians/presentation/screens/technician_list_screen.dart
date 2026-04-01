@@ -14,14 +14,23 @@ class TechnicianListScreen extends StatefulWidget {
 
 class _TechnicianListScreenState extends State<TechnicianListScreen> {
   final TechnicianService _technicianService = TechnicianService();
-  List<Technician> _technicians = [];
+  final TextEditingController _searchController = TextEditingController();
+  List<Technician> _allTechnicians = [];
+  List<Technician> _filteredTechnicians = [];
   bool _isLoading = true;
   String? _errorMessage;
+  String _selectedFilter = 'all';
 
   @override
   void initState() {
     super.initState();
     _loadTechnicians();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadTechnicians() async {
@@ -34,7 +43,8 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
       final response = await _technicianService.getTechnicians();
       if (response.success) {
         setState(() {
-          _technicians = response.data ?? [];
+          _allTechnicians = response.data ?? [];
+          _filteredTechnicians = _allTechnicians;
           _isLoading = false;
         });
       } else {
@@ -51,6 +61,32 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
     }
   }
 
+  void _filterTechnicians(String query) {
+    setState(() {
+      _filteredTechnicians = _allTechnicians.where((tech) {
+        final matchesSearch = query.isEmpty ||
+            tech.name.toLowerCase().contains(query.toLowerCase()) ||
+            tech.location.toLowerCase().contains(query.toLowerCase());
+        
+        bool matchesFilter = true;
+        if (_selectedFilter == 'top') {
+          matchesFilter = tech.rating >= 4.0;
+        } else if (_selectedFilter == 'nearby') {
+          matchesFilter = tech.location.isNotEmpty;
+        }
+        
+        return matchesSearch && matchesFilter;
+      }).toList();
+    });
+  }
+
+  void _onFilterChanged(String filter) {
+    setState(() {
+      _selectedFilter = filter;
+    });
+    _filterTechnicians(_searchController.text);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,7 +100,7 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
                   ? const Center(child: CircularProgressIndicator())
                   : _errorMessage != null
                       ? _buildErrorState()
-                      : _technicians.isEmpty
+                      : _filteredTechnicians.isEmpty
                           ? _buildEmptyState()
                           : _buildTechnicianList(),
             ),
@@ -87,48 +123,122 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          IconButton(
-            onPressed: () => context.pop(),
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.primarySoft.withOpacity(0.3),
-              padding: const EdgeInsets.all(10),
-            ),
+          Row(
+            children: [
+              IconButton(
+                onPressed: () => context.pop(),
+                icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.primarySoft.withOpacity(0.3),
+                  padding: const EdgeInsets.all(10),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Técnicos Cercanos',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      'Encuentre el técnico ideal',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _loadTechnicians,
+                icon: const Icon(Icons.refresh_rounded, size: 22),
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.primarySoft.withOpacity(0.3),
+                  padding: const EdgeInsets.all(10),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+            ),
+            child: Row(
               children: [
-                Text(
-                  'Técnicos Cercanos',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
+                const Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _filterTechnicians,
+                    decoration: const InputDecoration(
+                      hintText: 'Buscar por nombre o ubicación...',
+                      hintStyle: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(vertical: 12),
+                    ),
                   ),
                 ),
-                Text(
-                  'Encuentre el técnico ideal',
-                  style: TextStyle(
-                    color: AppColors.textSecondary,
-                    fontSize: 13,
+                if (_searchController.text.isNotEmpty)
+                  GestureDetector(
+                    onTap: () {
+                      _searchController.clear();
+                      _filterTechnicians('');
+                    },
+                    child: const Icon(Icons.close_rounded, color: AppColors.textSecondary, size: 18),
                   ),
-                ),
               ],
             ),
           ),
-          IconButton(
-            onPressed: _loadTechnicians,
-            icon: const Icon(Icons.refresh_rounded, size: 22),
-            style: IconButton.styleFrom(
-              backgroundColor: AppColors.primarySoft.withOpacity(0.3),
-              padding: const EdgeInsets.all(10),
-            ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _buildFilterChip('Todos', 'all'),
+              const SizedBox(width: 8),
+              _buildFilterChip('Mejor Valorados', 'top'),
+              const SizedBox(width: 8),
+              _buildFilterChip('Con Ubicación', 'nearby'),
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _selectedFilter == value;
+    return GestureDetector(
+      onTap: () => _onFilterChanged(value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : AppColors.primarySoft.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.divider.withOpacity(0.3),
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : AppColors.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
@@ -226,9 +336,9 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
           child: ListView.builder(
             padding: const EdgeInsets.all(20),
             physics: const BouncingScrollPhysics(),
-            itemCount: _technicians.length,
+            itemCount: _filteredTechnicians.length,
             itemBuilder: (context, index) {
-              return _buildTechnicianCard(context, _technicians[index], index);
+              return _buildTechnicianCard(context, _filteredTechnicians[index], index);
             },
           ),
         ),
@@ -362,12 +472,16 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
                     const SizedBox(height: 6),
                     Row(
                       children: [
-                        ...List.generate(5, (index) {
+                        ...List.generate(5, (starIndex) {
                           return Padding(
                             padding: const EdgeInsets.only(right: 2),
                             child: Icon(
-                              Icons.star_rounded,
-                              color: index < 4
+                              starIndex < tech.rating.floor()
+                                  ? Icons.star_rounded
+                                  : (starIndex < tech.rating
+                                      ? Icons.star_half_rounded
+                                      : Icons.star_outline_rounded),
+                              color: starIndex < tech.rating
                                   ? const Color(0xFFFBBF24)
                                   : AppColors.divider,
                               size: 18,
@@ -375,16 +489,44 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
                           );
                         }),
                         const SizedBox(width: 6),
-                        const Text(
-                          '4.0',
-                          style: TextStyle(
+                        Text(
+                          tech.rating.toStringAsFixed(1),
+                          style: const TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '(${tech.reviewsCount})',
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 11,
+                          ),
+                        ),
                       ],
                     ),
+                    if (tech.location.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_rounded, color: AppColors.textSecondary, size: 14),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              tech.location,
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
               ),

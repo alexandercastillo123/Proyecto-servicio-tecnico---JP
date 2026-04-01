@@ -59,6 +59,13 @@ router.put(
 );
 
 /**
+ * @route   GET /api/technicians/:id/reviews
+ * @desc    Get reviews for a technician
+ * @access  Public
+ */
+router.get('/:id/reviews', techniciansController.getTechnicianReviews);
+
+/**
  * @route   POST /api/technicians/review
  * @desc    Add review for a technician
  * @access  Private
