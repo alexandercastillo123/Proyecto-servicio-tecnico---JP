@@ -1,6 +1,10 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const http = require('http');
+const { Server } = require('socket.io');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./config/swagger');
 require('dotenv').config();
 
 const errorHandler = require('./middleware/errorHandler');
@@ -16,6 +20,14 @@ const adminRoutes = require('./routes/admin.routes');
 const appointmentManager = require('./utils/appointmentManager');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -23,6 +35,9 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
 
 // Servir archivos subidos estáticamente
 app.use('/uploads', express.static('uploads'));
@@ -56,8 +71,28 @@ app.use((req, res) => {
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
+// Socket.io connection logic
+io.on('connection', (socket) => {
+    console.log(`📡 Nuevo cliente conectado: ${socket.id}`);
+
+    socket.on('join_room', (userId) => {
+        socket.join(`user_${userId}`);
+        console.log(`👤 Usuario ${userId} se unió a su sala privada`);
+    });
+
+    socket.on('send_message', (data) => {
+        // Enviar a la sala del destinatario
+        io.to(`user_${data.receiverId}`).emit('receive_message', data);
+        console.log(`✉️ Mensaje enviado de ${data.senderId} a ${data.receiverId}`);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('🔌 Cliente desconectado');
+    });
+});
+
 // Iniciar servidor
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', () => {
     console.log('╔═══════════════════════════════════════════════════════╗');
     console.log('║                                                       ║');
     console.log('║   🚀 Servicio Técnico J&P - Servidor Backend API      ║');
@@ -65,17 +100,14 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log('╚═══════════════════════════════════════════════════════╝');
     console.log('');
     console.log(`📡 Servidor ejecutándose en: http://localhost:${PORT}`);
+    console.log(`📖 Documentación API: http://localhost:${PORT}/api-docs`);
     console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
     console.log(`⏰ Iniciado en: ${new Date().toLocaleString()}`);
     console.log('');
-    console.log('Endpoints disponibles:');
+    console.log('Endpoints principales:');
     console.log('  GET  /health                          - Health check');
-    console.log('  POST /api/auth/register               - Registrar usuario');
     console.log('  POST /api/auth/login                  - Iniciar sesión');
-    console.log('  GET  /api/users/profile               - Ver perfil (Auth)');
-    console.log('  GET  /api/technicians                 - Listar técnicos');
-    console.log('  POST /api/appointments                - Crear cita (Auth)');
-    console.log('  GET  /api/messages/conversations      - Ver conversaciones (Auth)');
+    console.log('  GET  /api-docs                        - Documentación Swagger');
     console.log('');
     console.log('Presione CTRL+C para detener el servidor');
     console.log('═══════════════════════════════════════════════════════');
@@ -95,4 +127,5 @@ process.on('SIGINT', () => {
     process.exit(0);
 });
 
-module.exports = app;
+module.exports = { app, server, io };
+

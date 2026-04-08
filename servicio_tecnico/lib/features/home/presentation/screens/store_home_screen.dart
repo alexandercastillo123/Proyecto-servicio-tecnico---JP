@@ -109,17 +109,18 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthProvider>().user;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
         child: IndexedStack(
           index: _selectedIndex,
           children: [
-            _buildDashboard(),
+            _buildDashboard(user),
             _buildCatalog(),
             _buildOrdersTab(), // Nueva pestaña de pedidos
             _buildMessagesTab(),
-            _buildProfile(),
+            _buildProfile(user),
           ],
         ),
       ),
@@ -150,7 +151,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
     );
   }
 
-  Widget _buildDashboard() {
+  Widget _buildDashboard(user) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -171,8 +172,8 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
                     ),
                   ),
                   Text(
-                    _myStore?.name ?? 'Rol: Administrador de Tienda',
-                    style: TextStyle(color: Colors.grey[600]),
+                    _myStore?.name ?? (user?.role == 'sucursal' ? 'Sucursal J&P' : 'Rol: Administrador'),
+                    style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
@@ -306,61 +307,246 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
     final status = order['status'] ?? 'pending';
     final product = order['product_name'] ?? 'Producto';
     final client = order['client_name'] ?? 'Cliente';
+    final date = order['created_at'] != null 
+        ? DateTime.parse(order['created_at']) 
+        : DateTime.now();
     final total = double.tryParse(order['total_price']?.toString() ?? '0') ?? 0.0;
     
     Color statusColor = Colors.orange;
     String statusText = 'Pendiente';
+    IconData statusIcon = Icons.access_time_rounded;
     
     switch(status) {
-      case 'confirmed': statusColor = Colors.blue; statusText = 'Confirmado'; break;
-      case 'shipped': statusColor = Colors.purple; statusText = 'En camino'; break;
-      case 'delivered': statusColor = Colors.teal; statusText = 'Entregado'; break;
-      case 'completed': statusColor = Colors.green; statusText = 'Completado'; break;
-      case 'cancelled': statusColor = Colors.red; statusText = 'Cancelado'; break;
+      case 'confirmed': 
+        statusColor = AppColors.primary; 
+        statusText = 'Confirmado'; 
+        statusIcon = Icons.check_circle_outline_rounded;
+        break;
+      case 'shipped': 
+        statusColor = Colors.purple; 
+        statusText = 'En camino'; 
+        statusIcon = Icons.local_shipping_outlined;
+        break;
+      case 'delivered': 
+        statusColor = Colors.teal; 
+        statusText = 'Entregado'; 
+        statusIcon = Icons.home_work_outlined;
+        break;
+      case 'completed': 
+        statusColor = Colors.green; 
+        statusText = 'Completado'; 
+        statusIcon = Icons.verified_user_outlined;
+        break;
+      case 'cancelled': 
+        statusColor = AppColors.error; 
+        statusText = 'Cancelado'; 
+        statusIcon = Icons.cancel_outlined;
+        break;
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Column(
-        children: [
-          ListTile(
-            title: Text(product, style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text('Cliente: $client • Cantidad: ${order['quantity']}'),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: statusColor.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-              child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 11, fontWeight: FontWeight.bold)),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Total: S/ ${total.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
-                Row(
-                  children: [
-                    if (status == 'pending')
-                      TextButton(
-                        onPressed: () => _updateStatus(order['id'], 'confirmed'),
-                        child: const Text('CONFIRMAR'),
-                      ),
-                    if (status == 'confirmed')
-                      TextButton(
-                        onPressed: () => _updateStatus(order['id'], 'shipped'),
-                        child: const Text('ENVIAR'),
-                      ),
-                    IconButton(
-                      icon: const Icon(Icons.chat_outlined, color: Colors.blue),
-                      onPressed: () => context.push('/chat', extra: order['client_id']),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.primary.withOpacity(0.05)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Colors.white, Colors.grey[50]!],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: statusColor.withOpacity(0.1)),
+                    ),
+                    child: Icon(statusIcon, color: statusColor, size: 26),
+                  ),
+                  const SizedBox(width: 18),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          product,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.5,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            Icon(Icons.person_outline, size: 14, color: Colors.grey[500]),
+                            const SizedBox(width: 4),
+                            Text(
+                              client,
+                              style: TextStyle(
+                                color: Colors.grey[600],
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text(
+                        'S/ ${total.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          '#ORD-${order['id']}',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey[600],
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: Colors.grey[100]!)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today, size: 12, color: Colors.grey[400]),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${date.day}/${date.month}/${date.year}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      statusText.toUpperCase(),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      if (status == 'pending')
+                        _buildActionButton(
+                          label: 'CONFIRMAR',
+                          icon: Icons.check,
+                          color: AppColors.success,
+                          onPressed: () => _updateStatus(order['id'], 'confirmed'),
+                        ),
+                      if (status == 'confirmed')
+                        _buildActionButton(
+                          label: 'ENVIAR',
+                          icon: Icons.local_shipping,
+                          color: Colors.indigo,
+                          onPressed: () => _updateStatus(order['id'], 'shipped'),
+                        ),
+                      const SizedBox(width: 12),
+                      GestureDetector(
+                        onTap: () => context.push('/chat', extra: order['client_id']),
+                        child: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.blue[50],
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(color: Colors.blue[100]!),
+                          ),
+                          child: const Icon(Icons.chat_bubble_outline_rounded, color: Colors.blue, size: 20),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return ElevatedButton.icon(
+      onPressed: onPressed,
+      icon: Icon(icon, size: 14),
+      label: Text(
+        label,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color.withOpacity(0.1),
+        foregroundColor: color,
+        elevation: 0,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ).copyWith(
+        side: WidgetStateProperty.all(BorderSide(color: color.withOpacity(0.2))),
       ),
     );
   }
@@ -451,7 +637,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
                           child: const Icon(Icons.shopping_bag, color: AppColors.primary),
                         ),
                         title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('S/ ${p.price.toStringAsFixed(2)} | Stock: ${p.stock ?? 0}'),
+                        subtitle: Text('S/ ${p.price.toStringAsFixed(2)}'),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () => _confirmDeleteProduct(p),
@@ -501,7 +687,6 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
     final nameController = TextEditingController();
     final descriptionController = TextEditingController();
     final priceController = TextEditingController();
-    final stockController = TextEditingController();
     final categoryController = TextEditingController();
     final brandController = TextEditingController();
 
@@ -518,8 +703,6 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
               Row(
                 children: [
                   Expanded(child: TextField(controller: priceController, decoration: const InputDecoration(labelText: 'Precio *'), keyboardType: TextInputType.number)),
-                  const SizedBox(width: 10),
-                  Expanded(child: TextField(controller: stockController, decoration: const InputDecoration(labelText: 'Stock'), keyboardType: TextInputType.number)),
                 ],
               ),
               TextField(controller: categoryController, decoration: const InputDecoration(labelText: 'Categoría')),
@@ -537,7 +720,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
                 'name': nameController.text,
                 'description': descriptionController.text,
                 'price': double.tryParse(priceController.text) ?? 0.0,
-                'stock': int.tryParse(stockController.text),
+                'stock': 0, // Stock deshabilitado por solicitud
                 'category': categoryController.text,
                 'brand': brandController.text,
                 'is_available': true,
@@ -598,8 +781,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
     );
   }
 
-  Widget _buildProfile() {
-    final user = context.watch<AuthProvider>().user;
+  Widget _buildProfile(user) {
     
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -612,7 +794,11 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
             child: const Icon(Icons.person, size: 50, color: AppColors.primary),
           ),
           const SizedBox(height: 15),
-          Text(user?.username ?? 'Cargando...', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(
+            _myStore?.name ?? (user?.username ?? 'Cargando sucursal...'),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+            textAlign: TextAlign.center,
+          ),
           Text(user?.email ?? '', style: TextStyle(color: Colors.grey[600])),
           const SizedBox(height: 5),
           Container(

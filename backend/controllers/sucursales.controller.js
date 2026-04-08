@@ -5,6 +5,7 @@
 
 
 const db = require('../config/database');
+const upload = require('../middleware/upload');
 const Respuesta = require('../utils/Respuesta');
 
 /**
@@ -318,7 +319,7 @@ const uploadStoreImage = async (req, res) => {
             return res.status(400).json(respuesta);
         }
         const userId = req.user.id;
-        const fileUrl = 'uploads/stores/' + req.file.filename;
+        const fileUrl = upload.getRelativePath(req.file);
 
         // Intentar actualizar si ya existe la sucursal, pero no fallar si no existe (creación)
         await db.ejecutar('UPDATE sucursales SET image_url = ? WHERE user_id = ?', [fileUrl, userId]).catch(() => {});
@@ -342,7 +343,7 @@ const uploadProductImage = async (req, res) => {
             respuesta.mensaje = 'No se subió ninguna imagen';
             return res.status(400).json(respuesta);
         }
-        const fileUrl = 'uploads/products/' + req.file.filename;
+        const fileUrl = upload.getRelativePath(req.file);
 
         respuesta.exito = true;
         respuesta.resultado = { url: fileUrl };

@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const upload = require('../middleware/upload');
 const Respuesta = require('../utils/Respuesta');
 
 /**
@@ -132,7 +133,7 @@ const uploadPhoto = async (req, res) => {
             return res.status(400).json(respuesta);
         }
 
-        const imageUrl = `/uploads/${req.file.filename}`;
+        const imageUrl = upload.getRelativePath(req.file);
 
         const dbRes = await db.ejecutar(
             'UPDATE user_profiles SET profile_image_url = ? WHERE user_id = ?',

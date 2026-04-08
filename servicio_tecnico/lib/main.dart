@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:servicio_tecnico_app/core/services/camera_service.dart';
+import 'package:servicio_tecnico_app/core/services/local_cache_service.dart';
 import 'package:provider/provider.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
@@ -7,6 +8,9 @@ import 'core/providers/auth_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Inicializar Hive para caché local
+  await LocalCacheService.init();
 
   // Pre-iniciacion de uso de la camara
   await CameraService().initialize();

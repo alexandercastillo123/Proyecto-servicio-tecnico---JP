@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../../../core/services/message_service.dart';
@@ -195,41 +196,44 @@ class _ChatScreenState extends State<ChatScreen> {
         title: InkWell(
           onTap: () {
             if (_otherUserId != null) {
-              // Navegar al perfil dependiendo del rol
               if (_otherUserRole == 'tech' || _otherUserRole == 'technician') {
                 context.push('/technician-profile', extra: _otherUserId);
               } else {
-                // Si es cliente, podrías navegar a un ClientProfile si existiera
-                // Por ahora usamos el mismo o mostramos un snackbar
                 context.push('/technician-profile', extra: _otherUserId);
               }
             }
           },
           child: Row(
             children: [
-              CircleAvatar(
-                radius: 18,
-                backgroundColor: AppColors.primary.withOpacity(0.1),
-                child: Text(
-                  (_otherUserName ?? '?')[0].toUpperCase(),
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+              Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 2),
+                ),
+                child: CircleAvatar(
+                  radius: 18,
+                  backgroundColor: AppColors.primaryLight,
+                  child: Text(
+                    (_otherUserName ?? '?')[0].toUpperCase(),
+                    style: GoogleFonts.outfit(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _otherUserName ?? 'Cargando...',
-                      style: const TextStyle(
-                        color: Colors.black,
+                      style: GoogleFonts.outfit(
+                        color: AppColors.textPrimary,
                         fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w700,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -237,9 +241,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       _otherUserRole == 'tech' || _otherUserRole == 'technician'
                           ? 'Técnico Especialista'
                           : 'Cliente',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 11,
+                      style: GoogleFonts.outfit(
+                        color: AppColors.textSecondary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w400,
                       ),
                     ),
                   ],

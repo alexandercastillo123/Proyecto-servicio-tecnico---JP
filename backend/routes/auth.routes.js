@@ -5,9 +5,53 @@ const authController = require('../controllers/auth.controller');
 const validate = require('../middleware/validation');
 
 /**
- * @route   POST /api/auth/register
- * @desc    Register new user
- * @access  Public
+ * @swagger
+ * tags:
+ *   name: Auth
+ *   description: Endpoints para autenticación y recuperación de cuenta
+ */
+
+/**
+ * @swagger
+ * /auth/register:
+ *   post:
+ *     summary: Registrar un nuevo usuario
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password, role, personType]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *               role:
+ *                 type: string
+ *                 enum: [client, tech]
+ *               personType:
+ *                 type: string
+ *                 enum: [natural, juridical]
+ *               names:
+ *                 type: string
+ *               surnames:
+ *                 type: string
+ *               dni:
+ *                 type: string
+ *               companyName:
+ *                 type: string
+ *               ruc:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Usuario registrado exitosamente
+ *       400:
+ *         description: Error en la validación o el usuario ya existe
  */
 router.post(
     '/register',
@@ -23,9 +67,28 @@ router.post(
 );
 
 /**
- * @route   POST /api/auth/login
- * @desc    Login user
- * @access  Public
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Iniciar sesión
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password]
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Login exitoso, devuelve JWT
+ *       401:
+ *         description: Credenciales inválidas
  */
 router.post(
     '/login',
@@ -38,9 +101,23 @@ router.post(
 );
 
 /**
- * @route   POST /api/auth/forgot-password
- * @desc    Request password reset code
- * @access  Public
+ * @swagger
+ * /auth/forgot-password:
+ *   post:
+ *     summary: Solicitar código de recuperación de contraseña
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Código enviado al correo
  */
 router.post(
     '/forgot-password',
@@ -52,9 +129,25 @@ router.post(
 );
 
 /**
- * @route   POST /api/auth/verify-code
- * @desc    Verify password reset code
- * @access  Public
+ * @swagger
+ * /auth/verify-code:
+ *   post:
+ *     summary: Verificar código de recuperación
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               code:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Código verificado correctamente
  */
 router.post(
     '/verify-code',
@@ -67,9 +160,27 @@ router.post(
 );
 
 /**
- * @route   POST /api/auth/reset-password
- * @desc    Reset password with code
- * @access  Public
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     summary: Restablecer contraseña con código
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               code:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Contraseña restablecida
  */
 router.post(
     '/reset-password',
@@ -86,3 +197,4 @@ router.post('/validate-email', authController.validateEmail);
 router.post('/validate-username', authController.validateUsername);
 
 module.exports = router;
+

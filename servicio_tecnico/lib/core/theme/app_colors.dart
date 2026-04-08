@@ -1,29 +1,33 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primary Brand Color (Vibrant Blue)
-  // Primary Brand Color (Vibrant Blue from Logo)
+  // Primary Brand Color (Vibrant Corporate Blue)
   static const Color primary = Color(0xFF3B28FF);
-  static const Color primaryDark = Color(0xFF2A1CDB);
-  static const Color primaryLight = Color(0xFFE0DFFF);
+  static const Color primaryDark = Color(0xFF1E0ED6);
+  static const Color primaryLight = Color(0xFFEBE9FF);
 
-  // Backgrounds
-  static const Color background = Color(0xFFF5F7FA);
-  static const Color surface = Colors.white;
+  // Secondary Color (Pure White)
+  static const Color secondary = Colors.white;
 
-  // Text
-  static const Color textPrimary = Color(0xFF1A1A1A);
-  static const Color textSecondary = Color(0xFF757575);
-  static const Color textLight = Color(0xFFB0B0B0);
+  // Backgrounds & Surfaces
+  static const Color background = Color(0xFFFFFFFF);
+  static const Color surface = Color(0xFFF8FAFC);
+  static const Color surfaceOverlay = Color(0xFFFFFFFF);
 
-  // Status
-  static const Color success = Color(0xFF2E7D32);
-  static const Color error = Color(0xFFD32F2F);
-  static const Color warning = Color(0xFFED6C02);
+  // Text Hierarchy
+  static const Color textPrimary = Color(0xFF0F172A); // Slate 900
+  static const Color textSecondary = Color(0xFF475569); // Slate 600
+  static const Color textLight = Color(0xFF94A3B8); // Slate 400
 
-  // Specific UI Elements
-  static const Color inputBorder = Color(0xFFE0E0E0);
-  static const Color divider = Color(0xFFEEEEEE);
+  // Status & Semantic Colors
+  static const Color success = Color(0xFF10B981); // Emerald 500
+  static const Color error = Color(0xFFEF4444); // Red 500
+  static const Color warning = Color(0xFFF59E0B); // Amber 500
+  static const Color info = Color(0xFF3B82F6); // Blue 500
+
+  // Border & Dividers
+  static const Color border = Color(0xFFE2E8F0); // Slate 200
+  static const Color divider = Color(0xFFF1F5F9); // Slate 100
 
   // Premium Gradients
   static const Gradient primaryGradient = LinearGradient(
@@ -32,26 +36,30 @@ class AppColors {
     colors: [Color(0xFF3B28FF), Color(0xFF6E5FFF)],
   );
 
-  static const Gradient accentGradient = LinearGradient(
+  static const Gradient glassGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+    colors: [
+      Color(0xCCFFFFFF),
+      Color(0x66FFFFFF),
+    ],
   );
 
-  // Premium Shadows
+  // Premium Shadows (Soft & Modern)
   static List<BoxShadow> softShadow = [
     BoxShadow(
-      color: Colors.black.withOpacity(0.08),
-      blurRadius: 15,
-      offset: const Offset(0, 5),
+      color: const Color(0xFF0F172A).withOpacity(0.04),
+      blurRadius: 12,
+      offset: const Offset(0, 4),
     ),
   ];
 
-  static List<BoxShadow> intenseShadow = [
+  static List<BoxShadow> premiumShadow = [
     BoxShadow(
-      color: primary.withOpacity(0.2),
-      blurRadius: 20,
-      offset: const Offset(0, 10),
+      color: primary.withOpacity(0.12),
+      blurRadius: 24,
+      offset: const Offset(0, 8),
     ),
   ];
 }
+

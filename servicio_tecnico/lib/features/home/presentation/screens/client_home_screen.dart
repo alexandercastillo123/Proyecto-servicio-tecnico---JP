@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:animate_do/animate_do.dart' as anim;
 import '../../../../core/services/message_service.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/service_location_map.dart';
-import '../widgets/store_map_widget.dart'; // Nuevo
+import '../widgets/store_map_widget.dart';
 
 class ClientHomeScreen extends StatefulWidget {
   const ClientHomeScreen({super.key});
@@ -50,10 +52,10 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         child: IndexedStack(
           index: _currentIndex,
           children: [
-            _buildMapTab(), // 0 - Técnicos
-            _buildStoresTab(), // 1 - Tiendas
-            _buildRecentTechsTab(), // 2 - Mensajes
-            _buildProfileTab(), // 3 - Perfil
+            _buildMapTab(), 
+            _buildStoresTab(),
+            _buildRecentTechsTab(),
+            _buildProfileTab(),
           ],
         ),
       ),
@@ -64,90 +66,75 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   Widget _buildBottomNavBar() {
     final hasUnread = _recentChats.any((c) => (c['unread_count'] ?? 0) > 0);
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 20,
-            offset: Offset(0, -4),
-          ),
-        ],
+        boxShadow: AppColors.softShadow,
       ),
       child: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() => _currentIndex = index);
-          if (index == 2) _loadRecentChats(); // Mensajes ahora es index 2
+          if (index == 2) _loadRecentChats();
         },
         backgroundColor: Colors.transparent,
         selectedItemColor: AppColors.primary,
-        unselectedItemColor: Colors.grey.shade400,
+        unselectedItemColor: AppColors.textLight,
         type: BottomNavigationBarType.fixed,
         elevation: 0,
-        selectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.bold,
+        selectedLabelStyle: GoogleFonts.outfit(
+          fontWeight: FontWeight.w700,
+          fontSize: 12,
+        ),
+        unselectedLabelStyle: GoogleFonts.outfit(
+          fontWeight: FontWeight.w500,
           fontSize: 12,
         ),
         items: [
           const BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            activeIcon: Icon(Icons.map),
-            label: 'Técnicos',
+            icon: Icon(Icons.explore_outlined),
+            activeIcon: Icon(Icons.explore),
+            label: 'Explorar',
           ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.store_outlined),
-            activeIcon: Icon(Icons.store),
+            icon: Icon(Icons.storefront_outlined),
+            activeIcon: Icon(Icons.storefront),
             label: 'Tiendas',
           ),
           BottomNavigationBarItem(
-            icon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const Icon(Icons.chat_bubble_outline),
-                if (hasUnread)
-                  Positioned(
-                    right: -4,
-                    top: -4,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            activeIcon: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                const Icon(Icons.chat_bubble),
-                if (hasUnread)
-                  Positioned(
-                    right: -4,
-                    top: -4,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+            icon: _buildBadgeIcon(Icons.chat_bubble_outline, hasUnread),
+            activeIcon: _buildBadgeIcon(Icons.chat_bubble, hasUnread),
             label: 'Mensajes',
           ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.account_circle_outlined),
-            activeIcon: Icon(Icons.account_circle),
+            icon: Icon(Icons.person_outline_rounded),
+            activeIcon: Icon(Icons.person_rounded),
             label: 'Perfil',
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildBadgeIcon(IconData icon, bool showBadge) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Icon(icon),
+        if (showBadge)
+          Positioned(
+            right: -2,
+            top: -2,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: AppColors.error,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -157,106 +144,40 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       children: [
         Column(
           children: [
-            // Header
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Explorar Técnicos',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      Text(
-                        'Toca el mapa para elegir el punto de servicio',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  CircleAvatar(
-                    backgroundColor: AppColors.primaryLight,
-                    radius: 20,
-                    child: Icon(
-                      Icons.search,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                  ),
-                ],
-              ),
+            _buildPremiumHeader(
+              'Explorar Técnicos',
+              'Selecciona un punto para ver técnicos cerca',
+              Icons.search_rounded,
             ),
 
-            // Técnico Reciente (sección separada, encima del mapa)
-            if (_recentChats.isNotEmpty) _buildRecentBanner(),
+            if (_recentChats.isNotEmpty) 
+              anim.FadeInDown(child: _buildRecentBanner()),
 
-            // Mapa
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.all(Radius.circular(24)),
-                  child: ServiceLocationMap(
-                    isActive: _currentIndex == 0,
-                    onLoadingChanged: (loading) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) setState(() => _isLoadingSearch = loading);
-                      });
-                    },
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(32),
+                    boxShadow: AppColors.premiumShadow,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(32),
+                    child: ServiceLocationMap(
+                      isActive: _currentIndex == 0,
+                      onLoadingChanged: (loading) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) setState(() => _isLoadingSearch = loading);
+                        });
+                      },
+                    ),
                   ),
                 ),
               ),
             ),
           ],
         ),
-
-        // Overlay de carga global
-        if (_isLoadingSearch)
-          Container(
-            color: Colors.black26,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
-                  vertical: 20,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: AppColors.intenseShadow,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.primary,
-                      ),
-                      strokeWidth: 4,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Buscando los mejores técnicos...',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+        if (_isLoadingSearch) _buildLoadingOverlay('Buscando técnicos expertos...'),
       ],
     );
   }
@@ -267,119 +188,90 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       children: [
         Column(
           children: [
-            // Header unificado (Estilo SerTec Azul)
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Tiendas Cercanas',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                      Text(
-                        'Puntos de servicio autorizados J&P',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey.shade500,
-                        ),
-                      ),
-                    ],
-                  ),
-                  CircleAvatar(
-                    backgroundColor: AppColors.primaryLight,
-                    radius: 20,
-                    child: Icon(
-                      Icons.store,
-                      color: AppColors.primary,
-                      size: 20,
-                    ),
-                  ),
-                ],
-              ),
+            _buildPremiumHeader(
+              'Tiendas Cercanas',
+              'Encuentra centros de servicio autorizados',
+              Icons.storefront_rounded,
             ),
 
-            // Mapa de Tiendas con mismo estilo que Técnicos
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.all(Radius.circular(24)),
-                  child: StoreMapWidget(
-                    isActive: _currentIndex == 1,
-                    onLoadingChanged: (loading) {
-                      WidgetsBinding.instance.addPostFrameCallback((_) {
-                        if (mounted) setState(() => _isLoadingSearch = loading);
-                      });
-                    },
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(32),
+                    boxShadow: AppColors.premiumShadow,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(32),
+                    child: StoreMapWidget(
+                      isActive: _currentIndex == 1,
+                      onLoadingChanged: (loading) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted) setState(() => _isLoadingSearch = loading);
+                        });
+                      },
+                    ),
                   ),
                 ),
               ),
             ),
           ],
         ),
-
-        // Overlay de carga global (compartido)
-        if (_isLoadingSearch)
-          Container(
-            color: Colors.black26,
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
-                  vertical: 20,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: AppColors.intenseShadow,
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppColors.primary,
-                      ),
-                      strokeWidth: 4,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Buscando tiendas cercanas...',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+        if (_isLoadingSearch) _buildLoadingOverlay('Localizando tiendas J&P...'),
       ],
     );
   }
 
+  Widget _buildPremiumHeader(String title, String subtitle, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.outfit(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.outfit(
+                    fontSize: 14,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 24),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRecentBanner() {
-    if (_isLoadingRecent) {
-      return const SizedBox(
-        height: 48,
-        child: Center(child: LinearProgressIndicator()),
-      );
-    }
+    if (_isLoadingRecent) return const SizedBox.shrink();
     final recent = _recentChats.first;
     final unread = (recent['unread_count'] ?? 0) as int;
-    final rawUrl = recent['profile_image_url']?.toString();
     final name = recent['username'] ?? 'Técnico';
-    final lastMsg = recent['last_message'] ?? 'Sin mensajes recientes';
+    final lastMsg = recent['last_message'] ?? '';
 
     return GestureDetector(
       onTap: () => context.push(
@@ -391,112 +283,106 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         },
       ),
       child: Container(
-        margin: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: AppColors.softShadow,
-          border: unread > 0
-              ? Border.all(
-                  color: AppColors.primary.withOpacity(0.3),
-                  width: 1.5,
-                )
-              : null,
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: AppColors.premiumShadow,
         ),
         child: Row(
           children: [
-            Stack(
-              children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: AppColors.primaryLight,
-                  backgroundImage: (rawUrl != null && rawUrl.isNotEmpty)
-                      ? NetworkImage(
-                          rawUrl.startsWith('http')
-                              ? rawUrl
-                              : '${ApiConstants.baseUrl}/$rawUrl',
-                        )
-                      : null,
-                  child: (rawUrl == null || rawUrl.isEmpty)
-                      ? const Icon(
-                          Icons.person,
-                          color: AppColors.primary,
-                          size: 22,
-                        )
-                      : null,
-                ),
-                if (unread > 0)
-                  Positioned(
-                    right: 0,
-                    bottom: 0,
-                    child: Container(
-                      width: 16,
-                      height: 16,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Center(
-                        child: Text(
-                          '$unread',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 12),
+            _buildAvatar(recent['profile_image_url'], true),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryLight,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Text(
-                          'Reciente',
-                          style: TextStyle(
-                            color: AppColors.primary,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    name,
+                    style: GoogleFonts.outfit(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
                   ),
                   Text(
                     lastMsg,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                    style: GoogleFonts.outfit(
+                      color: Colors.white70,
+                      fontSize: 13,
+                    ),
                   ),
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.primary, size: 18),
+            if (unread > 0)
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$unread',
+                  style: GoogleFonts.outfit(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              )
+            else
+              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar(String? url, bool isOverPrimary) {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: isOverPrimary ? Colors.white24 : AppColors.divider,
+          width: 2,
+        ),
+      ),
+      child: CircleAvatar(
+        radius: 24,
+        backgroundColor: isOverPrimary ? Colors.white12 : AppColors.primaryLight,
+        backgroundImage: (url != null && url.isNotEmpty)
+            ? NetworkImage(url.startsWith('http') ? url : '${ApiConstants.baseUrl}/$url')
+            : null,
+        child: (url == null || url.isEmpty)
+            ? Icon(Icons.person, color: isOverPrimary ? Colors.white : AppColors.primary)
+            : null,
+      ),
+    );
+  }
+
+  Widget _buildLoadingOverlay(String message) {
+    return anim.FadeIn(
+      child: Container(
+        color: Colors.white.withOpacity(0.8),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: AppColors.primary),
+              const SizedBox(height: 16),
+              Text(
+                message,
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -510,70 +396,32 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       child: CustomScrollView(
         slivers: [
           SliverAppBar(
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.background,
             elevation: 0,
             floating: true,
-            pinned: false,
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Mensajes',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 22,
-                  ),
-                ),
-                Text(
-                  'Técnicos con los que hablaste',
-                  style: TextStyle(
-                    color: Colors.grey.shade500,
-                    fontSize: 12,
-                    fontWeight: FontWeight.normal,
-                  ),
-                ),
-              ],
+            title: Text(
+              'Mensajes',
+              style: GoogleFonts.outfit(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w800,
+                fontSize: 28,
+              ),
             ),
+            centerTitle: false,
           ),
           if (_isLoadingRecent)
-            const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()),
-            )
+            const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
           else if (_recentChats.isEmpty)
-            SliverFillRemaining(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.chat_bubble_outline,
-                      size: 72,
-                      color: Colors.grey.shade300,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Aún no tienes conversaciones',
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Busca técnicos en el Mapa para comenzar',
-                      style: TextStyle(
-                        color: Colors.grey.shade400,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
+            _buildEmptyState()
           else
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              padding: const EdgeInsets.all(16),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) => _buildRecentTechCard(_recentChats[index]),
+                  (context, index) => anim.FadeInUp(
+                    delay: Duration(milliseconds: 100 * index),
+                    child: _buildRecentTechCard(_recentChats[index]),
+                  ),
                   childCount: _recentChats.length,
                 ),
               ),
@@ -583,113 +431,68 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     );
   }
 
-  Widget _buildRecentTechCard(dynamic chat) {
-    final unreadCount = chat['unread_count'] ?? 0;
-    final rawUrl = chat['profile_image_url']?.toString();
-    final name = chat['username'] ?? 'Técnico';
-    final lastMsg = chat['last_message'] ?? '';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: AppColors.softShadow,
-        border: unreadCount > 0
-            ? Border.all(color: AppColors.primary.withOpacity(0.25), width: 1.5)
-            : null,
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        leading: Stack(
-          children: [
-            CircleAvatar(
-              radius: 26,
-              backgroundColor: AppColors.primaryLight,
-              backgroundImage: (rawUrl != null && rawUrl.isNotEmpty)
-                  ? NetworkImage(
-                      rawUrl.startsWith('http')
-                          ? rawUrl
-                          : '${ApiConstants.baseUrl}/$rawUrl',
-                    )
-                  : null,
-              child: (rawUrl == null || rawUrl.isEmpty)
-                  ? const Icon(Icons.person, color: AppColors.primary)
-                  : null,
-            ),
-            if (unreadCount > 0)
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(5),
-                  decoration: const BoxDecoration(
-                    color: Colors.green,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    '$unreadCount',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        title: Row(
-          children: [
-            Text(
-              name,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
-            ),
-            if (unreadCount > 0) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'Nuevo',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
-        subtitle: lastMsg.isNotEmpty
-            ? Text(
-                lastMsg,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-              )
-            : const Text(
-                'Ver perfil del técnico',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
-              ),
-        trailing: const Icon(Icons.chevron_right, color: AppColors.primary),
-        onTap: () => context.push(
-          '/chat',
-          extra: {
-            'receiverId': chat['other_user_id'],
-            'receiverName': name,
-            'receiverRole': chat['other_user_role'] ?? 'tech',
-          },
-        ),
+  Widget _buildEmptyState() {
+    return SliverFillRemaining(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.chat_bubble_outline_rounded, size: 80, color: AppColors.divider),
+          const SizedBox(height: 24),
+          Text(
+            'Sin conversaciones aún',
+            style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Busca técnicos cerca de ti para empezar',
+            style: GoogleFonts.outfit(color: AppColors.textSecondary),
+          ),
+        ],
       ),
     );
   }
 
-  // ─── TAB 3: PERFIL ─────────────────────────────────────────────────────
+  Widget _buildRecentTechCard(dynamic chat) {
+    final unread = chat['unread_count'] ?? 0;
+    final name = chat['username'] ?? 'Técnico';
+    final lastMsg = chat['last_message'] ?? 'Ver perfil';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: AppColors.softShadow,
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Stack(
+          children: [
+            _buildAvatar(chat['profile_image_url'], false),
+            if (unread > 0)
+              Positioned(
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(color: AppColors.error, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
+                  child: Text('$unread', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+              ),
+          ],
+        ),
+        title: Text(name, style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 16)),
+        subtitle: Text(lastMsg, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.outfit(fontSize: 13, color: AppColors.textSecondary)),
+        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textLight),
+        onTap: () => context.push('/chat', extra: {
+          'receiverId': chat['other_user_id'],
+          'receiverName': name,
+          'receiverRole': chat['other_user_role'] ?? 'tech',
+        }),
+      ),
+    );
+  }
+
   Widget _buildProfileTab() {
     return const ProfileScreen();
   }
