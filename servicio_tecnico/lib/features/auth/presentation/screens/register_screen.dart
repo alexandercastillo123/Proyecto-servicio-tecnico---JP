@@ -837,64 +837,106 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ],
                 ),
-                child: const Icon(
-                  Icons.camera_alt_outlined,
-                  size: 80,
-                  color: Color(0xFF3B28FF),
-                ),
+                child: const Icon(Icons.camera_alt_outlined, size: 64, color: AppColors.primary),
               ),
             )
           else
             Column(
               children: [
-                const SizedBox(height: 20),
-                const Text(
-                  'Tomar Foto de Perfil',
-                  style: TextStyle(
-                    color: Color(0xFF3B28FF),
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 40),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Seguridad Biométrica',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Capture su identidad para el perfil',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: ClipRRect(
-                    borderRadius: BorderRadius.circular(30),
+                    borderRadius: BorderRadius.circular(40),
                     child: Container(
-                      height: 380, // Slightly smaller for better balance
+                      height: 450,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        border: Border.all(
-                          color: const Color(0xFF3B28FF),
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(30),
+                        color: Colors.black,
+                        borderRadius: BorderRadius.circular(40),
                       ),
-                      child: CameraPreview(_cameraController!),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 30),
-                GestureDetector(
-                  onTap: _takePicture,
-                  child: Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3B28FF),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF3B28FF).withOpacity(0.3),
-                          blurRadius: 15,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.camera_alt,
-                      size: 40,
-                      color: Colors.white,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          Transform.scale(
+                            scale: 1.1,
+                            child: CameraPreview(_cameraController!),
+                          ),
+                          // Face Guide Overlay
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.2),
+                                width: 2,
+                              ),
+                              borderRadius: BorderRadius.circular(200),
+                            ),
+                            width: 280,
+                            height: 350,
+                          ),
+                          // Vignette
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: RadialGradient(
+                                colors: [
+                                  Colors.transparent,
+                                  Colors.black.withOpacity(0.4),
+                                ],
+                                stops: const [0.6, 1.0],
+                              ),
+                            ),
+                          ),
+                          // Capture Button Integrated
+                          Positioned(
+                            bottom: 30,
+                            child: GestureDetector(
+                              onTap: _takePicture,
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 4),
+                                ),
+                                child: Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.white,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.camera_alt, color: AppColors.primary, size: 28),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -902,23 +944,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
         ] else ...[
           // Preview state
-          const SizedBox(height: 20),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 40),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Validación de Imagen',
+                  style: TextStyle(
+                    color: AppColors.success,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  '¿Desea usar esta fotografía?',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+            padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Stack(
               alignment: Alignment.bottomCenter,
               children: [
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(40),
                   child: Container(
-                    height: 420,
+                    height: 450,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      border: Border.all(
-                        color: const Color(0xFF3B28FF),
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 1),
+                      boxShadow: AppColors.premiumShadow,
                     ),
                     child: Image.file(
                       File(_capturedFile!.path),
@@ -927,34 +992,27 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 Positioned(
-                  bottom: 20,
+                  bottom: 24,
                   child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _isPhotoTaken = false;
-                      });
-                    },
+                    onTap: () => setState(() => _isPhotoTaken = false),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 10,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(25),
-                        boxShadow: const [
-                          BoxShadow(color: Colors.black26, blurRadius: 10),
-                        ],
+                        color: Colors.white.withOpacity(0.9),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: AppColors.softShadow,
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.refresh, color: Color(0xFF3B28FF)),
+                          Icon(Icons.refresh_rounded, color: AppColors.primary, size: 20),
                           SizedBox(width: 8),
                           Text(
-                            'Cambiar Foto',
+                            'REINTENTAR',
                             style: TextStyle(
-                              color: Color(0xFF3B28FF),
-                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                              letterSpacing: 1,
                             ),
                           ),
                         ],
@@ -965,11 +1023,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 40),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: CustomButton(
-              text: 'Registrarme',
+              text: 'Finalizar Registro',
               onPressed: _submitRegistration,
             ),
           ),

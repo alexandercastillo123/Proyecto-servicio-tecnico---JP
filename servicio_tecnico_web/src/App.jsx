@@ -26,24 +26,24 @@ const ORDER_STATUS_LABELS = {
   delivered: 'Entregado', completed: 'Completado', cancelled: 'Cancelado'
 };
 const STATUS_COLORS_HEX = {
-  pending: '#F59E0B', confirmed: '#3B82F6', completed: '#10B981',
-  cancelled: '#EF4444', cancellation_pending: '#F97316',
+  pending: '#FBBF24', confirmed: '#3B28FF', completed: '#10B981',
+  cancelled: '#F43F5E', cancellation_pending: '#F97316',
   shipped: '#8B5CF6', delivered: '#14B8A6'
 };
-const ROLE_COLORS = ['#3B82F6', '#8B5CF6', '#EC4899', '#10B981'];
+const ROLE_COLORS = ['#3B28FF', '#8B5CF6', '#EC4899', '#10B981'];
 const ROLE_LABELS = { client: 'Cliente', tech: 'Técnico', store: 'Tienda', admin: 'Admin' };
 
 // ─── BADGE COMPONENT ─────────────────────────────────────────
 const StatusBadge = ({ status }) => {
   const colors = {
-    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400',
-    confirmed: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
-    completed: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400',
-    cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400',
-    cancellation_pending: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400',
+    pending: 'status-pending',
+    confirmed: 'status-confirmed',
+    completed: 'status-completed',
+    cancelled: 'status-cancelled',
+    cancellation_pending: 'status-cancellation_pending',
   };
   return (
-    <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${colors[status] || 'bg-slate-100 text-slate-600'}`}>
+    <span className={`status-badge ${colors[status] || 'bg-slate-100 text-slate-600'}`}>
       {STATUS_LABELS[status] || ORDER_STATUS_LABELS[status] || status}
     </span>
   );
@@ -51,26 +51,26 @@ const StatusBadge = ({ status }) => {
 
 const RoleBadge = ({ role }) => {
   const colors = {
-    admin: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400',
-    tech: 'bg-orange-100 text-orange-700 dark:bg-orange-500/20 dark:text-orange-400',
-    store: 'bg-pink-100 text-pink-700 dark:bg-pink-500/20 dark:text-pink-400',
-    client: 'bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400',
+    admin: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary-light',
+    tech: 'bg-orange-100 text-orange-700 dark:bg-orange-500/10 dark:text-orange-400',
+    store: 'bg-pink-100 text-pink-700 dark:bg-pink-500/10 dark:text-pink-400',
+    client: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-400',
   };
   return (
-    <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${colors[role] || 'bg-slate-100 text-slate-600'}`}>
+    <span className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${colors[role] || 'bg-slate-100 text-slate-600'}`}>
       {ROLE_LABELS[role] || role}
     </span>
   );
 };
 
 // ─── STAT CARD ────────────────────────────────────────────────
-const StatCard = ({ icon, label, value, color, desc, delta }) => (
-  <motion.div whileHover={{ y: -4 }} className="stat-card">
-    <div className={`stat-icon bg-${color}-600/10 text-${color}-600`}>{icon}</div>
+const StatCard = ({ icon, label, value, desc }) => (
+  <motion.div whileHover={{ y: -8 }} className="stat-card group">
+    <div className="stat-icon bg-primary/5 text-primary group-hover:bg-primary group-hover:text-white transition-all duration-500">{icon}</div>
     <div className="stat-info">
       <h4>{label}</h4>
       <p>{value}</p>
-      <span className="text-[10px] text-muted font-black uppercase tracking-wider">{desc}</span>
+      <span className="text-[11px] text-muted font-black uppercase tracking-[0.2em]">{desc}</span>
     </div>
   </motion.div>
 );
@@ -264,10 +264,10 @@ const Dashboard = () => {
 
   return (
     <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
-        <StatCard icon={<Calendar size={26} />} label="Citas Totales" value={stats.appointments} color="blue" desc="Registradas" />
-        <StatCard icon={<Users size={26} />} label="Usuarios" value={stats.users} color="indigo" desc="Registrados" />
-        <StatCard icon={<Store size={26} />} label="Sucursales" value={stats.stores} color="emerald" desc="Puntos activos" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 mb-12">
+        <StatCard icon={<Calendar size={32} />} label="Citas Totales" value={stats.appointments} desc="Servicios Agendados" />
+        <StatCard icon={<Users size={32} />} label="Ecosistema Usuarios" value={stats.users} desc="Total Registrados" />
+        <StatCard icon={<Store size={32} />} label="Sucursales J&P" value={stats.stores} desc="Puntos de Atención" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10">
@@ -621,60 +621,62 @@ const Sidebar = ({ user, onLogout }) => {
 
   return (
     <aside className="sidebar">
-      <div className="logo-container border-b border-white/10 pb-8">
-        <div className="bg-white p-2 rounded-xl shadow-lg">
-          <img src="/assets/logo.png" alt="J&P" className="logo-img" />
-        </div>
+      <div className="logo-container border-b border-white/5 pb-10">
+        <motion.div 
+          whileHover={{ rotate: -5, scale: 1.1 }}
+          className="bg-white p-3 rounded-2xl shadow-2xl ring-4 ring-white/5"
+        >
+          <img src="/assets/logo.png" alt="J&P" className="logo-img !w-10 !h-10" />
+        </motion.div>
         <div>
-          <span className="logo-text">J&P Admin</span>
-          <span className="block text-[10px] text-blue-400 font-black tracking-widest uppercase">Panel Central</span>
+          <span className="logo-text !text-xl">JyP <span className="text-primary text-2xl">Admin</span></span>
+          <span className="block text-[10px] text-primary/70 font-black tracking-[0.3em] uppercase mt-1">Sistemas Globales</span>
         </div>
       </div>
 
-      <nav className="flex-1 mt-6 space-y-1">
+      <nav className="flex-1 mt-10 space-y-2">
         {[
-          { to: '/', label: 'Inicio', icon: <LayoutDashboard size={20} /> },
-          { to: '/citas', label: 'Gestión de Citas', icon: <Calendar size={20} /> },
-          { to: '/usuarios', label: 'Usuarios', icon: <Users size={20} /> },
-          { to: '/pedidos', label: 'Pedidos', icon: <Package size={20} /> },
-          { to: '/sucursales', label: 'Sucursales', icon: <Store size={20} /> },
+          { to: '/', label: 'Dashboards', icon: <LayoutDashboard size={22} /> },
+          { to: '/citas', label: 'Citas & Servicios', icon: <Calendar size={22} /> },
+          { to: '/usuarios', label: 'Ecosistema Usuarios', icon: <Users size={22} /> },
+          { to: '/pedidos', label: 'Logística Pedidos', icon: <Package size={22} /> },
+          { to: '/sucursales', label: 'Sucursales J&P', icon: <Store size={22} /> },
         ].map(item => (
           <Link key={item.to} to={item.to} className={`nav-item ${isActive(item.to) ? 'active' : ''}`}>
-            {item.icon} {item.label}
+            {item.icon} <span className="tracking-tight">{item.label}</span>
           </Link>
         ))}
       </nav>
 
-      <div className="mt-auto">
-        {/* Dark mode toggle */}
+      <div className="mt-auto space-y-6">
         <button onClick={toggle}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-2xl bg-white/5 border border-white/5 mb-4 hover:bg-white/10 transition-all group">
-          <div className="flex items-center gap-2">
-            {dark ? <Sun size={14} className="text-yellow-400" /> : <Moon size={14} className="text-slate-400" />}
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-              {dark ? 'Modo Claro' : 'Modo Oscuro'}
+          className="w-full flex items-center justify-between px-6 py-4 rounded-[1.5rem] bg-white/2 border border-white/5 hover:bg-white/5 transition-all group">
+          <div className="flex items-center gap-3">
+            {dark ? <Sun size={16} className="text-amber-400" /> : <Moon size={16} className="text-slate-400" />}
+            <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.2em]">
+              Tema {dark ? 'Luz' : 'Noche'}
             </span>
           </div>
-          <div className={`w-10 h-5 rounded-full relative transition-colors duration-300 ${dark ? 'bg-blue-600' : 'bg-slate-600'}`}>
-            <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-md transition-all duration-300 ${dark ? 'left-5' : 'left-0.5'}`} />
+          <div className={`w-12 h-6 rounded-full relative transition-colors duration-500 ${dark ? 'bg-primary' : 'bg-slate-700'}`}>
+            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-lg transition-all duration-500 ${dark ? 'left-7' : 'left-1'}`} />
           </div>
         </button>
 
-        <div className="bg-white/5 p-4 rounded-2xl border border-white/5 mb-4">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center font-black text-white shadow-lg">
+        <div className="glass-card !bg-white/2 !p-5 !rounded-[1.75rem] border border-white/5 shadow-none">
+          <div className="flex items-center gap-4 mb-5">
+            <div className="w-12 h-12 rounded-[1.1rem] bg-gradient-to-br from-primary to-indigo-700 flex items-center justify-center font-black text-white shadow-xl text-lg">
               {user?.username?.[0]?.toUpperCase()}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="text-xs font-black text-white truncate">{user?.username || 'Admin'}</p>
-              <p className="text-[10px] text-slate-500 truncate">{user?.email}</p>
+              <p className="text-sm font-black text-white truncate tracking-tight">{user?.names || user?.username || 'Admin'}</p>
+              <p className="text-[10px] text-slate-600 truncate font-bold uppercase tracking-widest">{user?.role}</p>
             </div>
           </div>
-          <button onClick={onLogout} className="flex items-center justify-center w-full gap-2 px-4 py-2 bg-red-500/10 text-red-400 rounded-xl text-xs font-bold hover:bg-red-500 hover:text-white transition-all">
-            <LogOut size={14} /> Cerrar Sesión
+          <button onClick={onLogout} className="flex items-center justify-center w-full gap-3 px-5 py-3 bg-rose-500/10 text-rose-400 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all duration-300">
+            <LogOut size={16} /> Salir del Sistema
           </button>
         </div>
-        <p className="text-[8px] text-slate-700 font-bold uppercase tracking-[0.2em] text-center">v2.6 · J&P Systems</p>
+        <p className="text-[9px] text-slate-800 font-black uppercase tracking-[0.4em] text-center">Version 4.0.0-PRO</p>
       </div>
     </aside>
   );
@@ -728,21 +730,23 @@ function App() {
         <div className="app-container">
           <Sidebar user={user} onLogout={handleLogout} />
           <main className="main-content">
-            <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div>
-                <div className="flex items-center gap-2 mb-1 text-muted text-[10px] font-black uppercase tracking-widest">
-                  <LayoutDashboard size={13} /> Panel de Control
+            <header className="mb-14 flex flex-col md:flex-row md:items-center justify-between gap-8">
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 text-primary text-[11px] font-black uppercase tracking-[0.3em]">
+                  <LayoutDashboard size={14} /> Gestión Administrativa
                 </div>
-                <h1 className="text-4xl font-black tracking-tighter leading-none">
-                  Workspace <span className="text-blue-600">J&P</span>
+                <h1 className="text-5xl font-black tracking-tighter leading-none text-slate-900 dark:text-white">
+                  JyP <span className="text-primary italic">Workspace</span>
                 </h1>
-                <p className="text-muted font-medium mt-1 text-sm">Sistema de gestión integral J&P Servicio Técnico</p>
+                <p className="text-muted font-semibold text-base">Plataforma central de control técnico y logístico</p>
               </div>
-              <div className="glass-card px-6 py-3 flex items-center gap-4">
-                <div className="bg-blue-600/10 p-2 rounded-xl text-blue-600"><Calendar size={20} strokeWidth={2.5} /></div>
+              <div className="glass-card px-8 py-5 flex items-center gap-5 border-white/40 shadow-2xl">
+                <div className="bg-primary/10 p-3 rounded-2xl text-primary shadow-inner">
+                  <Calendar size={24} strokeWidth={2.5} />
+                </div>
                 <div>
-                  <p className="text-[9px] font-black text-muted uppercase tracking-widest mb-0.5">Fecha Actual</p>
-                  <span className="font-black text-sm">{new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Operación Activa</p>
+                  <span className="font-black text-base text-slate-800 dark:text-slate-100">{new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}</span>
                 </div>
               </div>
             </header>
@@ -753,7 +757,9 @@ function App() {
                 <Route path="/citas" element={<AppointmentsPage />} />
                 <Route path="/usuarios" element={<UsersPage />} />
                 <Route path="/pedidos" element={<OrdersPage />} />
-                <Route path="/sucursales" element={<StoreManagement />} />
+                <Route path="/sucursales" element={<StoreManagement user={user} />} />
+                <Route path="/sucursales/:id" element={<StoreManagement user={user} />} />
+                <Route path="/sucursales/:id/:tab" element={<StoreManagement user={user} />} />
                 <Route path="*" element={<Navigate to="/" />} />
               </Routes>
             </AnimatePresence>
