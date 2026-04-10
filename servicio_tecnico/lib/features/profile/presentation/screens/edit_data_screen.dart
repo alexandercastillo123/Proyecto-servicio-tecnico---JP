@@ -16,6 +16,7 @@ class _EditDataScreenState extends State<EditDataScreen> {
   final _idController = TextEditingController();
   final _phoneController = TextEditingController();
   final _locationController = TextEditingController();
+  final _descriptionController = TextEditingController();
 
   bool _isLoading = true;
   bool _isSaving = false;
@@ -47,6 +48,7 @@ class _EditDataScreenState extends State<EditDataScreen> {
           _usernameController.text = data?['username'] ?? '';
           _locationController.text =
               data?['reference_address'] ?? data?['address'] ?? '';
+          _descriptionController.text = data?['description'] ?? '';
           _isLoading = false;
         });
       } else if (mounted) {
@@ -92,6 +94,7 @@ class _EditDataScreenState extends State<EditDataScreen> {
         companyName: !isNatural ? _nameController.text : null,
         ruc: !isNatural ? _idController.text : null,
         referenceAddress: _locationController.text,
+        description: _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim(),
       );
 
       if (mounted) {
@@ -219,6 +222,13 @@ class _EditDataScreenState extends State<EditDataScreen> {
                       _locationController,
                       'Ubicación Cuartel General',
                     ),
+                    if (_profileData?['role'] == 'tech') ...[
+                      const SizedBox(height: 16),
+                      _buildField(
+                        _descriptionController,
+                        'Descripción Profesional',
+                      ),
+                    ],
                   ],
                 ),
               ),

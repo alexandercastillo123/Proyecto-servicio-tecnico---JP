@@ -17,7 +17,7 @@ const getTechnicians = async (req, res) => {
         up.person_type, up.names, up.surnames, up.dni,
         up.company_name, up.ruc, up.reference_address,
         up.rating, up.reviews_count,
-        up.latitude, up.longitude
+        up.latitude, up.longitude, up.description
       FROM users u
       INNER JOIN user_profiles up ON u.id = up.user_id
       WHERE u.role = 'tech'
@@ -101,7 +101,7 @@ const getTechnicianById = async (req, res) => {
         up.person_type, up.names, up.surnames, up.dni,
         up.company_name, up.ruc, up.reference_address,
         up.rating, up.reviews_count,
-        up.latitude, up.longitude
+        up.latitude, up.longitude, up.description
       FROM users u
       INNER JOIN user_profiles up ON u.id = up.user_id
       WHERE u.id = ? AND u.role = 'tech'`,

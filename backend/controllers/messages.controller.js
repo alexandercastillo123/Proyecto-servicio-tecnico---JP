@@ -15,7 +15,7 @@ const getConversations = async (req, res) => {
           WHEN sender_id = ? THEN receiver_id
           ELSE sender_id
         END as other_user_id,
-        u.email, u.username,
+        u.email, u.username, u.role as other_user_role,
         up.names, up.surnames, up.company_name, up.profile_image_url,
         MAX(cm.created_at) as last_message_time,
         COUNT(CASE WHEN cm.receiver_id = ? AND cm.is_read = FALSE THEN 1 END) as unread_count
@@ -28,7 +28,7 @@ const getConversations = async (req, res) => {
       )
       LEFT JOIN user_profiles up ON u.id = up.user_id
       WHERE sender_id = ? OR receiver_id = ?
-      GROUP BY other_user_id, u.email, u.username, up.names, up.surnames, up.company_name, up.profile_image_url
+      GROUP BY other_user_id, u.email, u.username, u.role, up.names, up.surnames, up.company_name, up.profile_image_url
       ORDER BY last_message_time DESC`,
             true,
             [userId, userId, userId, userId, userId]

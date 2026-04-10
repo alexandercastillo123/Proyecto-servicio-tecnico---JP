@@ -3,6 +3,9 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/services/technician_service.dart';
 import '../../../../core/services/store_service.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:geolocator/geolocator.dart';
 import '../../../../core/services/message_service.dart';
 
 class AppointmentSchedulingScreen extends StatefulWidget {
@@ -176,6 +179,37 @@ class _AppointmentSchedulingScreenState
         const SnackBar(content: Text('Por favor ingrese una descripción')),
       );
       return;
+    }
+
+    if (_serviceType == 'domicilio' && (_serviceLat == null || _serviceLng == null)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Obteniendo tu ubicación actual...')),
+      );
+      try {
+        Position position = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high);
+        setState(() {
+          _serviceLat = position.latitude;
+          _serviceLng = position.longitude;
+        });
+
+        final uri = Uri.parse(
+            'https://nominatim.openstreetmap.org/reverse?format=json&lat=$_serviceLat&lon=$_serviceLng&zoom=18&addressdetails=1');
+        final response = await http.get(uri, headers: {
+          'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
+        }).timeout(const Duration(seconds: 5));
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (data['display_name'] != null) {
+            setState(() {
+              _serviceAddress = data['display_name'];
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint('GPS fallback error: $e');
+      }
     }
 
     ScaffoldMessenger.of(

@@ -27,6 +27,7 @@ class UserService {
     String? companyName,
     String? ruc,
     String? referenceAddress,
+    String? description,
   }) async {
     return await _apiService.put<Map<String, dynamic>>(
       ApiConstants.updateProfile,
@@ -41,6 +42,7 @@ class UserService {
         if (companyName != null) 'companyName': companyName,
         if (ruc != null) 'ruc': ruc,
         if (referenceAddress != null) 'referenceAddress': referenceAddress,
+        if (description != null) 'description': description,
       },
       requiresAuth: true,
       fromJson: (data) => data as Map<String, dynamic>,

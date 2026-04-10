@@ -16,7 +16,7 @@ const getProfile = async (req, res) => {
         up.phone, up.profile_image_url, up.address, up.city,
         up.person_type, up.names, up.surnames, up.dni,
         up.company_name, up.ruc, up.reference_address,
-        up.rating, up.reviews_count, up.is_available
+        up.rating, up.reviews_count, up.is_available, up.description
       FROM users u
       LEFT JOIN user_profiles up ON u.id = up.user_id
       WHERE u.id = ?`,
@@ -61,7 +61,8 @@ const updateProfile = async (req, res) => {
             dni,
             companyName,
             ruc,
-            referenceAddress
+            referenceAddress,
+            description
         } = req.body;
 
         // If username is being updated, check if it's already taken by another user
@@ -94,9 +95,10 @@ const updateProfile = async (req, res) => {
         dni = COALESCE(?, dni),
         company_name = COALESCE(?, company_name),
         ruc = COALESCE(?, ruc),
-        reference_address = COALESCE(?, reference_address)
+        reference_address = COALESCE(?, reference_address),
+        description = COALESCE(?, description)
       WHERE user_id = ?`,
-            [phone, address, city, names, surnames, dni, companyName, ruc, referenceAddress, userId]
+            [phone, address, city, names, surnames, dni, companyName, ruc, referenceAddress, description, userId]
         );
 
         if (!dbRes.exito) {

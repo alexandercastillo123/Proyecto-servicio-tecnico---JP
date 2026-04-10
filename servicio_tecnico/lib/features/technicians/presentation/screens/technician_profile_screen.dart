@@ -163,9 +163,7 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                 child: profileImg.isNotEmpty
                     ? ClipOval(
                         child: Image.network(
-                          profileImg.startsWith('http')
-                              ? profileImg
-                              : '${ApiConstants.baseUrl}${profileImg.startsWith('/') ? '' : '/'}$profileImg',
+                          ApiConstants.getStorageUrl(profileImg),
                           fit: BoxFit.cover,
                           width: 120,
                           height: 120,
@@ -208,7 +206,21 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                 style: const TextStyle(color: Colors.grey, fontSize: 14, fontStyle: FontStyle.italic),
               ),
             ],
-            const SizedBox(height: 5),
+            if (tech['description'] != null && tech['description'].toString().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Text(
+                  tech['description'].toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(5, (index) {
@@ -281,38 +293,26 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
             const SizedBox(height: 24),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: const Color(0xFFEEEEEE),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Column(
-                children: [
-                  _buildReviewItem('Usuario Ejemplo', 5),
-                  const SizedBox(height: 10),
-                  _buildReviewItem('Otro Usuario', 4),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: 180,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD9D9D9),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Mostrar Más',
-                        style: TextStyle(
-                          color: Color(0xFF3B28FF),
-                          fontSize: 16,
-                        ),
+              child: const Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.rate_review_outlined, size: 40, color: Colors.grey),
+                    SizedBox(height: 12),
+                    Text(
+                      'No hay reseñas recientes\nSé el primero en valorar a este técnico.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 23),
@@ -344,54 +344,6 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
             const SizedBox(height: 40),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildReviewItem(String name, int stars) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF3B28FF), width: 2),
-            ),
-            child: const Icon(
-              Icons.person_outline,
-              size: 25,
-              color: Color(0xFF3B28FF),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: const TextStyle(
-                  color: Color(0xFF3B28FF),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Row(
-                children: List.generate(5, (index) {
-                  return Icon(
-                    index < stars ? Icons.star : Icons.star_border,
-                    color: const Color(0xFFFFD700),
-                    size: 18,
-                  );
-                }),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

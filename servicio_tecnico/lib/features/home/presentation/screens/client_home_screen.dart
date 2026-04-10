@@ -150,8 +150,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
               Icons.search_rounded,
             ),
 
-            if (_recentChats.isNotEmpty) 
-              anim.FadeInDown(child: _buildRecentBanner()),
+            if (_recentChats.where((c) => c['other_user_role'] == 'tech' || c['other_user_role'] == 'technician').isNotEmpty) 
+              anim.FadeInDown(child: _buildRecentTechBanner()),
 
             Expanded(
               child: Padding(
@@ -193,6 +193,9 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
               'Encuentra centros de servicio autorizados',
               Icons.storefront_rounded,
             ),
+
+            if (_recentChats.where((c) => c['other_user_role'] == 'store' || c['other_user_role'] == 'provider').isNotEmpty) 
+              anim.FadeInDown(child: _buildRecentStoreBanner()),
 
             Expanded(
               child: Padding(
@@ -266,33 +269,57 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     );
   }
 
-  Widget _buildRecentBanner() {
+  Widget _buildRecentTechBanner() {
     if (_isLoadingRecent) return const SizedBox.shrink();
-    final recent = _recentChats.first;
+    
+    // Filter to get only techs
+    final techs = _recentChats.where((c) => c['other_user_role'] == 'tech' || c['other_user_role'] == 'technician').toList();
+    if (techs.isEmpty) return const SizedBox.shrink();
+    
+    final recent = techs.first;
     final unread = (recent['unread_count'] ?? 0) as int;
     final name = recent['username'] ?? 'Técnico';
     final lastMsg = recent['last_message'] ?? '';
 
+    return _buildBannerWidget(recent, name, lastMsg, unread);
+  }
+
+  Widget _buildRecentStoreBanner() {
+    if (_isLoadingRecent) return const SizedBox.shrink();
+    
+    // Filter to get only stores
+    final stores = _recentChats.where((c) => c['other_user_role'] == 'store' || c['other_user_role'] == 'provider').toList();
+    if (stores.isEmpty) return const SizedBox.shrink();
+    
+    final recent = stores.first;
+    final unread = (recent['unread_count'] ?? 0) as int;
+    final name = recent['username'] ?? 'Sucursal J&P';
+    final lastMsg = recent['last_message'] ?? '';
+
+    return _buildBannerWidget(recent, name, lastMsg, unread, color: AppColors.textPrimary);
+  }
+
+  Widget _buildBannerWidget(dynamic chat, String name, String lastMsg, int unread, {Color? color}) {
     return GestureDetector(
       onTap: () => context.push(
         '/chat',
         extra: {
-          'receiverId': recent['other_user_id'],
+          'receiverId': chat['other_user_id'],
           'receiverName': name,
-          'receiverRole': recent['other_user_role'] ?? 'tech',
+          'receiverRole': chat['other_user_role'] ?? 'tech',
         },
       ),
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.primary,
+          color: color ?? AppColors.primary,
           borderRadius: BorderRadius.circular(24),
           boxShadow: AppColors.premiumShadow,
         ),
         child: Row(
           children: [
-            _buildAvatar(recent['profile_image_url'], true),
+            _buildAvatar(chat['profile_image_url'], true),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -355,7 +382,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         radius: 24,
         backgroundColor: isOverPrimary ? Colors.white12 : AppColors.primaryLight,
         backgroundImage: (url != null && url.isNotEmpty)
-            ? NetworkImage(url.startsWith('http') ? url : '${ApiConstants.baseUrl}/$url')
+            ? NetworkImage(ApiConstants.getStorageUrl(url))
             : null,
         child: (url == null || url.isEmpty)
             ? Icon(Icons.person, color: isOverPrimary ? Colors.white : AppColors.primary)

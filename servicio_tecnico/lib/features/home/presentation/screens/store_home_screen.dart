@@ -151,6 +151,98 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
     );
   }
 
+  Widget _buildRecentClientBanner() {
+    if (_recentChats.isEmpty) return const SizedBox.shrink();
+    
+    // Filter to get only clients
+    final clients = _recentChats.where((c) => c['other_user_role'] == 'client').toList();
+    if (clients.isEmpty) return const SizedBox.shrink();
+    
+    final recent = clients.first;
+    final unread = (recent['unread_count'] ?? 0) as int;
+    final name = recent['username'] ?? recent['email'] ?? 'Cliente';
+    final lastMsg = recent['last_message'] ?? '';
+
+    return GestureDetector(
+      onTap: () async {
+        await context.push('/chat', extra: recent['other_user_id']);
+        _loadRecentChats();
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 25),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: AppColors.softShadow,
+        ),
+        child: Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white24, width: 2),
+              ),
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.white12,
+                backgroundImage: (recent['profile_image_url'] != null)
+                    ? NetworkImage(ApiConstants.getStorageUrl(recent['profile_image_url']))
+                    : null,
+                child: (recent['profile_image_url'] == null)
+                    ? const Icon(Icons.person, color: Colors.white)
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    lastMsg,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (unread > 0)
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$unread',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              )
+            else
+              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildDashboard(user) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -183,7 +275,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
                   radius: 25,
                   backgroundColor: AppColors.primary.withOpacity(0.1),
                   backgroundImage: (_myStore?.imageUrl != null)
-                      ? NetworkImage('${ApiConstants.baseUrl}/${_myStore!.imageUrl}')
+                      ? NetworkImage(ApiConstants.getStorageUrl(_myStore!.imageUrl))
                       : null,
                   child: (_myStore?.imageUrl == null)
                       ? const Icon(Icons.store, color: AppColors.primary, size: 30)
@@ -230,6 +322,9 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
               ),
             ),
           ],
+          
+          const SizedBox(height: 25),
+          _buildRecentClientBanner(),
           const SizedBox(height: 30),
           Row(
             children: [
@@ -243,10 +338,10 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
           const SizedBox(height: 15),
           if (_loadingRecent)
             const Center(child: LinearProgressIndicator())
-          else if (_recentChats.isEmpty)
+          else if (_recentChats.where((c) => c['other_user_role'] == 'client').isEmpty)
             _buildEmptyState(Icons.chat_bubble_outline, 'No hay actividad de clientes aún')
           else
-            ..._recentChats.take(3).map((chat) => _buildRecentChatCard(chat)),
+            ..._recentChats.where((c) => c['other_user_role'] == 'client').take(3).map((chat) => _buildRecentChatCard(chat)),
         ],
       ),
     );

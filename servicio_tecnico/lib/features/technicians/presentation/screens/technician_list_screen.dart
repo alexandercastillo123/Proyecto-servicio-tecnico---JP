@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/services/technician_service.dart';
 import '../../domain/models/technician.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/constants/api_constants.dart';
 
 class TechnicianListScreen extends StatefulWidget {
   const TechnicianListScreen({super.key});
@@ -186,11 +187,7 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
                 radius: 24,
                 backgroundColor: Colors.white,
                 backgroundImage: tech.profileImageUrl.isNotEmpty
-                    ? NetworkImage(
-                        tech.profileImageUrl.startsWith('http')
-                            ? tech.profileImageUrl
-                            : 'http://10.0.2.2:3000${tech.profileImageUrl.startsWith('/') ? '' : '/'}${tech.profileImageUrl}',
-                      )
+                    ? NetworkImage(ApiConstants.getStorageUrl(tech.profileImageUrl))
                     : null,
                 child: tech.profileImageUrl.isEmpty
                     ? const Icon(

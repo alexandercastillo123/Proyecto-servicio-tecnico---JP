@@ -281,11 +281,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         radius: 75,
                         backgroundColor: Colors.white,
                         backgroundImage: profileImg.isNotEmpty
-                            ? NetworkImage(
-                                profileImg.startsWith('http')
-                                    ? profileImg
-                                    : '${ApiConstants.baseUrl}$profileImg',
-                              )
+                            ? NetworkImage(ApiConstants.getStorageUrl(profileImg))
                             : null,
                         child: profileImg.isEmpty
                             ? const Icon(
@@ -499,9 +495,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               radius: 18,
               backgroundColor: AppColors.primaryLight,
               backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
-                  ? NetworkImage(
-                      imageUrl.startsWith('http') ? imageUrl : '${ApiConstants.baseUrl}/$imageUrl',
-                    )
+                  ? NetworkImage(ApiConstants.getStorageUrl(imageUrl))
                   : null,
               child: (imageUrl == null || imageUrl.isEmpty)
                   ? const Icon(Icons.person, color: AppColors.primary, size: 20)

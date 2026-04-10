@@ -289,7 +289,7 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                 ),
                 child: (_store?.imageUrl != null)
                     ? Image.network(
-                        '${ApiConstants.baseUrl}/${_store!.imageUrl}',
+                        ApiConstants.getStorageUrl(_store!.imageUrl),
                         fit: BoxFit.cover,
                         errorBuilder: (c, e, s) => const Icon(Icons.store, size: 80, color: Colors.white54),
                       )
@@ -377,8 +377,16 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                                   decoration: BoxDecoration(
                                     color: Colors.grey[100],
                                     borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                                    image: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
+                                        ? DecorationImage(
+                                            image: NetworkImage(ApiConstants.getStorageUrl(p.imageUrl)),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null,
                                   ),
-                                  child: const Center(child: Icon(Icons.shopping_bag, color: Colors.grey, size: 40)),
+                                  child: (p.imageUrl == null || p.imageUrl!.isEmpty)
+                                      ? const Center(child: Icon(Icons.shopping_bag, color: Colors.grey, size: 40))
+                                      : null,
                                 ),
                               ),
                               Padding(

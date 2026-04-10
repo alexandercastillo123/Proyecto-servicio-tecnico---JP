@@ -25,6 +25,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
   List<dynamic> _proposals = [];
   List<dynamic> _completedJobs = [];
   List<dynamic> _consultations = [];
+  List<dynamic> _recentChats = [];
   bool _isLoading = true;
   String? _errorMessage;
   bool _togglingAvailability = false;
@@ -63,7 +64,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
               final otherId = c['other_user_id'].toString();
               return !proposalClientIds.contains(otherId);
             }).toList();
-
+            _recentChats = allConsultations;
             _isLoading = false;
           });
         }
@@ -132,6 +133,98 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
               .trim();
       return names.isNotEmpty ? names : 'Cliente';
     }
+  }
+
+  Widget _buildRecentClientBanner() {
+    if (_recentChats.isEmpty) return const SizedBox.shrink();
+    
+    // Filter to get only clients
+    final clients = _recentChats.where((c) => c['other_user_role'] == 'client').toList();
+    if (clients.isEmpty) return const SizedBox.shrink();
+    
+    final recent = clients.first;
+    final unread = (recent['unread_count'] ?? 0) as int;
+    final name = recent['username'] ?? recent['email'] ?? 'Cliente';
+    final lastMsg = recent['last_message'] ?? '';
+
+    return GestureDetector(
+      onTap: () async {
+        await context.push('/chat', extra: recent['other_user_id']);
+        _loadData();
+      },
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: AppColors.softShadow,
+        ),
+        child: Row(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white24, width: 2),
+              ),
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: Colors.white12,
+                backgroundImage: (recent['profile_image_url'] != null)
+                    ? NetworkImage(ApiConstants.getStorageUrl(recent['profile_image_url']))
+                    : null,
+                child: (recent['profile_image_url'] == null)
+                    ? const Icon(Icons.person, color: Colors.white)
+                    : null,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    lastMsg,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (unread > 0)
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$unread',
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+              )
+            else
+              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.white, size: 16),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -342,7 +435,9 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                         isConsultation: false,
                       ),
 
-                      const SizedBox(height: 20),
+                      _buildRecentClientBanner(),
+
+                      const SizedBox(height: 25),
                     ],
                   ),
                 ),
@@ -361,9 +456,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
         color: Color(0xFF3B28FF),
       );
     }
-    final url = rawUrl.startsWith('http')
-        ? rawUrl
-        : '${ApiConstants.baseUrl}${rawUrl.startsWith('/') ? '' : '/'}$rawUrl';
+    final url = ApiConstants.getStorageUrl(rawUrl);
     return Image.network(
       url,
       width: 50,

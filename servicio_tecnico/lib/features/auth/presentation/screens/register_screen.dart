@@ -1174,10 +1174,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           options: MapOptions(
                             initialCenter: initialCoordinates,
                             initialZoom: 15.0,
-                            onTap: (tapPosition, latLng) {
+                            onTap: (tapPosition, latLng) async {
                               setDialogState(() {
                                 currentMarker = latLng;
                               });
+                              try {
+                                final uri = Uri.parse(
+                                    'https://nominatim.openstreetmap.org/reverse?format=json&lat=${latLng.latitude}&lon=${latLng.longitude}&zoom=18&addressdetails=1');
+                                final response = await http.get(uri, headers: {
+                                  'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
+                                }).timeout(const Duration(seconds: 5));
+                                
+                                if (response.statusCode == 200) {
+                                  final data = jsonDecode(response.body);
+                                  if (data['display_name'] != null) {
+                                    setDialogState(() {
+                                      _referenceAddressController.text = data['display_name'];
+                                    });
+                                    setState(() {}); // Update main screen state as well
+                                  }
+                                }
+                              } catch (e) {
+                                debugPrint('Error reverse geocoding: $e');
+                              }
                             },
                           ),
                           children: [
