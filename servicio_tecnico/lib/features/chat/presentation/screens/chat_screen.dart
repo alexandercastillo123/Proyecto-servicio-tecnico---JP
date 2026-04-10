@@ -9,6 +9,7 @@ import '../../../../core/services/appointment_service.dart';
 import '../../../../core/services/technician_service.dart';
 import '../../../../core/services/store_service.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/constants/api_constants.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -181,6 +182,58 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
+  String _getSubtitleRole() {
+    if (_otherUserRole == 'tech' || _otherUserRole == 'technician') {
+      return 'Técnico Especialista';
+    } else if (_otherUserRole == 'store' || _otherUserRole == 'provider') {
+      return 'Sucursal J&P';
+    }
+    return 'Cliente';
+  }
+
+  Widget _buildAppBarAvatar() {
+    // Determine profile image by looking at recent messages
+    String? profileUrl;
+    try {
+      final msgWithPic = _messages.reversed.firstWhere(
+        (m) =>
+            m['profile_image_url'] != null &&
+            m['profile_image_url'].toString().isNotEmpty &&
+            !(m['is_me'] ?? false),
+        orElse: () => null,
+      );
+      if (msgWithPic != null) {
+        profileUrl = msgWithPic['profile_image_url'];
+      }
+    } catch (_) {}
+
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 2),
+      ),
+      child: CircleAvatar(
+        radius: 18,
+        backgroundColor: AppColors.primaryLight,
+        backgroundImage: (profileUrl != null && profileUrl.isNotEmpty)
+            ? NetworkImage(ApiConstants.getStorageUrl(profileUrl))
+            : null,
+        child: (profileUrl == null || profileUrl.isEmpty)
+            ? Text(
+                (_otherUserName ?? '?').isNotEmpty
+                    ? (_otherUserName ?? '?')[0].toUpperCase()
+                    : '?',
+                style: GoogleFonts.outfit(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              )
+            : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -198,31 +251,19 @@ class _ChatScreenState extends State<ChatScreen> {
             if (_otherUserId != null) {
               if (_otherUserRole == 'tech' || _otherUserRole == 'technician') {
                 context.push('/technician-profile', extra: _otherUserId);
+              } else if (_otherUserRole == 'store' || _otherUserRole == 'provider') {
+                context.push('/store-profile/$_otherUserId');
               } else {
-                context.push('/technician-profile', extra: _otherUserId);
+                // Client role - no action or show snackbar
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('No hay perfil público para clientes')),
+                );
               }
             }
           },
           child: Row(
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 2),
-                ),
-                child: CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppColors.primaryLight,
-                  child: Text(
-                    (_otherUserName ?? '?')[0].toUpperCase(),
-                    style: GoogleFonts.outfit(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
+              _buildAppBarAvatar(),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -238,9 +279,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       overflow: TextOverflow.ellipsis,
                     ),
                     Text(
-                      _otherUserRole == 'tech' || _otherUserRole == 'technician'
-                          ? 'Técnico Especialista'
-                          : 'Cliente',
+                      _getSubtitleRole(),
                       style: GoogleFonts.outfit(
                         color: AppColors.textSecondary,
                         fontSize: 12,
@@ -1565,32 +1604,22 @@ class _ChatScreenState extends State<ChatScreen> {
     if (latestOrderMsg == null) return null;
 
     final String status = latestOrderMsg['order_status'] ?? 'pending';
-    if (status == 'completed' ||
-        status == 'cancelled' ||
-        status == 'delivered') {
-      return null;
+    if (status == 'delivered') {
+      return null; // Don't show bar for terminal states
     }
 
     final int? orderId = latestOrderMsg['order_id'];
     final String productName =
         latestOrderMsg['order_product_name'] ?? 'Producto';
 
-    final bool isUserSender = latestOrderMsg['is_me'] == true ||
-        latestOrderMsg['sender_id'] == 'me' ||
-        (latestOrderMsg['sender_id'] != null &&
-            latestOrderMsg['sender_id'].toString() !=
-                _otherUserId?.toString());
+
 
     final List<dynamic> statusInfo = _getOrderStatusInfo(status);
     final Color statusColor = statusInfo[0];
     final String statusText = statusInfo[1];
 
-    final bool canConfirmOrder =
-        status == 'pending' && !isUserSender && (_userRole != 'client');
-    final bool canMarkAsShipped =
-        status == 'confirmed' && !isUserSender && (_userRole != 'client');
-    final bool canMarkAsDelivered =
-        status == 'shipped' && isUserSender && (_userRole == 'client');
+    final bool isTechOrStore = _userRole == 'tech' || _userRole == 'technician' || _userRole == 'provider' || _userRole == 'store' || _userRole == 'sucursal';
+    final bool canMarkAsDelivered = status == 'shipped' && !isTechOrStore;
 
     final String? deliveryAddress = latestOrderMsg['order_address'];
 
@@ -1708,40 +1737,24 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
           ],
-          if (canConfirmOrder || canMarkAsShipped || canMarkAsDelivered) ...[
+          if (canMarkAsDelivered) ...[
             const SizedBox(height: 15),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
                   if (orderId == null) return;
-                  if (canConfirmOrder) {
-                    _updateStoreOrderStatus(orderId, 'confirmed');
-                  }
-                  if (canMarkAsShipped) {
-                    _updateStoreOrderStatus(orderId, 'shipped');
-                  }
                   if (canMarkAsDelivered) {
                     _updateStoreOrderStatus(orderId, 'delivered');
                   }
                 },
-                icon: Icon(
-                  canConfirmOrder
-                      ? Icons.check_circle
-                      : (canMarkAsShipped ? Icons.local_shipping : Icons.done_all),
-                  size: 20,
-                ),
-                label: Text(
-                  canConfirmOrder
-                      ? 'CONFIRMAR PEDIDO'
-                      : (canMarkAsShipped
-                          ? 'MARCAR "EN CAMINO"'
-                          : 'RECIBA MI PEDIDO'),
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                icon: const Icon(Icons.done_all, size: 20),
+                label: const Text(
+                  'CONFIRMAR RECEPCIÓN',
+                  style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      canMarkAsDelivered ? Colors.green : AppColors.primary,
+                  backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
@@ -1757,40 +1770,20 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   List<dynamic> _getOrderStatusInfo(String status) {
-    Color statusColor = Colors.orange;
-    String statusText = 'Pendiente';
-
     switch (status) {
       case 'pending':
-        statusColor = Colors.orange;
-        statusText = 'Pendiente';
-        break;
+        return [Colors.orange, 'Pendiente ⏳'];
       case 'confirmed':
-        statusColor = Colors.blue;
-        statusText = 'Confirmado';
-        break;
+        return [Colors.blue, 'Confirmado ✔️'];
       case 'shipped':
-        statusColor = Colors.purple;
-        statusText = 'En camino';
-        break;
+        return [Colors.purple, 'En Camino 🚚'];
       case 'delivered':
-        statusColor = Colors.teal;
-        statusText = 'Entregado';
-        break;
-      case 'completed':
-        statusColor = Colors.green;
-        statusText = 'Completado';
-        break;
+        return [Colors.green, 'Entregado ✅'];
       case 'cancelled':
-        statusColor = Colors.red;
-        statusText = 'Cancelado';
-        break;
-      case 'expired':
-        statusColor = Colors.grey;
-        statusText = 'Expirado';
-        break;
+        return [Colors.red, 'Cancelado ❌'];
+      default:
+        return [Colors.grey, 'Desconocido ❓'];
     }
-    return [statusColor, statusText];
   }
 
   Widget _buildOrderBubble({
@@ -1810,6 +1803,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final double? lat = double.tryParse(orderLat?.toString() ?? '');
     final double? lng = double.tryParse(orderLng?.toString() ?? '');
+
+    final bool isTechOrStore = _userRole == 'tech' || _userRole == 'technician' || _userRole == 'provider' || _userRole == 'store' || _userRole == 'sucursal';
+    final bool canMarkAsDelivered = status == 'shipped' && !isTechOrStore;
 
     return Align(
       alignment: !isMe ? Alignment.centerLeft : Alignment.centerRight,
@@ -1926,6 +1922,30 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                   ],
                 ),
+                if (canMarkAsDelivered) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        if (orderId == null) return;
+                        _updateStoreOrderStatus(orderId, 'delivered');
+                      },
+                      icon: const Icon(Icons.check_circle_outline, size: 16),
+                      label: const Text(
+                        'CONFIRMAR RECEPCIÓN',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

@@ -33,9 +33,7 @@ class _ChangePhotoScreenState extends State<ChangePhotoScreen> {
       final rawUrl = res.data?['profile_image_url']?.toString().trim();
       if (rawUrl != null && rawUrl.isNotEmpty) {
         setState(() {
-          _currentPhotoUrl = rawUrl.startsWith('http')
-              ? rawUrl
-              : '${ApiConstants.baseUrl}/$rawUrl';
+          _currentPhotoUrl = ApiConstants.getStorageUrl(rawUrl);
         });
       }
     }

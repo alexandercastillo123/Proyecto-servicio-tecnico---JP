@@ -89,7 +89,6 @@ class _StoreMapWidgetState extends State<StoreMapWidget> {
       if (mounted) {
         setState(() {
           _clientLocation = LatLng(pos.latitude, pos.longitude);
-          _searchPoint = _clientLocation;
         });
 
         _mapController.move(_clientLocation!, 15.0);
@@ -119,8 +118,10 @@ class _StoreMapWidgetState extends State<StoreMapWidget> {
       _isSearchActive = true;
     }
 
-    final point = _searchPoint ?? _clientLocation;
-    if (point == null) return;
+    final point = _searchPoint ?? _mapController.camera.center;
+    if (isManual && _searchPoint == null) {
+      setState(() => _searchPoint = point);
+    }
 
     setState(() {
       _loadingStores = true;
@@ -356,7 +357,7 @@ class _StoreMapWidgetState extends State<StoreMapWidget> {
                       icon: Icons.my_location,
                     ),
                   ),
-                if (_searchPoint != null && _searchPoint != _clientLocation)
+                if (_searchPoint != null)
                   Marker(
                     point: _searchPoint!,
                     width: 40,

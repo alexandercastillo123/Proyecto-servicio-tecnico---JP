@@ -81,8 +81,25 @@ const StoreManagement = ({ user }) => {
     } catch (err) { alert('Error al subir imagen: ' + (err.response?.data?.mensaje || err.message)); }
     finally { setUploading(false); }
   };
-
   const f = (k) => ({ value: formData[k], onChange: e => setFormData(p => ({ ...p, [k]: e.target.value })) });
+
+  const handleAddressBlur = async () => {
+    if (!formData.address) return;
+    try {
+      const q = encodeURIComponent(`${formData.address}, ${formData.city || ''}, ${formData.country || ''}`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${q}`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        setFormData(p => ({ 
+          ...p, 
+          latitude: parseFloat(data[0].lat), 
+          longitude: parseFloat(data[0].lon) 
+        }));
+      }
+    } catch (err) {
+      console.error("Geocoding error:", err);
+    }
+  };
 
   if (loading) return (
     <div className="p-12 text-center text-muted text-xs font-black uppercase tracking-[0.4em]">
@@ -138,7 +155,7 @@ const StoreManagement = ({ user }) => {
                 <div className="lg:col-span-4 space-y-8">
                   <SectionLabel color="indigo" icon={<MapPin size={14}/>}>Localización Física</SectionLabel>
                   <div className="space-y-6">
-                    <Field label="Dirección Exacta" required icon={<MapPin size={16}/>} {...f('address')} />
+                    <Field label="Dirección Exacta" required icon={<MapPin size={16}/>} {...f('address')} onBlur={handleAddressBlur} />
                     <Field label="Ciudad Base" required icon={<Globe size={16}/>} {...f('city')} />
                     <Field label="Línea de Contacto" required icon={<Phone size={16}/>} {...f('phone')} />
                   </div>

@@ -102,7 +102,6 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
       if (mounted) {
         setState(() {
           _clientLocation = LatLng(pos.latitude, pos.longitude);
-          _servicePoint = _clientLocation;
           _loadingLocation = false;
         });
         _mapController.move(_clientLocation!, 15.0);
@@ -130,8 +129,11 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
       _isSearchActive = true;
     }
 
-    final point = _servicePoint ?? _clientLocation;
-    if (point == null) return;
+    final point = _servicePoint ?? _mapController.camera.center;
+    
+    if (isManual && _servicePoint == null) {
+      setState(() => _servicePoint = point);
+    }
 
     if (mounted) {
       setState(() {
@@ -508,7 +510,7 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
                     ),
                   ),
 
-                if (_servicePoint != null && _servicePoint != _clientLocation)
+                if (_servicePoint != null)
                   Marker(
                     point: _servicePoint!,
                     width: 50,

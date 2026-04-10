@@ -1,9 +1,13 @@
 class ApiConstants {
   // Base URL - Use 10.0.2.2 for Android Emulator, or your local IP for physical devices
   static const String baseUrl = 'http://10.0.2.2:3000/api';
+  
+  // Storage URL for static files (images, etc)
+  static const String storageUrl = 'http://10.0.2.2:3000/uploads';
 
   // Your machine's local IP (useful for physical devices)
   // static const String baseUrl = 'http://192.168.1.57:3000/api';
+  // static const String storageUrl = 'http://192.168.1.57:3000/uploads';
 
   // Authentication Endpoints
   static const String auth = '$baseUrl/auth';
@@ -46,6 +50,22 @@ class ApiConstants {
   static String rejectOffer(int id) => '$baseUrl/messages/offer/$id/reject';
   static String cancelOffer(int id) => '$baseUrl/messages/offer/$id/cancel';
   static String markAsRead(int id) => '$baseUrl/messages/$id/read';
+
+  /// Helper to get the full storage URL for an image path
+  static String getStorageUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    
+    // Remove leading slash if any
+    String cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    
+    // Remove "uploads/" prefix if it exists in the stored path
+    if (cleanPath.startsWith('uploads/')) {
+      cleanPath = cleanPath.substring(8);
+    }
+    
+    return '$storageUrl/$cleanPath';
+  }
 
   // Store / Sucursales Endpoints
   static const String sucursales = '$baseUrl/sucursales';
