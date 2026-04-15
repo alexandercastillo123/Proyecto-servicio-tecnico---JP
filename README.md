@@ -54,3 +54,4 @@ flutter run
 
 ## ✒️ Autor
 **Alexander Castillo** - *Desarrollo y mantenimiento*
+**Johan Pa** - *Desarrollo y mantenimiento*
