@@ -143,6 +143,7 @@ class StoreService {
       ApiConstants.uploadStoreImage,
       filePath,
       fieldName: 'image',
+      fromJson: (json) => json['url'] as String,
     );
   }
 
@@ -152,6 +153,7 @@ class StoreService {
       ApiConstants.uploadProductImage,
       filePath,
       fieldName: 'image',
+      fromJson: (json) => json['url'] as String,
     );
   }
 
