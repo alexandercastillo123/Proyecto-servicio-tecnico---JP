@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:path/path.dart' as p;
 
 class ApiResponse<T> {
   final bool success;
@@ -167,7 +169,19 @@ class ApiService {
     T Function(dynamic)? fromJson,
   }) async {
     try {
-      final file = await http.MultipartFile.fromPath(fieldName, filePath);
+      final extension = p.extension(filePath).toLowerCase();
+      String type = 'image';
+      String subtype = 'jpeg'; // default
+
+      if (extension == '.png') subtype = 'png';
+      if (extension == '.webp') subtype = 'webp';
+      if (extension == '.gif') subtype = 'gif';
+
+      final file = await http.MultipartFile.fromPath(
+        fieldName,
+        filePath,
+        contentType: MediaType(type, subtype),
+      );
       return postMultipart<T>(url, {}, file, requiresAuth: requiresAuth, fromJson: fromJson);
     } catch (e) {
       return ApiResponse(

@@ -39,10 +39,20 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
+    // Verificar por mimetype
+    const isImageMime = file.mimetype.startsWith('image/');
+    
+    // Verificar por extensión (fallback si el mimetype es genérico o falta)
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
+    const extension = path.extname(file.originalname).toLowerCase();
+    const isImageExtension = allowedExtensions.includes(extension);
+
+    if (isImageMime || isImageExtension) {
         cb(null, true);
     } else {
-        cb(new Error('Solo se permiten imágenes'), false);
+        const error = new Error('Solo se permiten imágenes (.jpg, .png, .webp)');
+        error.statusCode = 400; // Sugerir status code
+        cb(error, false);
     }
 };
 
@@ -57,10 +67,22 @@ const upload = multer({
  */
 upload.getRelativePath = (file) => {
     if (!file) return null;
-    // req.file.path suele ser "uploads/category/filename.ext" o "uploads\category\filename.ext"
-    // Queremos "category/filename.ext"
-    const normalizedPath = file.path.replace(/\\/g, '/');
-    return normalizedPath.replace(`${UPLOAD_BASE}`, '');
+    
+    // Normalizar a barras hacia adelante para consistencia
+    let normalizedPath = file.path.replace(/\\/g, '/');
+    
+    // Eliminar el prefijo de uploads si existe (con o sin barra final)
+    const base = UPLOAD_BASE.replace(/\\/g, '/');
+    if (normalizedPath.startsWith(base)) {
+        normalizedPath = normalizedPath.substring(base.length);
+    }
+    
+    // Asegurar que no empiece con barra inclinada
+    if (normalizedPath.startsWith('/')) {
+        normalizedPath = normalizedPath.substring(1);
+    }
+    
+    return normalizedPath;
 };
 
 module.exports = upload;

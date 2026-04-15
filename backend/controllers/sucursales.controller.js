@@ -141,7 +141,7 @@ const getStoreProducts = async (req, res) => {
 const addStoreProduct = async (req, res) => {
     let respuesta = new Respuesta();
     try {
-        const { sucursal_id, name, description, price, image_url, category, brand, sku } = req.body;
+        const { sucursal_id, name, description, price, image_url, category, brand, sku, is_available } = req.body;
         const userId = req.user.id;
 
         if (!sucursal_id || !name || !price) {
@@ -158,11 +158,11 @@ const addStoreProduct = async (req, res) => {
         }
 
         const query = `
-            INSERT INTO store_products (sucursal_id, name, description, price, image_url, category, brand, sku)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO store_products (sucursal_id, name, description, price, image_url, category, brand, sku, is_available)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
 
-        await db.ejecutar(query, [sucursal_id, name, description, price, image_url, category, brand, sku]);
+        await db.ejecutar(query, [sucursal_id, name, description, price, image_url, category, brand, sku, is_available ?? true]);
 
         respuesta.exito = true;
         respuesta.estado = 201;

@@ -6,6 +6,7 @@ import {
   Clock, Edit2, Trash2, Plus, Image as ImageIcon, Tag, User, ChevronDown, CheckCircle, XCircle, MoreVertical, ExternalLink, ShieldCheck, Layers
 } from 'lucide-react';
 import { storeService, adminService } from './services/api';
+import { getImageUrl } from './utils/urlUtils';
 
 // ─────────────────────────── TABS ──────────────────────────────
 const TABS = [
@@ -83,7 +84,7 @@ const ProductsTab = ({ storeId, isAdmin }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [uploading, setUploading] = useState(false);
-  const emptyForm = { name: '', description: '', price: '', image_url: '', category: '', brand: '', sku: '' };
+  const emptyForm = { name: '', description: '', price: '', image_url: '', category: '', brand: '', sku: '', is_available: true };
   const [form, setForm] = useState(emptyForm);
 
   useEffect(() => { fetchProducts(); }, [storeId]);
@@ -112,7 +113,7 @@ const ProductsTab = ({ storeId, isAdmin }) => {
     } catch (err) { alert('Error: ' + (err.response?.data?.mensaje || err.message)); }
   };
 
-  const handleEdit = (p) => { setEditingId(p.id); setForm({ name: p.name, description: p.description || '', price: p.price, image_url: p.image_url || '', category: p.category || '', brand: p.brand || '', sku: p.sku || '' }); setShowForm(true); };
+  const handleEdit = (p) => { setEditingId(p.id); setForm({ name: p.name, description: p.description || '', price: p.price, image_url: p.image_url || '', category: p.category || '', brand: p.brand || '', sku: p.sku || '', is_available: p.is_available ?? true }); setShowForm(true); };
   const handleDelete = async (id) => { if (!window.confirm('¿Eliminar este producto?')) return; await storeService.deleteProduct(id); fetchProducts(); };
 
   if (loading) return <Spinner />;
@@ -146,6 +147,16 @@ const ProductsTab = ({ storeId, isAdmin }) => {
                   <FormField label="Categoría Técnica" value={form.category} onChange={v => setForm(f => ({ ...f, category: v }))} />
                 </div>
                 <FormField label="Descripción Detallada" value={form.description} onChange={v => setForm(f => ({ ...f, description: v }))} textarea />
+                <div className="flex items-center gap-4 bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-100 dark:border-white/10">
+                  <div className="flex-1">
+                    <h4 className="text-sm font-black text-slate-800 dark:text-white">Estado de Disponibilidad</h4>
+                    <p className="text-[11px] text-muted font-medium mt-1">Si se desactiva, los clientes no podrán cotizar este artículo.</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" checked={form.is_available} onChange={e => setForm(f => ({ ...f, is_available: e.target.checked }))} />
+                    <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-primary"></div>
+                  </label>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   <FormField label="Precio Base (S/)" type="number" step="0.01" required value={form.price} onChange={v => setForm(f => ({ ...f, price: v }))} />
                   <FormField label="Marca / Fabricante" value={form.brand} onChange={v => setForm(f => ({ ...f, brand: v }))} />
@@ -158,7 +169,7 @@ const ProductsTab = ({ storeId, isAdmin }) => {
                   <label className="block text-[11px] font-black uppercase text-slate-400 mb-6 tracking-[0.3em]">Identidad del Item</label>
                   <div className="flex flex-col gap-6 items-center">
                     <div className="w-full h-56 rounded-[2.5rem] bg-slate-50 dark:bg-white/5 border-2 border-dashed border-slate-200 dark:border-white/10 flex items-center justify-center overflow-hidden shadow-inner group">
-                      {form.image_url ? <img src={`/uploads/${form.image_url}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /> : <ImageIcon className="text-slate-300" size={56} />}
+                      {form.image_url ? <img src={getImageUrl(form.image_url)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" /> : <ImageIcon className="text-slate-300" size={56} />}
                     </div>
                     <div className="w-full space-y-3">
                       <input type="file" accept="image/*" onChange={handleImage} className="hidden" id="pimg" />
@@ -183,7 +194,7 @@ const ProductsTab = ({ storeId, isAdmin }) => {
         {products.map((p, i) => (
           <motion.div key={p.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }} className="glass-card !p-0 overflow-hidden group hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 border-white/20">
             <div className="h-48 bg-slate-100 dark:bg-white/5 relative overflow-hidden flex items-center justify-center">
-              {p.image_url ? <img src={`/uploads/${p.image_url}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" /> : <ImageIcon size={48} className="text-slate-200 dark:text-slate-700" />}
+              {p.image_url ? <img src={getImageUrl(p.image_url)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000" /> : <ImageIcon size={48} className="text-slate-200 dark:text-slate-700" />}
                 {!isAdmin && (
                   <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 duration-300">
                     <button onClick={() => handleEdit(p)} className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-800/90 text-primary shadow-xl hover:scale-110 active:scale-95 transition-all"><Edit2 size={14} /></button>
@@ -430,7 +441,7 @@ const StoreDetail = ({ storeId, user, onBack }) => {
             whileHover={{ scale: 1.05, rotate: -2 }}
             className="w-32 h-32 rounded-[2.5rem] bg-white dark:bg-white/5 border-4 border-white/20 shadow-3xl flex items-center justify-center overflow-hidden flex-shrink-0"
           >
-            {store.image_url ? <img src={`/uploads/${store.image_url}`} className="w-full h-full object-cover" /> : <Store size={48} className="text-primary/20" />}
+            {store.image_url ? <img src={getImageUrl(store.image_url)} className="w-full h-full object-cover" /> : <Store size={48} className="text-primary/20" />}
           </motion.div>
           <div className="space-y-3">
              <div className="flex flex-wrap items-center gap-4">

@@ -40,7 +40,8 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
       if (mounted) {
         setState(() {
           _store = res.data;
-          _products = resProd.data ?? [];
+          // Filtrar productos inactivos para el cliente
+          _products = (resProd.data ?? []).where((p) => p.isAvailable).toList();
           _isLoading = false;
         });
       }
