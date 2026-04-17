@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS user_profiles (
     company_name VARCHAR(255), -- Para persona jurídica
     ruc VARCHAR(20) UNIQUE,    -- Para persona jurídica
     reference_address TEXT,    -- Para técnicos
+    description TEXT,          -- Bio/Descripción del técnico o empresa
     rating DECIMAL(2,1) DEFAULT 0,
     reviews_count INT DEFAULT 0,
     latitude DECIMAL(10, 8) DEFAULT NULL,  -- Coordenadas del técnico (geocodificadas)
