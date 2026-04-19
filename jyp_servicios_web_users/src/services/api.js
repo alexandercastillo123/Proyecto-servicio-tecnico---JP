@@ -25,7 +25,9 @@ api.interceptors.response.use((response) => {
   if (error.response?.status === 401) {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    window.location.href = '/login';
+    if (window.location.pathname !== '/login' && window.location.pathname !== '/') {
+      window.location.href = '/login';
+    }
   }
   return Promise.reject(error);
 });
@@ -64,6 +66,17 @@ export const storeService = {
   getProducts: (branchId) => api.get(`/sucursales/${branchId}/products`),
   getOrders: (branchId) => api.get(`/sucursales/orders/store/${branchId}`),
   updateOrderStatus: (id, status) => api.patch(`/sucursales/orders/${id}/status`, { status }),
+  createBranch: (data) => api.post('/sucursales', data),
+};
+
+export const messageService = {
+  getConversations: () => api.get('/messages/conversations'),
+  getMessages: (userId) => api.get(`/messages/${userId}`),
+  sendMessage: (data) => api.post('/messages', data),
+  sendOffer: (data) => api.post('/messages/offer', data),
+  acceptOffer: (id) => api.put(`/messages/offer/${id}/accept`),
+  rejectOffer: (id) => api.put(`/messages/offer/${id}/reject`),
+  cancelOffer: (id) => api.put(`/messages/offer/${id}/cancel`),
 };
 
 export default api;

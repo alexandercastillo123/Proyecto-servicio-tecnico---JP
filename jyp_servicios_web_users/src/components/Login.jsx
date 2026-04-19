@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Lock, LogIn, AlertCircle, ShieldCheck } from 'lucide-react';
 import { authService } from '../services/api';
 
 const Login = ({ onLogin }) => {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -81,6 +83,11 @@ const Login = ({ onLogin }) => {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
+              <div className="flex justify-end mt-2">
+                <span onClick={() => navigate('/forgot-password')} className="text-[11px] text-[#3B28FF] font-black uppercase tracking-widest cursor-pointer hover:underline">
+                  ¿Olvidaste tu contraseña?
+                </span>
+              </div>
             </div>
 
             {error && (
@@ -105,7 +112,7 @@ const Login = ({ onLogin }) => {
 
           <div className="mt-8 text-center pt-8 border-t border-white/5">
             <p className="text-slate-500 text-sm font-medium">
-              ¿No tienes una cuenta? <span className="text-[#3B28FF] font-black cursor-pointer hover:underline">Regístrate aquí</span>
+              ¿No tienes una cuenta? <span onClick={() => navigate('/register')} className="text-[#3B28FF] font-black cursor-pointer hover:underline">Regístrate aquí</span>
             </p>
           </div>
         </div>
