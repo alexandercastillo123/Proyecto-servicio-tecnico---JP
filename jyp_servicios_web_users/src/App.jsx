@@ -9,6 +9,16 @@ import Layout from './components/Layout';
 import ClientDashboard from './components/ClientDashboard';
 import TechDashboard from './components/TechDashboard';
 import StoreDashboard from './components/StoreDashboard';
+import TechnicianList from './components/TechnicianList';
+import TechnicianProfile from './components/TechnicianProfile';
+import AppointmentScheduling from './components/AppointmentScheduling';
+import AppointmentList from './components/AppointmentList';
+import AppointmentDetails from './components/AppointmentDetails';
+import Chat from './components/Chat';
+import ProfileEdit from './components/ProfileEdit';
+import StoreCreate from './components/StoreCreate';
+import StoreList from './components/StoreList';
+import StoreProfile from './components/StoreProfile';
 import './index.css';
 
 function App() {
@@ -25,9 +35,9 @@ function App() {
 
   if (loading) {
     return (
-      <div className="h-screen bg-[#05060A] flex flex-col items-center justify-center">
+      <div className="h-screen bg-[#020306] flex flex-col items-center justify-center">
         <div className="w-12 h-12 border-4 border-[#3B28FF] border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-[#3B28FF] font-black text-xs uppercase tracking-widest">Cargando Sistema...</p>
+        <p className="text-[#3B28FF] font-black text-xs uppercase tracking-widest">Iniciando J&P...</p>
       </div>
     );
   }
@@ -60,7 +70,19 @@ function App() {
             <Navigate to="/login" />
           } />
           
-          {/* Add more role-specific nested routes here as needed */}
+          {/* General Features */}
+          <Route path="technicians" element={<TechnicianList />} />
+          <Route path="technician/:id" element={<TechnicianProfile />} />
+          <Route path="appointments" element={<AppointmentList />} />
+          <Route path="appointments/schedule" element={<AppointmentScheduling />} />
+          <Route path="appointments/:id" element={<AppointmentDetails />} />
+          <Route path="chat" element={<Chat />} />
+          <Route path="profile" element={<ProfileEdit />} />
+          
+          {/* Store Specific */}
+          <Route path="stores" element={<StoreList />} />
+          <Route path="stores/create" element={<StoreCreate />} />
+          <Route path="store/:id" element={<StoreProfile />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" />} />

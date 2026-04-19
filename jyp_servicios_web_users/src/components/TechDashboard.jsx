@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { 
   Calendar, CheckCircle, Clock, AlertCircle, 
   DollarSign, TrendingUp, User, MapPin, Edit3,
-  Power, Bell, ChevronRight, Zap, Target
+  Power, Bell, ChevronRight, Zap, Target, Star
 } from 'lucide-react';
 import { techService } from '../services/api';
 import { 
