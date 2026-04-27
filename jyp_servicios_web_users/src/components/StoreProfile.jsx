@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { 
   Store, MapPin, Phone, Info, ShoppingCart, 
@@ -14,6 +14,9 @@ const StoreProfile = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [orderingProduct, setOrderingProduct] = useState(null);
+  const [orderLoading, setOrderLoading] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchStoreData();
@@ -24,19 +27,38 @@ const StoreProfile = () => {
       // In a real scenario, we might need a getStoreById. 
       // For now, we fetch branches and find the one.
       const branchesResp = await storeService.getBranches();
-      if (branchesResp.data.success) {
-        const found = branchesResp.data.data.find(b => b.id == id);
+      if (branchesResp.data.exito) {
+        const found = branchesResp.data.resultado.find(b => b.id == id);
         setStore(found);
       }
       
       const productsResp = await storeService.getProducts(id);
-      if (productsResp.data.success) {
-        setProducts(productsResp.data.data);
+      if (productsResp.data.exito) {
+        setProducts(productsResp.data.resultado || []);
       }
     } catch (error) {
       console.error('Error fetching store data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+  const handleCreateOrder = async () => {
+    if (!orderingProduct) return;
+    setOrderLoading(true);
+    try {
+      const resp = await storeService.createOrder({
+        product_id: orderingProduct.id,
+        quantity: 1
+      });
+      if (resp.data.exito) {
+        alert('Pedido realizado con éxito. Puedes verlo en tu lista de pedidos.');
+        setOrderingProduct(null);
+      }
+    } catch (error) {
+      console.error('Error creating order:', error);
+      alert('Error al realizar el pedido.');
+    } finally {
+      setOrderLoading(false);
     }
   };
 
@@ -75,10 +97,22 @@ const StoreProfile = () => {
               </div>
             </div>
           </div>
-          <button className="btn-primary px-10 py-5 shadow-xl shadow-primary/20 flex items-center gap-3">
-             <ShoppingCart size={20} />
-             Ver Orden
-          </button>
+          <div className="flex flex-col gap-3">
+            <button 
+              onClick={() => navigate(`/appointments/schedule?store=${id}`)}
+              className="btn-primary px-10 py-4 shadow-xl shadow-primary/20 flex items-center justify-center gap-3"
+            >
+               <Clock size={20} />
+               Agendar Cita
+            </button>
+            <button 
+              onClick={() => navigate('/orders')}
+              className="bg-white/5 text-white px-10 py-4 rounded-2xl font-black text-xs uppercase tracking-widest border border-white/10 hover:bg-white/10 transition-all flex items-center justify-center gap-3"
+            >
+               <ShoppingCart size={20} />
+               Ver Pedidos
+            </button>
+          </div>
         </div>
       </section>
 
@@ -156,8 +190,11 @@ const StoreProfile = () => {
                         <p className="text-[10px] font-black text-text-dim uppercase tracking-widest mb-1">Precio</p>
                         <p className="text-2xl font-black text-white">S/.{p.price}</p>
                      </div>
-                     <button className="bg-primary text-white p-4 rounded-2xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20">
-                        <Plus size={20} />
+                     <button 
+                        onClick={() => setOrderingProduct(p)}
+                        className="bg-primary text-white p-4 rounded-2xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 group-hover:scale-110"
+                      >
+                        <ShoppingCart size={20} />
                      </button>
                   </div>
                 </motion.div>
@@ -172,6 +209,47 @@ const StoreProfile = () => {
           </div>
         </div>
       </div>
+      {/* Order Confirmation Modal */}
+      {orderingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background/80 backdrop-blur-md">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="glass-panel max-w-md w-full p-8 space-y-6"
+          >
+            <div className="flex items-center gap-4">
+               <div className="w-12 h-12 bg-primary/20 rounded-2xl flex items-center justify-center text-primary">
+                 <ShoppingCart size={24} />
+               </div>
+               <div>
+                 <h3 className="text-xl font-black text-white">Confirmar Pedido</h3>
+                 <p className="text-text-dim text-xs">Estás por solicitar este producto.</p>
+               </div>
+            </div>
+
+            <div className="p-4 bg-white/5 rounded-2xl border border-white/10">
+               <p className="text-white font-bold">{orderingProduct.name}</p>
+               <p className="text-primary font-black text-lg">S/.{orderingProduct.price}</p>
+            </div>
+
+            <div className="flex gap-4">
+               <button 
+                onClick={() => setOrderingProduct(null)}
+                className="flex-1 py-4 bg-white/5 text-white font-black text-xs uppercase rounded-xl hover:bg-white/10 transition-all"
+               >
+                 Cancelar
+               </button>
+               <button 
+                onClick={handleCreateOrder}
+                disabled={orderLoading}
+                className="flex-1 py-4 bg-primary text-white font-black text-xs uppercase rounded-xl hover:bg-primary-dark transition-all shadow-lg shadow-primary/20 disabled:opacity-50"
+               >
+                 {orderLoading ? 'Procesando...' : 'Confirmar'}
+               </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };

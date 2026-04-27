@@ -46,7 +46,7 @@ router.put(
     '/:id/status',
     authenticate,
     [
-        body('status').isIn(['pending', 'confirmed', 'completed', 'cancelled'])
+        body('status').isIn(['pending', 'confirmed', 'completed', 'cancelled', 'arrived', 'in_progress'])
             .withMessage('Invalid status value')
     ],
     validate,

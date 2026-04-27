@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Store, MapPin, Search, Filter, 
   ChevronRight, Phone, Clock, ShoppingCart,
-  ArrowRight
+  ArrowRight, X, Zap, Target, Star, ShieldCheck, RefreshCw, Navigation
 } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import { storeService } from '../services/api';
-import { Link } from 'react-router-dom';
+import { storeService, messageService } from '../services/api';
+import { Link, useNavigate } from 'react-router-dom';
 
 // Fix Leaflet icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -18,183 +18,243 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
-const StoreList = () => {
-  const [stores, setStores] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'map'
+const storeIcon = new L.Icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/869/869636.png',
+  iconSize: [40, 40],
+  iconAnchor: [20, 40],
+  popupAnchor: [0, -40],
+});
 
+const userIcon = new L.Icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/7114/7114757.png',
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+});
+
+const RecenterMap = ({ coords }) => {
+  const map = useMap();
   useEffect(() => {
-    fetchStores();
-  }, []);
+    if (coords) map.setView(coords, map.getZoom());
+  }, [coords, map]);
+  return null;
+};
+
+const StoreList = () => {
+  const navigate = useNavigate();
+  const [stores, setStores] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+
+  const [userLocation, setUserLocation] = useState(() => {
+    const saved = localStorage.getItem('user_location');
+    return saved ? JSON.parse(saved) : { 
+      address: 'Lima Centro',
+      lat: -12.046374, 
+      lng: -77.042793 
+    };
+  });
+
+  const [mapCenter, setMapCenter] = useState([userLocation.lat, userLocation.lng]);
+  const [tempMarker, setTempMarker] = useState([userLocation.lat, userLocation.lng]);
 
   const fetchStores = async () => {
+    setLoading(true);
     try {
-      const resp = await storeService.getBranches();
-      if (resp.data.success) {
-        setStores(resp.data.data);
+      const params = {
+        lat: tempMarker[0],
+        lng: tempMarker[1],
+        radius: 10
+      };
+      const resp = await storeService.getNearbyBranches(params);
+      if (resp.data.exito) {
+        setStores(resp.data.resultado || []);
+        setHasSearched(true);
       }
     } catch (error) {
       console.error('Error fetching stores:', error);
     } finally {
+      setLoading(false);
+      setIsSearching(false);
+    }
+  };
+
+  const MapEvents = () => {
+    useMapEvents({
+      dblclick(e) {
+        const { lat, lng } = e.latlng;
+        setTempMarker([lat, lng]);
+      },
+    });
+    return null;
+  };
+
+  const handleManualSearch = async () => {
+    if (!tempMarker) return;
+    
+    setIsSearching(true);
+    setLoading(true);
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${tempMarker[0]}&lon=${tempMarker[1]}`);
+      const data = await response.json();
+      
+      const newLoc = {
+        lat: tempMarker[0],
+        lng: tempMarker[1],
+        address: data.display_name || 'Ubicación Seleccionada'
+      };
+
+      setUserLocation(newLoc);
+      localStorage.setItem('user_location', JSON.stringify(newLoc));
+      await fetchStores();
+      
+    } catch (error) {
+      console.error('Manual search failed:', error);
+      setIsSearching(false);
       setLoading(false);
     }
   };
 
   const filteredStores = stores.filter(s => 
     s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.city?.toLowerCase().includes(searchTerm.toLowerCase())
+    s.address?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-        <div>
-          <h1 className="text-3xl font-black gradient-text">Tiendas y Sucursales</h1>
-          <p className="text-text-secondary text-sm">Encuentra repuestos y accesorios originales cerca de ti.</p>
-        </div>
+    <div className="max-w-7xl mx-auto space-y-8 font-outfit animate-in fade-in duration-700">
+      
+      <header className="px-4">
+          <h1 className="text-4xl font-black text-white tracking-tight mb-2">
+            Tiendas <span className="text-primary">Oficiales</span>
+          </h1>
+          <p className="text-slate-500 text-sm font-medium">Busca sucursales autorizadas para repuestos y soporte técnico.</p>
+      </header>
 
-        <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5">
-          <button 
-            onClick={() => setViewMode('list')}
-            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'list' ? 'bg-primary text-white' : 'text-text-dim hover:text-white'}`}
-          >
-            Lista
-          </button>
-          <button 
-            onClick={() => setViewMode('map')}
-            className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${viewMode === 'map' ? 'bg-primary text-white' : 'text-text-dim hover:text-white'}`}
-          >
-            Mapa
-          </button>
-        </div>
-      </div>
+      <div className="flex flex-col lg:flex-row h-[700px] gap-6 px-4">
+        
+        <div className="w-full lg:w-[400px] flex flex-col gap-6 overflow-hidden">
+          <div className="glass-panel p-4 border-white/5 shadow-xl">
+             <div className="relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+                <input 
+                  type="text" 
+                  placeholder="Filtrar tiendas..." 
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+             </div>
+          </div>
 
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-dim" size={18} />
-          <input 
-            type="text" 
-            placeholder="Buscar por nombre o ciudad..." 
-            className="input-field w-full pl-12"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <button className="p-4 bg-white/5 hover:bg-white/10 rounded-2xl border border-white/5 text-white transition-all">
-          <Filter size={20} />
-        </button>
-      </div>
-
-      {viewMode === 'list' ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading ? (
-             Array(6).fill(0).map((_, i) => (
-                <div key={i} className="glass-card h-64 animate-pulse rounded-[32px]" />
-             ))
-          ) : filteredStores.length > 0 ? (
-            filteredStores.map((store) => (
-              <motion.div 
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                key={store.id}
-                className="glass-card p-6 flex flex-col group hover:border-primary/50 transition-all cursor-pointer relative overflow-hidden"
-              >
-                <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-14 h-14 bg-gradient-to-tr from-primary/50 to-primary rounded-2xl flex items-center justify-center text-white">
-                    <Store size={28} />
+          <div className="flex-1 overflow-y-auto pr-2 no-scrollbar space-y-4">
+            {!hasSearched ? (
+               <div className="h-full flex flex-col items-center justify-center p-8 text-center glass-panel border-dashed border-white/10">
+                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-6 animate-pulse">
+                     <Store size={40} />
                   </div>
-                  <div>
-                    <h3 className="text-lg font-black text-white group-hover:text-primary transition-colors">{store.name}</h3>
-                    <div className="flex items-center gap-1.5 text-text-dim text-[10px] font-black uppercase tracking-widest">
-                       <MapPin size={12} className="text-primary" />
-                       {store.city}
+                  <h3 className="text-white font-black text-lg mb-2">Explora Sucursales</h3>
+                  <p className="text-slate-500 text-sm leading-relaxed">
+                     Marca tu zona en el mapa con doble click y presiona <span className="text-primary font-bold">Buscar</span> para ver las tiendas oficiales cercanas.
+                  </p>
+               </div>
+            ) : loading ? (
+               Array(4).fill(0).map((_, i) => (
+                  <div key={i} className="glass-panel p-6 animate-pulse h-40" />
+               ))
+            ) : filteredStores.length > 0 ? (
+              filteredStores.map((store) => (
+                <div 
+                  key={store.id}
+                  onClick={() => setMapCenter([store.latitude || -12.04, store.longitude || -77.04])}
+                  className="glass-panel p-5 flex flex-col gap-4 cursor-pointer group hover:bg-white/[0.03] hover:border-primary/30 transition-all border border-white/5 shadow-xl animate-in slide-in-from-bottom-4"
+                >
+                  <div className="flex gap-4">
+                    <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shrink-0">
+                       <Store size={28} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-black text-white text-base truncate group-hover:text-primary transition-colors">{store.name}</h3>
+                      <p className="text-slate-500 text-[10px] font-black uppercase mt-1">
+                         <MapPin size={12} className="text-primary inline mr-1" />
+                         {store.city || 'Lima'}
+                      </p>
                     </div>
                   </div>
+                  <button 
+                    onClick={() => navigate(`/store/${store.id}`)}
+                    className="w-full bg-primary text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-center hover:bg-primary-dark transition-all"
+                  >
+                    Ver Catálogo
+                  </button>
                 </div>
-
-                <div className="space-y-3 flex-1">
-                   <p className="text-text-secondary text-xs leading-relaxed line-clamp-3">
-                     {store.description || 'Tienda autorizada de repuestos J&P. Contamos con especialistas para asesorarte.'}
-                   </p>
-                   <div className="flex items-center gap-2 text-text-dim text-xs">
-                     <Clock size={14} className="text-primary" />
-                     Abierto: 09:00 AM - 07:00 PM
-                   </div>
-                </div>
-
-                <div className="mt-8 pt-6 border-t border-white/5 flex justify-between items-center">
-                   <div className="flex items-center gap-2">
-                      <div className="flex -space-x-2">
-                         {[1,2,3].map(i => (
-                            <div key={i} className="w-6 h-6 rounded-full border-2 border-surface bg-slate-800" />
-                         ))}
-                      </div>
-                      <span className="text-[10px] font-black text-text-dim uppercase tracking-widest">+15 prod.</span>
-                   </div>
-                   <Link 
-                     to={`/store/${store.id}`}
-                     className="bg-primary/10 text-primary p-3 rounded-xl hover:bg-primary hover:text-white transition-all"
-                   >
-                     <ArrowRight size={18} />
-                   </Link>
-                </div>
-              </motion.div>
-            ))
-          ) : (
-             <div className="col-span-full py-20 glass-panel text-center">
-                <Store size={48} className="mx-auto text-text-dim mb-4" />
-                <h3 className="text-xl font-black text-white">No se encontraron tiendas</h3>
-                <p className="text-text-dim">Intenta con otro término de búsqueda.</p>
-             </div>
-          )}
+              ))
+            ) : (
+               <div className="glass-panel p-12 text-center text-slate-500 text-sm">
+                  No hay sucursales encontradas en esta zona.
+               </div>
+            )}
+          </div>
         </div>
-      ) : (
-        <div className="h-[600px] rounded-[32px] overflow-hidden border border-white/5 shadow-2xl relative">
+
+        <div className="flex-1 min-h-[400px] lg:min-h-0 rounded-[40px] overflow-hidden border border-white/5 relative shadow-3xl bg-slate-900">
           <MapContainer 
-            center={[-12.046374, -77.042793]} 
-            zoom={12} 
-            className="h-full w-full"
+            center={mapCenter} 
+            zoom={13} 
+            doubleClickZoom={false}
+            style={{ height: '100%', width: '100%' }}
             zoomControl={false}
           >
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-            />
-            {filteredStores.map((store) => (
-              <Marker 
-                key={store.id} 
-                position={[store.latitude || -12.04, store.longitude || -77.04]}
-              >
+            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution="&copy; CARTO" />
+            <MapEvents />
+            <RecenterMap coords={mapCenter} />
+            
+            {tempMarker && (
+              <>
+                <Circle center={tempMarker} radius={500} pathOptions={{ color: '#3B28FF', fillOpacity: 0.1, weight: 1, dashArray: '5, 10' }} />
+                <Marker position={tempMarker} icon={userIcon} />
+              </>
+            )}
+
+            {hasSearched && filteredStores.map((store) => (
+              <Marker key={store.id} position={[store.latitude || -12.04, store.longitude || -77.04]} icon={storeIcon}>
                 <Popup className="custom-popup">
-                   <div className="p-2 min-w-[150px]">
-                      <h4 className="font-black text-primary text-sm mb-1">{store.name}</h4>
-                      <p className="text-[10px] text-slate-500 mb-3">{store.address}</p>
-                      <Link 
-                        to={`/store/${store.id}`}
-                        className="block w-full text-center bg-primary text-white py-2 rounded-lg text-[10px] font-black uppercase tracking-widest"
-                      >
-                        Ver Catálogo
-                      </Link>
+                   <div className="p-3 font-outfit text-center">
+                      <h4 className="font-black text-sm mb-2">{store.name}</h4>
+                      <button onClick={() => navigate(`/store/${store.id}`)} className="bg-primary text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase">Ver Tienda</button>
                    </div>
                 </Popup>
               </Marker>
             ))}
           </MapContainer>
-          
-          <div className="absolute top-6 left-6 z-[1000] bg-background/80 backdrop-blur-md p-4 rounded-2xl border border-white/10">
-             <div className="flex items-center gap-3">
-                <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                <p className="text-[10px] font-black text-white uppercase tracking-widest">
-                  {filteredStores.length} Sucursales Encontradas
-                </p>
+
+          {/* FLOATING BUSCAR BUTTON */}
+          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[1000]">
+             <button 
+               onClick={handleManualSearch}
+               disabled={isSearching}
+               className="flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-full font-black uppercase tracking-widest text-xs shadow-[0_15px_35px_rgba(59,40,255,0.4)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+             >
+               {isSearching ? <RefreshCw className="animate-spin" size={18} /> : <Search size={18} />}
+               Buscar Sucursales aquí
+             </button>
+          </div>
+
+          <div className="absolute top-8 left-8 z-[1000] bg-background/80 backdrop-blur-md px-6 py-4 rounded-[24px] border border-white/10 shadow-2xl">
+             <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20">
+                   <MapPin size={20} />
+                </div>
+                <div>
+                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Zona Seleccionada</p>
+                   <p className="text-sm font-black text-white leading-tight">
+                      {userLocation.address.split(',')[0]}
+                   </p>
+                </div>
              </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

@@ -54,6 +54,19 @@ const createAppointment = async (req, res) => {
 
         const appointmentId = dbRes.resultado.insertId;
 
+        // --- PARITY FIX: Insert chat message for the appointment ---
+        const chatMsg = `📅 *Nueva Cita Agendada*
+Servicio: ${serviceType === 'home' ? 'A Domicilio' : 'En Local'}
+Fecha: ${scheduledDate}
+Hora: ${scheduledTime}
+Descripción: ${description || 'Sin descripción'}`;
+
+        await db.ejecutar(
+            'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id) VALUES (?, ?, ?, "appointment", ?)',
+            [clientId, technicianId, chatMsg, appointmentId]
+        );
+        // -----------------------------------------------------------
+
         // If it's a store, link it in sucursales_citas
         if (destRole === 'store') {
             const storeRes = await db.listar('SELECT id FROM sucursales WHERE user_id = ?', false, [technicianId]);

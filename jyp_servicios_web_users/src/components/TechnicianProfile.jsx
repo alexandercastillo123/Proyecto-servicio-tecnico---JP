@@ -20,8 +20,8 @@ const TechnicianProfile = () => {
   const fetchTechDetails = async () => {
     try {
       const response = await clientService.getTechnicianDetails(id);
-      if (response.data.success) {
-        setTech(response.data.data);
+      if (response.data.exito) {
+        setTech(response.data.resultado);
       }
     } catch (error) {
       console.error('Error fetching tech details:', error);

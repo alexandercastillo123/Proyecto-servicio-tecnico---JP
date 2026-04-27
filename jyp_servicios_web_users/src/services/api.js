@@ -49,24 +49,34 @@ export const techService = {
   confirmPayment: (id) => api.post(`/appointments/${id}/confirm-payment`),
   getSchedule: (id) => api.get(`/technicians/${id}/schedule`),
   updateSchedule: (schedules) => api.post('/technicians/schedule', { schedules }),
+  toggleAvailability: (isAvailable) => api.patch('/users/availability', { is_available: isAvailable }),
 };
 
 export const clientService = {
   getTechnicians: (params) => api.get('/technicians', { params }),
+  getNearbyTechnicians: (params) => api.get('/technicians/nearby', { params }),
   getTechnicianDetails: (id) => api.get(`/technicians/${id}`),
   createAppointment: (data) => api.post('/appointments', data),
   getMyAppointments: () => api.get('/appointments'),
+  getAppointmentDetails: (id) => api.get(`/appointments/${id}`),
   payAppointment: (id, method) => api.post(`/appointments/${id}/pay`, { paymentMethod: method }),
   cancelAppointment: (id) => api.delete(`/appointments/${id}`),
   addReview: (data) => api.post('/technicians/review', data),
 };
 
 export const storeService = {
-  getBranches: () => api.get('/admin/sucursales'),
+  getBranches: () => api.get('/sucursales'),
+  getNearbyBranches: (params) => api.get('/sucursales/nearby', { params }),
+  getBranchDetails: (id) => api.get(`/sucursales/${id}`),
   getProducts: (branchId) => api.get(`/sucursales/${branchId}/products`),
   getOrders: (branchId) => api.get(`/sucursales/orders/store/${branchId}`),
+  getMyOrders: () => api.get('/sucursales/orders/my-orders'),
   updateOrderStatus: (id, status) => api.patch(`/sucursales/orders/${id}/status`, { status }),
+  createOrder: (data) => api.post('/sucursales/orders', data),
   createBranch: (data) => api.post('/sucursales', data),
+  addProduct: (data) => api.post('/sucursales/products', data),
+  updateProduct: (id, data) => api.put(`/sucursales/products/${id}`, data),
+  deleteProduct: (id) => api.delete(`/sucursales/products/${id}`),
 };
 
 export const messageService = {

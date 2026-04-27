@@ -16,6 +16,8 @@ const AppointmentDetails = () => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [priceInput, setPriceInput] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('yape');
   const [currentUser] = useState(JSON.parse(localStorage.getItem('user')));
 
   useEffect(() => {
@@ -48,14 +50,26 @@ const AppointmentDetails = () => {
     }
   };
 
-  const handleSetPrice = async () => {
-    if (!priceInput) return;
+  const handlePay = async () => {
     setActionLoading(true);
     try {
-      await techService.setPrice(id, parseFloat(priceInput));
+      await clientService.payAppointment(id, paymentMethod);
+      setShowPaymentModal(false);
       fetchDetails();
     } catch (error) {
-      console.error('Error setting price:', error);
+      console.error('Error paying:', error);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleConfirmPayment = async () => {
+    setActionLoading(true);
+    try {
+      await techService.confirmPayment(id);
+      fetchDetails();
+    } catch (error) {
+      console.error('Error confirming payment:', error);
     } finally {
       setActionLoading(false);
     }
@@ -90,6 +104,8 @@ const AppointmentDetails = () => {
         <div className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${
           appt.status === 'pending' ? 'bg-warning/10 text-warning border-warning/20' :
           appt.status === 'confirmed' ? 'bg-primary/10 text-primary border-primary/20' :
+          appt.status === 'arrived' ? 'bg-info/10 text-info border-info/20' :
+          appt.status === 'in_progress' ? 'bg-secondary/10 text-secondary border-secondary/20' :
           appt.status === 'completed' ? 'bg-success/10 text-success border-success/20' :
           'bg-error/10 text-error border-error/20'
         }`}>
@@ -167,9 +183,9 @@ const AppointmentDetails = () => {
               <div className="p-6 bg-white/[0.02] rounded-2xl border border-white/5">
                 <p className="text-[10px] font-black text-text-dim uppercase tracking-widest mb-2">Estado del Pago</p>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${appt.payment_status === 'paid' ? 'bg-success' : 'bg-warning animate-pulse'}`} />
-                  <p className={`font-black uppercase text-sm ${appt.payment_status === 'paid' ? 'text-success' : 'text-warning'}`}>
-                    {appt.payment_status === 'paid' ? 'PAGADO' : 'PENDIENTE'}
+                  <div className={`w-2 h-2 rounded-full ${appt.payment_status === 'paid' ? 'bg-success' : appt.payment_status === 'waiting_confirmation' ? 'bg-info animate-pulse' : 'bg-warning'}`} />
+                  <p className={`font-black uppercase text-sm ${appt.payment_status === 'paid' ? 'text-success' : appt.payment_status === 'waiting_confirmation' ? 'text-info' : 'text-warning'}`}>
+                    {appt.payment_status === 'paid' ? 'PAGADO' : appt.payment_status === 'waiting_confirmation' ? 'ESPERANDO CONFIRMACIÓN' : 'PENDIENTE'}
                   </p>
                 </div>
               </div>
@@ -181,13 +197,25 @@ const AppointmentDetails = () => {
         <div className="space-y-6">
           <div className="glass-panel p-8 text-center relative overflow-hidden">
              <div className="absolute top-0 left-0 w-full h-2 bg-primary" />
-             <div className="w-20 h-20 bg-primary/20 rounded-2xl mx-auto flex items-center justify-center text-primary font-black text-3xl mb-4">
-               {otherUser?.names?.[0]}
-             </div>
-             <p className="text-[10px] font-black text-text-dim uppercase tracking-widest mb-1">
-               {isTech ? 'Cliente' : 'Técnico Especialista'}
-             </p>
-             <h3 className="text-lg font-bold text-white mb-6">{otherUser?.names} {otherUser?.surnames}</h3>
+              <div 
+                className={`flex flex-col items-center cursor-pointer p-4 rounded-2xl transition-all ${!isTech ? 'hover:bg-white/5' : ''}`}
+                onClick={() => {
+                  if (!isTech) {
+                    // Client viewing tech/store
+                    if (appt.technician_id) {
+                      navigate(`/technician/${appt.technician_id}`);
+                    }
+                  }
+                }}
+              >
+                <div className="w-20 h-20 bg-primary/20 rounded-2xl flex items-center justify-center text-primary font-black text-3xl mb-4">
+                  {otherUser?.names?.[0]}
+                </div>
+                <p className="text-[10px] font-black text-text-dim uppercase tracking-widest mb-1">
+                  {isTech ? 'Cliente' : 'Técnico Especialista'}
+                </p>
+                <h3 className="text-lg font-bold text-white mb-2">{otherUser?.names} {otherUser?.surnames}</h3>
+              </div>
              
              <div className="space-y-3 text-left">
                <div className="flex items-center gap-3 text-text-secondary text-sm">
@@ -223,12 +251,39 @@ const AppointmentDetails = () => {
                 )}
                 {appt.status === 'confirmed' && (
                   <button 
+                    onClick={() => handleUpdateStatus('arrived')}
+                    disabled={actionLoading}
+                    className="w-full bg-info text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-info/20 hover:brightness-110 transition-all"
+                  >
+                    Confirmar Llegada
+                  </button>
+                )}
+                {appt.status === 'arrived' && (
+                  <button 
+                    onClick={() => handleUpdateStatus('in_progress')}
+                    disabled={actionLoading}
+                    className="w-full bg-secondary text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-secondary/20 hover:brightness-110 transition-all"
+                  >
+                    Iniciar Trabajo
+                  </button>
+                )}
+                {appt.status === 'in_progress' && (
+                  <button 
                     onClick={() => handleUpdateStatus('completed')}
                     disabled={actionLoading}
                     className="w-full bg-success text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-success/20 hover:brightness-110 transition-all"
                   >
                     Finalizar Trabajo
                   </button>
+                )}
+                {appt.payment_status === 'waiting_confirmation' && (
+                   <button 
+                    onClick={handleConfirmPayment}
+                    disabled={actionLoading}
+                    className="w-full bg-success text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-success/20 hover:brightness-110 transition-all border-2 border-white/20"
+                   >
+                     Confirmar Pago Recibido
+                   </button>
                 )}
                 {appt.status !== 'completed' && appt.status !== 'cancelled' && (
                   <button 
@@ -250,8 +305,11 @@ const AppointmentDetails = () => {
                     </p>
                   </div>
                 )}
-                {appt.status === 'confirmed' && appt.price && appt.payment_status === 'pending' && (
-                  <button className="w-full bg-success text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-success/20 hover:brightness-110 transition-all flex items-center justify-center gap-2">
+                {appt.status !== 'pending' && appt.price && appt.payment_status === 'pending' && (
+                  <button 
+                    onClick={() => setShowPaymentModal(true)}
+                    className="w-full bg-success text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-success/20 hover:brightness-110 transition-all flex items-center justify-center gap-2"
+                  >
                     <CreditCard size={16} />
                     Pagar Ahora S/.{appt.price}
                   </button>
@@ -270,6 +328,97 @@ const AppointmentDetails = () => {
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      <AnimatePresence>
+        {showPaymentModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-background/80 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="glass-panel max-w-md w-full p-8 space-y-8"
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-success/20 rounded-2xl flex items-center justify-center text-success mx-auto mb-4">
+                  <CreditCard size={32} />
+                </div>
+                <h3 className="text-2xl font-black text-white">Método de Pago</h3>
+                <p className="text-text-dim text-sm">Selecciona cómo realizarás el pago de S/.{appt.price}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {['yape', 'plin', 'transfer', 'cash'].map(method => (
+                  <button
+                    key={method}
+                    onClick={() => setPaymentMethod(method)}
+                    className={`p-4 rounded-2xl border-2 flex flex-col items-center gap-2 transition-all ${paymentMethod === method ? 'bg-primary border-primary text-white shadow-lg' : 'bg-white/5 border-white/5 text-text-dim hover:border-white/20'}`}
+                  >
+                    <span className="font-black uppercase text-[10px] tracking-widest">{method}</span>
+                  </button>
+                ))}
+              </div>
+
+              <AnimatePresence mode="wait">
+                {paymentMethod && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="p-6 bg-white/5 rounded-[24px] border border-white/5 overflow-hidden"
+                  >
+                    {paymentMethod === 'yape' || paymentMethod === 'plin' ? (
+                      <div className="text-center space-y-4">
+                        <p className="text-xs text-text-dim uppercase font-black tracking-widest">Escanea o Paga al número</p>
+                        <div className="w-32 h-32 bg-white rounded-2xl mx-auto flex items-center justify-center p-2">
+                           {/* Simulated QR */}
+                           <div className="w-full h-full border-4 border-black flex flex-col gap-1 p-1">
+                              <div className="flex-1 flex gap-1"><div className="w-1/3 bg-black" /><div className="flex-1 bg-black/10" /><div className="w-1/3 bg-black" /></div>
+                              <div className="flex-1 flex gap-1"><div className="w-1/4 bg-black/10" /><div className="flex-1 bg-black" /><div className="w-1/4 bg-black/10" /></div>
+                              <div className="flex-1 flex gap-1"><div className="w-1/3 bg-black" /><div className="flex-1 bg-black/10" /><div className="w-1/3 bg-black" /></div>
+                           </div>
+                        </div>
+                        <p className="text-xl font-black text-white">987 654 321</p>
+                        <p className="text-[10px] text-primary font-bold uppercase">J&P Services S.A.C.</p>
+                      </div>
+                    ) : paymentMethod === 'transfer' ? (
+                      <div className="space-y-3">
+                         <p className="text-xs text-text-dim uppercase font-black tracking-widest text-center">Datos Bancarios</p>
+                         <div className="space-y-2">
+                            <div className="flex justify-between text-xs"><span className="text-slate-500">Banco:</span> <span className="text-white font-bold">BCP</span></div>
+                            <div className="flex justify-between text-xs"><span className="text-slate-500">Cuenta:</span> <span className="text-white font-bold">191-98765432-0-12</span></div>
+                            <div className="flex justify-between text-xs"><span className="text-slate-500">CCI:</span> <span className="text-white font-bold">00219119876543201254</span></div>
+                         </div>
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                         <p className="text-sm text-white font-bold">Pago en Efectivo</p>
+                         <p className="text-xs text-text-dim">Paga directamente al técnico al finalizar el servicio.</p>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setShowPaymentModal(false)}
+                  className="flex-1 py-4 bg-white/5 text-white font-black text-xs uppercase rounded-xl hover:bg-white/10 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  onClick={handlePay}
+                  disabled={actionLoading}
+                  className="flex-1 py-4 bg-success text-white font-black text-xs uppercase rounded-xl hover:brightness-110 transition-all shadow-lg shadow-success/20 disabled:opacity-50"
+                >
+                  {actionLoading ? 'Procesando...' : 'Confirmar Pago'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
