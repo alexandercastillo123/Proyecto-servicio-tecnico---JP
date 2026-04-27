@@ -1,183 +1,193 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, Star, Calendar, ArrowRight, ShieldCheck, Zap, X, Filter, Map as MapIcon, Link as LinkIcon } from 'lucide-react';
-import { clientService } from '../services/api';
+import { Search, MapPin, Star, Calendar, ArrowRight, ShieldCheck, Zap, X, Filter, Store, MessageSquare, User, Target } from 'lucide-react';
+import { clientService, messageService } from '../services/api';
 import LocationPicker from './LocationPicker';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import TechnicianList from './TechnicianList';
 
 const ClientDashboard = () => {
-  const [technicians, setTechnicians] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
+  const [conversations, setConversations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedTech, setSelectedTech] = useState(null);
   const [showLocationModal, setShowLocationModal] = useState(false);
-  const [userLocation, setUserLocation] = useState({ 
-    address: 'Lima, Perú',
-    lat: -12.046374, 
-    lng: -77.042793 
+  const [activeAppointment, setActiveAppointment] = useState(null);
+  
+  // Try to load from localStorage first
+  const [userLocation, setUserLocation] = useState(() => {
+    const saved = localStorage.getItem('user_location');
+    return saved ? JSON.parse(saved) : { 
+      address: 'Lima Centro',
+      lat: -12.046374, 
+      lng: -77.042793 
+    };
   });
 
   useEffect(() => {
-    fetchTechnicians();
+    fetchData();
+    // Auto-detect if it's the default location
+    if (userLocation.lat === -12.046374 && userLocation.lng === -77.042793) {
+       detectLocation();
+    }
   }, []);
 
-  const fetchTechnicians = async () => {
+  const detectLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const newLoc = {
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            address: 'Ubicación Detectada'
+          };
+          updateLocation(newLoc);
+          // Try to get address
+          reverseGeocode(newLoc.lat, newLoc.lng);
+        },
+        (err) => console.log('Geolocation auto-detect failed'),
+        { enableHighAccuracy: true }
+      );
+    }
+  };
+
+  const reverseGeocode = async (lat, lng) => {
     try {
-      const response = await clientService.getTechnicians();
-      if (response.data.success) {
-        setTechnicians(response.data.data.technicians || []);
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const data = await response.json();
+      if (data && data.display_name) {
+        const newLoc = { lat, lng, address: data.display_name };
+        updateLocation(newLoc);
+      }
+    } catch (e) {}
+  };
+
+  const updateLocation = (loc) => {
+    setUserLocation(loc);
+    localStorage.setItem('user_location', JSON.stringify(loc));
+  };
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    try {
+      const [convsResp, apptsResp] = await Promise.all([
+        messageService.getConversations(),
+        clientService.getMyAppointments()
+      ]);
+      
+      if (convsResp.data.exito) {
+        setConversations(convsResp.data.resultado || []);
+      }
+      if (apptsResp.data.exito) {
+        const appts = apptsResp.data.resultado || [];
+        const active = appts.find(a => a.status === 'confirmed' || a.status === 'paid');
+        setActiveAppointment(active);
       }
     } catch (error) {
-      console.error('Error fetching technicians:', error);
+      console.error('Error fetching dashboard data:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const filteredTechs = technicians.filter(tech => 
-    (tech.names + ' ' + tech.surnames).toLowerCase().includes(searchTerm.toLowerCase()) ||
-    tech.city?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const recentTechChat = conversations.find(c => c.other_user_role === 'tech' || c.other_user_role === 'technician');
 
   return (
-    <div className="space-y-8 pb-20">
-      {/* Hero Section */}
-      <section className="relative h-[400px] rounded-[32px] overflow-hidden flex items-center px-8 md:px-16 group border border-white/5">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-background to-background z-0" />
-        <div className="absolute top-0 right-0 w-1/2 h-full hidden lg:block opacity-20 z-0">
-          <div className="absolute inset-0 bg-gradient-to-l from-background to-transparent z-10" />
-          <img 
-            src="/assets/hero.png" 
-            alt="Hero" 
-            className="w-full h-full object-cover grayscale brightness-50"
-          />
-        </div>
-        
-        <div className="relative z-10 max-w-2xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="flex items-center gap-3 mb-6">
-              <span className="px-4 py-1.5 bg-primary/10 border border-primary/20 rounded-full text-primary text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2">
-                <Zap size={12} fill="currentColor" />
-                Soporte Premium
-              </span>
-              <button 
+    <div className="max-w-6xl mx-auto space-y-10 font-outfit pb-20 animate-in fade-in duration-700">
+      
+      {/* ── PREMIUM HEADER (EXPLORAR TÉCNICOS) ────────────────────────────── */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 px-4">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+             <button 
                 onClick={() => setShowLocationModal(true)}
-                className="px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-text-secondary hover:text-white text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 transition-all"
+                className="px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-primary hover:bg-primary hover:text-white text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 transition-all shadow-lg shadow-primary/10"
               >
-                <MapPin size={12} className="text-primary" />
+                <Target size={12} className="animate-pulse" />
                 {userLocation.address.split(',')[0]}
               </button>
+          </div>
+          <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
+            Explorar <span className="text-primary">Técnicos</span>
+          </h1>
+          <p className="text-slate-500 font-medium max-w-lg">
+            Estamos buscando expertos cerca de tu zona actual para brindarte soporte inmediato.
+          </p>
+        </div>
+        <div className="p-6 bg-primary/10 rounded-3xl text-primary shadow-xl border border-primary/20">
+           <Zap size={40} />
+        </div>
+      </header>
+
+      {/* ── ACTIVE SERVICE BANNER ─────────────────────────────────────────── */}
+      {activeAppointment && (
+        <div className="px-4">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-primary/10 border border-primary/20 p-6 rounded-[32px] flex flex-col md:flex-row items-center justify-between shadow-xl gap-4"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20">
+                <Clock size={28} className="animate-pulse" />
+              </div>
+              <div>
+                <p className="text-[10px] font-black text-primary uppercase tracking-widest leading-none mb-1">Tu servicio está listo</p>
+                <h3 className="text-xl font-black text-white">{activeAppointment.serviceType || 'Servicio Técnico'}</h3>
+                <p className="text-xs text-text-dim">Especialista: <span className="text-white font-bold">{activeAppointment.techName || 'Técnico'}</span></p>
+              </div>
             </div>
             
-            <h1 className="text-4xl md:text-5xl font-black text-white leading-tight mb-6">
-              Servicios técnicos <br />
-              de <span className="gradient-text italic">confianza</span>.
-            </h1>
-            
-            <div className="flex flex-col md:flex-row gap-4 mt-8">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-text-dim" size={20} />
-                <input 
-                  type="text"
-                  placeholder="¿Qué servicio o ciudad buscas?"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full input-field py-5 pl-12 pr-4 text-base"
-                />
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="flex-1 md:flex-none text-right hidden sm:block">
+                 <p className="text-[10px] font-black text-text-dim uppercase">Estado</p>
+                 <p className="text-sm font-black text-primary uppercase">{activeAppointment.status}</p>
               </div>
-              <Link to="/technicians" className="btn-primary px-10 py-5 text-base">
-                Ver Mapa
-                <MapIcon size={20} />
-              </Link>
+              <button 
+                onClick={() => navigate(`/chat?user=${activeAppointment.techId}`)}
+                className="flex-1 md:flex-none bg-primary text-white px-8 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+              >
+                Ir al Chat
+              </button>
             </div>
           </motion.div>
         </div>
-      </section>
+      )}
 
-      {/* Quick Stats/Features */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 px-4">
-        {[
-          { icon: ShieldCheck, title: 'Técnicos Verificados', desc: 'Validación rigurosa de identidad y experiencia.' },
-          { icon: Calendar, title: 'Agenda Flexible', desc: 'Reserva citas según tu disponibilidad real.' },
-          { icon: Zap, title: 'Respuesta Rápida', desc: 'Recibe cotizaciones en minutos vía chat.' }
-        ].map((item, i) => (
-          <div key={i} className="glass-card p-6 border-white/5 flex items-start gap-4">
-            <div className="p-3 bg-primary/10 rounded-xl text-primary">
-              <item.icon size={24} />
-            </div>
-            <div>
-              <h3 className="font-bold text-white mb-1">{item.title}</h3>
-              <p className="text-xs text-text-dim leading-relaxed">{item.desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Main Content Area */}
-      <div className="px-4">
-        <div className="flex justify-between items-end mb-8">
-          <div>
-            <h2 className="text-2xl font-black text-white tracking-tight">Especialistas Destacados</h2>
-            <p className="text-text-dim text-sm">Cerca de {userLocation.address.split(',')[0]}</p>
-          </div>
-          <Link to="/technicians" className="text-primary text-sm font-bold flex items-center gap-2 hover:gap-3 transition-all">
-            Ver todos los técnicos
-            <ArrowRight size={16} />
-          </Link>
+      {/* ── RECENT TECH BANNER ────────────────────────────────────────────── */}
+      {recentTechChat && (
+        <div className="px-4">
+           <motion.div 
+             initial={{ opacity: 0, x: -20 }}
+             animate={{ opacity: 1, x: 0 }}
+             onClick={() => navigate(`/chat?user=${recentTechChat.other_user_id}`)}
+             className="bg-primary p-6 rounded-[32px] shadow-2xl shadow-primary/30 flex items-center gap-5 cursor-pointer group hover:scale-[1.02] transition-all relative overflow-hidden"
+           >
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
+              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-white font-black text-2xl border-2 border-white/10 relative z-10">
+                 {recentTechChat.username?.[0]}
+              </div>
+              <div className="flex-1 relative z-10">
+                 <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-1">Última Consulta</p>
+                 <h3 className="text-white font-black text-lg">{recentTechChat.username}</h3>
+                 <p className="text-white/80 text-xs line-clamp-1">{recentTechChat.last_message}</p>
+              </div>
+              <div className="bg-white/20 p-3 rounded-xl text-white group-hover:translate-x-1 transition-transform">
+                 <ArrowRight size={20} />
+              </div>
+           </motion.div>
         </div>
+      )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {isLoading ? (
-            [...Array(4)].map((_, i) => (
-              <div key={i} className="glass-card h-80 animate-pulse" />
-            ))
-          ) : (
-            filteredTechs.map((tech) => (
-              <motion.div 
-                key={tech.id}
-                layoutId={`tech-${tech.id}`}
-                onClick={() => setSelectedTech(tech)}
-                className="glass-card p-6 flex flex-col cursor-pointer group hover:bg-white/[0.03]"
-              >
-                <div className="relative mb-6">
-                  <div className="w-20 h-20 bg-gradient-to-tr from-primary to-[#6E5FFF] rounded-[24px] flex items-center justify-center text-white text-3xl font-black shadow-lg">
-                    {tech.names?.[0]}
-                  </div>
-                  <div className="absolute -bottom-2 -right-2 bg-success w-6 h-6 rounded-full border-4 border-surface shadow-sm" />
-                </div>
-                
-                <h3 className="text-lg font-bold text-white mb-1 group-hover:text-primary transition-colors">
-                  {tech.names} {tech.surnames}
-                </h3>
-                <p className="text-primary/70 text-xs font-black uppercase tracking-widest mb-4">
-                  {tech.city || 'Técnico General'}
-                </p>
-
-                <div className="flex gap-4 mb-6">
-                  <div className="flex items-center gap-1 text-warning bg-warning/5 px-2 py-1 rounded-lg">
-                    <Star size={14} fill="currentColor" />
-                    <span className="text-xs font-black">{tech.rating || '4.5'}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-text-dim bg-white/5 px-2 py-1 rounded-lg">
-                    <MapPin size={14} />
-                    <span className="text-xs font-bold">{tech.city || 'Lima'}</span>
-                  </div>
-                </div>
-
-                <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-4">
-                  <span className="text-text-dim text-[10px] font-black uppercase tracking-widest">Desde S/.30.00</span>
-                  <div className="bg-primary/10 text-primary p-2 rounded-xl group-hover:bg-primary group-hover:text-white transition-all">
-                    <ArrowRight size={18} />
-                  </div>
-                </div>
-              </motion.div>
-            ))
-          )}
+      {/* ── TECHNICIAN LIST AREA ─────────────────────────────────────────── */}
+      <main className="px-4 space-y-10">
+        <div className="flex justify-between items-end">
+           <h2 className="text-2xl font-black text-white px-2 flex items-center gap-3">
+              Expertos Disponibles
+              <ShieldCheck className="text-primary" size={24} />
+           </h2>
         </div>
-      </div>
+        <TechnicianList userLocation={userLocation} />
+      </main>
 
       {/* Location Modal */}
       <AnimatePresence>
@@ -189,105 +199,26 @@ const ClientDashboard = () => {
               exit={{ opacity: 0, scale: 0.9 }}
               className="glass-panel w-full max-w-xl p-8 relative"
             >
-              <button 
-                onClick={() => setShowLocationModal(false)}
-                className="absolute top-6 right-6 text-text-dim hover:text-white"
-              >
-                <X size={24} />
-              </button>
-              
-              <h3 className="text-2xl font-black mb-2">Establecer Ubicación</h3>
-              <p className="text-text-dim text-sm mb-8">Dinos dónde necesitas el servicio para mostrarte técnicos cerca de ti.</p>
+              <button onClick={() => setShowLocationModal(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white"><X size={24} /></button>
+              <div className="flex items-center gap-4 mb-2">
+                 <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
+                    <MapPin size={24} />
+                 </div>
+                 <h3 className="text-2xl font-black text-white">Establecer Ubicación</h3>
+              </div>
+              <p className="text-slate-500 text-sm mb-8">Selecciona tu ubicación exacta en el mapa para ver técnicos cerca de ti.</p>
               
               <LocationPicker 
-                onLocationSelect={(loc) => {
-                  setUserLocation(loc);
-                  // In a real app, we would update the technicians list based on new coords
-                }}
+                onLocationSelect={(loc) => updateLocation(loc)}
                 initialLocation={{ lat: userLocation.lat, lng: userLocation.lng }}
               />
               
               <button 
-                onClick={() => setShowLocationModal(false)}
-                className="btn-primary w-full mt-8 py-4"
+                onClick={() => setShowLocationModal(false)} 
+                className="btn-primary w-full mt-8 py-5 text-white font-black uppercase tracking-widest text-sm shadow-2xl shadow-primary/30"
               >
                 Confirmar Ubicación
               </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Tech Details Modal (Partial paridad with mobile) */}
-      <AnimatePresence>
-        {selectedTech && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/90 backdrop-blur-xl">
-            <motion.div 
-              layoutId={`tech-${selectedTech.id}`}
-              className="glass-panel w-full max-w-2xl max-h-[90vh] overflow-y-auto relative no-scrollbar"
-            >
-              <button 
-                onClick={() => setSelectedTech(null)}
-                className="absolute top-6 right-6 p-2 bg-white/5 hover:bg-white/10 rounded-xl text-white transition-all z-10"
-              >
-                <X size={24} />
-              </button>
-
-              <div className="p-8 md:p-12">
-                <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-10">
-                  <div className="w-32 h-32 bg-primary rounded-[32px] flex items-center justify-center text-white text-5xl font-black shadow-[0_20px_40px_rgba(59,40,255,0.4)]">
-                    {selectedTech.names?.[0]}
-                  </div>
-                  <div className="text-center md:text-left">
-                    <h3 className="text-3xl font-black text-white mb-2">{selectedTech.names} {selectedTech.surnames}</h3>
-                    <div className="flex flex-wrap justify-center md:justify-start gap-4 mt-4">
-                      <div className="flex items-center gap-1 text-warning font-black bg-warning/5 px-3 py-1.5 rounded-full border border-warning/10 text-xs text-sm">
-                        <Star size={14} fill="currentColor" />
-                        4.8 (124 reseñas)
-                      </div>
-                      <div className="flex items-center gap-1 text-primary font-black bg-primary/5 px-3 py-1.5 rounded-full border border-primary/10 text-xs">
-                        <MapPin size={14} />
-                        {selectedTech.city}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                  <div className="space-y-6">
-                    <div>
-                      <h4 className="text-[10px] font-black text-text-dim uppercase tracking-widest mb-3">Dirección de Referencia</h4>
-                      <p className="text-white font-medium">{selectedTech.reference_address || (selectedTech.city + ', Perú')}</p>
-                    </div>
-                    <div>
-                      <h4 className="text-[10px] font-black text-text-dim uppercase tracking-widest mb-3">DNI / RUC</h4>
-                      <p className="text-white font-medium">{selectedTech.dni || selectedTech.ruc || 'No especificado'}</p>
-                    </div>
-                  </div>
-                  <div className="glass-card p-6 border-white/5 bg-white/[0.02]">
-                    <h4 className="text-xs font-black text-primary uppercase tracking-widest mb-4">Información de Contacto</h4>
-                    <p className="text-sm text-text-secondary mb-2">Teléfono: <span className="text-white font-bold">{selectedTech.phone}</span></p>
-                    <p className="text-sm text-text-secondary">Email: <span className="text-white font-bold">{selectedTech.email}</span></p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col md:flex-row gap-4">
-                  <Link 
-                    to={`/appointments/schedule?tech=${selectedTech.id}`}
-                    className="flex-1 btn-primary py-5"
-                  >
-                    <Calendar size={20} />
-                    Agendar Cita
-                  </Link>
-                  <Link 
-                    to={`/chat?user=${selectedTech.id}`}
-                    className="flex-1 py-5 bg-white/5 hover:bg-white/10 text-white font-black rounded-2xl border border-white/10 transition-all flex items-center justify-center gap-2"
-                  >
-                    <MessageSquare size={20} />
-                    Enviar Mensaje
-                  </Link>
-                </div>
-              </div>
             </motion.div>
           </div>
         )}

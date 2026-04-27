@@ -19,6 +19,8 @@ import ProfileEdit from './components/ProfileEdit';
 import StoreCreate from './components/StoreCreate';
 import StoreList from './components/StoreList';
 import StoreProfile from './components/StoreProfile';
+import OrderList from './components/OrderList';
+import { Toaster } from 'react-hot-toast';
 import './index.css';
 
 function App() {
@@ -54,6 +56,16 @@ function App() {
 
   return (
     <Router>
+      <Toaster position="top-right" toastOptions={{
+        style: {
+          background: '#1A1C1E',
+          color: '#fff',
+          border: '1px solid rgba(255,255,255,0.1)',
+          fontFamily: 'Outfit, sans-serif',
+          fontSize: '14px',
+          fontWeight: '600'
+        }
+      }} />
       <Routes>
         <Route path="/login" element={!user ? <Login onLogin={handleLogin} /> : <Navigate to="/" />} />
         <Route path="/register" element={!user ? <Register onLogin={handleLogin} /> : <Navigate to="/" />} />
@@ -78,6 +90,7 @@ function App() {
           <Route path="appointments/:id" element={<AppointmentDetails />} />
           <Route path="chat" element={<Chat />} />
           <Route path="profile" element={<ProfileEdit />} />
+          <Route path="orders" element={<OrderList />} />
           
           {/* Store Specific */}
           <Route path="stores" element={<StoreList />} />

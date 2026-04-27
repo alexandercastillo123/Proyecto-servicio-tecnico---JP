@@ -1,5 +1,6 @@
+// Component for editing user profiles across all roles
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Mail, Phone, MapPin, 
   Camera, Shield, Bell, Save,
@@ -10,21 +11,50 @@ import { authService } from '../services/api';
 const ProfileEdit = () => {
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || {});
   const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('personal'); // personal, professional, security
+
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const response = await authService.getProfile();
+      if (response.data.exito) {
+        const fullUser = response.data.resultado;
+        setUser(fullUser);
+        localStorage.setItem('user', JSON.stringify(fullUser));
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // API call to update profile
+      // In a real app, we would call an updateProfile endpoint
       // await authService.updateProfile(user);
       localStorage.setItem('user', JSON.stringify(user));
-      alert('Perfil actualizado con éxito');
+      alert('Perfil actualizado localmente (Simulado)');
     } catch (error) {
       console.error(error);
     } finally {
       setIsSaving(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+        <p className="text-text-dim font-bold animate-pulse uppercase tracking-[0.2em] text-[10px]">Cargando tu perfil...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-500 pb-20">
@@ -125,7 +155,7 @@ const ProfileEdit = () => {
                              <input 
                               type="text" 
                               className="input-field w-full"
-                              value={user.names}
+                              value={user.names || ''}
                               onChange={(e) => setUser({...user, names: e.target.value})}
                              />
                           </div>
@@ -134,7 +164,7 @@ const ProfileEdit = () => {
                              <input 
                               type="text" 
                               className="input-field w-full"
-                              value={user.surnames}
+                              value={user.surnames || ''}
                               onChange={(e) => setUser({...user, surnames: e.target.value})}
                              />
                           </div>
@@ -146,7 +176,7 @@ const ProfileEdit = () => {
                                   type="email" 
                                   disabled
                                   className="input-field w-full pl-12 opacity-50 cursor-not-allowed"
-                                  value={user.email}
+                                  value={user.email || ''}
                                 />
                              </div>
                           </div>
@@ -157,7 +187,7 @@ const ProfileEdit = () => {
                                 <input 
                                   type="tel" 
                                   className="input-field w-full pl-12"
-                                  value={user.phone}
+                                  value={user.phone || ''}
                                   onChange={(e) => setUser({...user, phone: e.target.value})}
                                 />
                              </div>
@@ -198,7 +228,7 @@ const ProfileEdit = () => {
                              <input 
                               type="text" 
                               className="input-field w-full"
-                              value={user.address || 'Av. Principal 123, Miraflores'}
+                              value={user.address || ''}
                               onChange={(e) => setUser({...user, address: e.target.value})}
                              />
                           </div>

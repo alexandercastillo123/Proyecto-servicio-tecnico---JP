@@ -696,7 +696,7 @@ const getMyOrders = async (req, res) => {
     try {
         const clientId = req.user.id;
         const query = `
-            SELECT o.*, p.name as product_name, p.image_url as product_image, s.name as store_name
+            SELECT o.*, p.name as product_name, p.image_url as product_image, s.name as branch_name, s.user_id as branch_user_id
             FROM store_orders o
             JOIN store_products p ON o.product_id = p.id
             JOIN sucursales s ON o.sucursal_id = s.id

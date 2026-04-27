@@ -25,8 +25,8 @@ const AppointmentList = () => {
         ? await clientService.getMyAppointments()
         : await techService.getAppointments();
         
-      if (response.data.success) {
-        let data = response.data.data;
+      if (response.data.exito) {
+        let data = response.data.resultado;
         if (filter !== 'all') {
           data = data.filter(a => a.status === filter);
         }

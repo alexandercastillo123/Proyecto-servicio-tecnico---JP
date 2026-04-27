@@ -14,24 +14,25 @@ const Layout = ({ user, onLogout }) => {
 
   const menuItems = {
     client: [
-      { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-      { path: '/technicians', icon: Search, label: 'Buscar Técnico' },
-      { path: '/stores', icon: Store, label: 'Tiendas' },
+      { path: '/', icon: MapPin, label: 'Explorar Técnicos' },
+      { path: '/stores', icon: Store, label: 'Tiendas Oficiales' },
       { path: '/appointments', icon: Calendar, label: 'Mis Citas' },
+      { path: '/orders', icon: ShoppingCart, label: 'Mis Pedidos' },
       { path: '/chat', icon: MessageSquare, label: 'Mensajes' },
       { path: '/profile', icon: User, label: 'Mi Perfil' },
     ],
     tech: [
-      { path: '/', icon: LayoutDashboard, label: 'Panel' },
-      { path: '/appointments', icon: Calendar, label: 'Agenda' },
-      { path: '/chat', icon: MessageSquare, label: 'Chat' },
-      { path: '/profile', icon: User, label: 'Perfil' },
+      { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
+      { path: '/chat', icon: MessageSquare, label: 'Mensajes' },
+      { path: '/appointments', icon: Calendar, label: 'Mis Citas' },
+      { path: '/profile', icon: User, label: 'Mi Perfil' },
     ],
     store: [
-      { path: '/', icon: Package, label: 'Productos' },
-      { path: '/orders', icon: ShoppingCart, label: 'Órdenes' },
-      { path: '/stores/create', icon: Store, label: 'Mi Tienda' },
-      { path: '/profile', icon: User, label: 'Ajustes' },
+      { path: '/', icon: LayoutDashboard, label: 'Panel' },
+      { path: '/products', icon: Package, label: 'Catálogo' },
+      { path: '/orders', icon: ShoppingCart, label: 'Pedidos' },
+      { path: '/chat', icon: MessageSquare, label: 'Mensajes' },
+      { path: '/profile', icon: User, label: 'Perfil' },
     ],
   };
 

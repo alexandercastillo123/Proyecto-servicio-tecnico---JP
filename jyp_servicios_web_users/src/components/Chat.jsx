@@ -1,15 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Send, Paperclip, MoreVertical, Search, 
   User, Check, CheckCheck, Clock, ShieldCheck,
-  DollarSign, X, CheckCircle2, ChevronLeft
+  DollarSign, X, CheckCircle2, ChevronLeft, MessageSquare,
+  Zap, Calendar, Smartphone, Wallet, CreditCard, Banknote,
+  AlertCircle, ArrowRight, Package, MapPin
 } from 'lucide-react';
-import { messageService } from '../services/api';
+import { messageService, clientService, techService, storeService } from '../services/api';
+import { toast } from 'react-hot-toast';
 
 const Chat = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const initialUserId = searchParams.get('user');
   
   const [conversations, setConversations] = useState([]);
@@ -19,7 +23,14 @@ const Chat = () => {
   const [loading, setLoading] = useState(true);
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [offerPrice, setOfferPrice] = useState('');
-  const [currentUser, setCurrentUser] = useState(JSON.parse(localStorage.getItem('user')));
+  const [currentUser] = useState(JSON.parse(localStorage.getItem('user') || '{}'));
+  
+  // New States for Parity
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPriceModal, setShowPriceModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [tempPrice, setTempPrice] = useState('');
+  const [processing, setProcessing] = useState(false);
 
   const scrollRef = useRef();
 
@@ -28,11 +39,10 @@ const Chat = () => {
   }, []);
 
   useEffect(() => {
-    if (initialUserId) {
-      // Find or create conversation with this user
-      fetchMessages(initialUserId);
+    if (initialUserId && conversations.length >= 0) {
+      handleSelectUser(initialUserId);
     }
-  }, [initialUserId]);
+  }, [initialUserId, conversations.length]);
 
   useEffect(() => {
     scrollToBottom();
@@ -45,8 +55,8 @@ const Chat = () => {
   const fetchConversations = async () => {
     try {
       const response = await messageService.getConversations();
-      if (response.data.success) {
-        setConversations(response.data.data);
+      if (response.data.exito) {
+        setConversations(response.data.resultado || []);
       }
     } catch (error) {
       console.error('Error fetching conversations:', error);
@@ -55,17 +65,41 @@ const Chat = () => {
     }
   };
 
+  const handleSelectUser = async (userId) => {
+    // Try to find existing conversation
+    const existingConv = conversations.find(c => String(c.other_user_id) === String(userId));
+    
+    if (existingConv) {
+      setSelectedConversation(existingConv);
+      fetchMessages(userId);
+    } else {
+      // It's a new chat, try to fetch user info to show in header
+      try {
+        // Placeholder until we get messages
+        setSelectedConversation({ 
+          other_user_id: userId, 
+          username: 'Nuevo Chat', 
+          names: 'Cargando...',
+          isNew: true 
+        });
+        fetchMessages(userId);
+      } catch (error) {
+        console.error('Error initiating new chat:', error);
+      }
+    }
+  };
+
   const fetchMessages = async (userId) => {
     try {
       const response = await messageService.getMessages(userId);
-      if (response.data.success) {
-        setMessages(response.data.data);
-        // Find conversation details
-        const conv = conversations.find(c => c.other_user_id == userId);
-        if (conv) setSelectedConversation(conv);
-        else {
-           // Basic placeholder for new conv
-           setSelectedConversation({ other_user_id: userId, names: 'Cargando...', surnames: '' });
+      if (response.data.exito) {
+        setMessages(response.data.resultado || []);
+        
+        // If we don't have the user name in the header, try to get it from the first message
+        if (response.data.resultado?.length > 0 && selectedConversation?.isNew) {
+           const firstMsg = response.data.resultado[0];
+           // In our backend, the message object might not have the other user's name directly
+           // But usually conversations list has it.
         }
       }
     } catch (error) {
@@ -82,9 +116,13 @@ const Chat = () => {
         receiverId: selectedConversation.other_user_id,
         messageText: newMessage,
       };
-      await messageService.sendMessage(data);
-      setNewMessage('');
-      fetchMessages(selectedConversation.other_user_id);
+      const resp = await messageService.sendMessage(data);
+      if (resp.data.exito) {
+        setNewMessage('');
+        fetchMessages(selectedConversation.other_user_id);
+        // Refresh conversations list to update last message
+        fetchConversations();
+      }
     } catch (error) {
       console.error('Error sending message:', error);
     }
@@ -98,26 +136,98 @@ const Chat = () => {
         offerPrice: parseFloat(offerPrice),
         messageText: `Presupuesto estimado: S/.${offerPrice}`,
       };
-      await messageService.sendOffer(data);
-      setShowOfferModal(false);
-      setOfferPrice('');
-      fetchMessages(selectedConversation.other_user_id);
+      const resp = await messageService.sendOffer(data);
+      if (resp.data.exito) {
+        setShowOfferModal(false);
+        setOfferPrice('');
+        fetchMessages(selectedConversation.other_user_id);
+        fetchConversations();
+      }
     } catch (error) {
       console.error('Error sending offer:', error);
     }
   };
 
-  const handleAcceptOffer = async (offerId) => {
+  const handleRejectOffer = async (offerId) => {
     try {
-      await messageService.acceptOffer(offerId);
-      fetchMessages(selectedConversation.other_user_id);
+      const resp = await messageService.rejectOffer(offerId);
+      if (resp.data.exito) {
+        toast.success('Oferta rechazada');
+        fetchMessages(selectedConversation.other_user_id);
+      }
     } catch (error) {
-      console.error('Error accepting offer:', error);
+      console.error('Error rejecting offer:', error);
+      toast.error('Error al rechazar oferta');
+    }
+  };
+
+  const handleSetAppointmentPrice = async () => {
+    if (!tempPrice || !selectedAppointment) return;
+    setProcessing(true);
+    try {
+      const resp = await techService.setPrice(selectedAppointment.id, parseFloat(tempPrice));
+      if (resp.data.exito) {
+        toast.success('Precio establecido correctamente');
+        setShowPriceModal(false);
+        setTempPrice('');
+        fetchMessages(selectedConversation.other_user_id);
+      }
+    } catch (error) {
+      console.error('Error setting price:', error);
+      toast.error('No se pudo establecer el precio');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handlePayAppointment = async (method) => {
+    if (!selectedAppointment) return;
+    setProcessing(true);
+    try {
+      const resp = await clientService.payAppointment(selectedAppointment.id, method);
+      if (resp.data.exito) {
+        toast.success(`Pago con ${method} registrado`);
+        setShowPaymentModal(false);
+        fetchMessages(selectedConversation.other_user_id);
+      }
+    } catch (error) {
+      console.error('Error paying appointment:', error);
+      toast.error('Error al procesar pago');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleConfirmPayment = async (appointmentId) => {
+    try {
+      const resp = await techService.confirmPayment(appointmentId);
+      if (resp.data.exito) {
+        toast.success('Pago confirmado correctamente');
+        fetchMessages(selectedConversation.other_user_id);
+      }
+    } catch (error) {
+      console.error('Error confirming payment:', error);
+      toast.error('No se pudo confirmar el pago');
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId) => {
+    if (!window.confirm('¿Estás seguro de que deseas cancelar este servicio?')) return;
+    try {
+      const resp = await clientService.cancelAppointment(appointmentId);
+      if (resp.data.exito) {
+        toast.success('Servicio cancelado');
+        fetchMessages(selectedConversation.other_user_id);
+      }
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      const errorMsg = error.response?.data?.mensaje || 'Error al cancelar el servicio';
+      toast.error(errorMsg);
     }
   };
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] glass-panel overflow-hidden border border-white/5 shadow-2xl">
+    <div className="flex h-[calc(100vh-12rem)] glass-panel overflow-hidden border border-white/5 shadow-2xl font-outfit">
       {/* Sidebar - Conversations */}
       <div className={`w-full md:w-80 lg:w-96 border-r border-white/5 flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-6 border-b border-white/5 space-y-4">
@@ -147,12 +257,16 @@ const Chat = () => {
             conversations.map((conv) => (
               <div 
                 key={conv.other_user_id}
-                onClick={() => fetchMessages(conv.other_user_id)}
-                className={`p-4 border-b border-white/5 flex gap-4 cursor-pointer transition-all hover:bg-white/[0.03] ${selectedConversation?.other_user_id === conv.other_user_id ? 'bg-primary/10 border-r-2 border-r-primary' : ''}`}
+                onClick={() => {
+                   setSelectedConversation(conv);
+                   fetchMessages(conv.other_user_id);
+                   // Update URL without full reload if possible, or just stay
+                }}
+                className={`p-4 border-b border-white/5 flex gap-4 cursor-pointer transition-all hover:bg-white/[0.03] ${String(selectedConversation?.other_user_id) === String(conv.other_user_id) ? 'bg-primary/10 border-r-2 border-r-primary' : ''}`}
               >
                 <div className="relative shrink-0">
                   <div className="w-12 h-12 bg-gradient-to-tr from-primary/50 to-primary rounded-2xl flex items-center justify-center text-white font-black">
-                    {conv.names?.[0]}
+                    {(conv.username || conv.names)?.[0]}
                   </div>
                   {conv.unread_count > 0 && (
                     <div className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-surface">
@@ -162,9 +276,9 @@ const Chat = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start mb-1">
-                    <h3 className="text-sm font-bold text-white truncate">{conv.names} {conv.surnames}</h3>
+                    <h3 className="text-sm font-bold text-white truncate">{conv.username || `${conv.names} ${conv.surnames}`}</h3>
                     <span className="text-[10px] text-text-dim whitespace-nowrap">
-                      {new Date(conv.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      {conv.last_message_time ? new Date(conv.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                     </span>
                   </div>
                   <p className="text-[11px] text-text-dim truncate">
@@ -174,8 +288,11 @@ const Chat = () => {
               </div>
             ))
           ) : (
-            <div className="p-8 text-center text-text-dim text-sm italic">
-              No tienes mensajes aún.
+            <div className="p-12 text-center">
+               <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 text-text-dim">
+                  <MessageSquare size={32} />
+               </div>
+               <p className="text-text-dim text-xs italic">No tienes mensajes aún.</p>
             </div>
           )}
         </div>
@@ -187,18 +304,32 @@ const Chat = () => {
           <>
             {/* Chat Header */}
             <div className="h-20 px-6 flex items-center justify-between border-b border-white/5 bg-surface/50">
-              <div className="flex items-center gap-4">
+              <div 
+                className="flex items-center gap-4 cursor-pointer hover:bg-white/5 p-2 rounded-xl transition-all"
+                onClick={() => {
+                  const role = selectedConversation.other_user_role;
+                  const id = selectedConversation.other_user_id;
+                  if (role === 'tech' || role === 'technician') {
+                    navigate(`/technician/${id}`);
+                  } else if (role === 'store') {
+                    navigate(`/store/${id}`);
+                  }
+                }}
+              >
                 <button 
-                  onClick={() => setSelectedConversation(null)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedConversation(null);
+                  }}
                   className="md:hidden text-text-dim hover:text-white"
                 >
                   <ChevronLeft size={24} />
                 </button>
                 <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary font-black">
-                  {selectedConversation.names?.[0]}
+                  {(selectedConversation.username || selectedConversation.names)?.[0]}
                 </div>
                 <div>
-                  <h2 className="text-sm font-black text-white">{selectedConversation.names} {selectedConversation.surnames}</h2>
+                  <h2 className="text-sm font-black text-white">{selectedConversation.username || `${selectedConversation.names} ${selectedConversation.surnames}`}</h2>
                   <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full bg-success" />
                     <span className="text-[10px] text-success font-black uppercase tracking-wider">En línea</span>
@@ -224,71 +355,194 @@ const Chat = () => {
 
             {/* Messages Area */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
-              {messages.map((msg, index) => {
-                const isMine = msg.sender_id === currentUser.id;
-                const isOffer = msg.message_type === 'offer';
-
-                return (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    key={msg.id || index} 
-                    className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div className={`max-w-[80%] ${isMine ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
-                      <div className={`p-4 rounded-2xl relative ${
-                        isMine 
-                        ? 'bg-primary text-white rounded-tr-none' 
-                        : 'bg-white/5 border border-white/10 text-white rounded-tl-none'
-                      }`}>
-                        {isOffer ? (
-                          <div className="space-y-4 min-w-[200px]">
-                            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest opacity-80">
-                              <DollarSign size={14} />
-                              Presupuesto de Servicio
-                            </div>
-                            <div className="text-2xl font-black">S/.{msg.offer_price}</div>
-                            <p className="text-[11px] opacity-70">{msg.message_text}</p>
-                            
-                            {/* Offer Status Actions */}
-                            {!isMine && msg.offer_status === 'pending' && (
-                              <div className="flex gap-2 pt-2">
-                                <button 
-                                  onClick={() => handleAcceptOffer(msg.id)}
-                                  className="flex-1 bg-white text-primary py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-white/90"
-                                >
-                                  Aceptar
-                                </button>
-                                <button className="flex-1 bg-white/10 text-white py-2 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-white/20">
-                                  Rechazar
-                                </button>
-                              </div>
-                            )}
-                            {msg.offer_status === 'accepted' && (
-                              <div className="flex items-center gap-2 text-white/80 text-[10px] font-black uppercase pt-2">
-                                <CheckCircle2 size={12} />
-                                Presupuesto Aceptado
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <p className="text-sm leading-relaxed">{msg.message_text}</p>
-                        )}
-                        
-                        <div className={`absolute bottom-1 ${isMine ? 'right-2' : 'left-2'} text-[8px] opacity-40`}>
-                           {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </div>
-                      </div>
-                      
-                      {isMine && (
-                        <div className="flex items-center gap-1 text-primary">
-                          {msg.is_read ? <CheckCheck size={12} /> : <Check size={12} />}
-                        </div>
-                      )}
+              {messages.length === 0 ? (
+                 <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
+                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-primary/30">
+                       <Zap size={32} />
                     </div>
-                  </motion.div>
-                );
-              })}
+                    <p className="text-text-dim text-xs">Di hola para iniciar la consulta técnica.</p>
+                 </div>
+              ) : (
+                messages.map((msg, index) => {
+                  const isMine = String(msg.sender_id) === String(currentUser.id);
+                  const isOffer = msg.message_type === 'offer';
+
+                  return (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      key={msg.id || index} 
+                      className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div className={`max-w-[80%] ${isMine ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                        <div className={`p-4 rounded-2xl relative ${
+                          isMine 
+                          ? 'bg-primary text-white rounded-tr-none' 
+                          : 'bg-white/5 border border-white/10 text-white rounded-tl-none'
+                        }`}>
+                          {isOffer ? (
+                            <div className="space-y-4 min-w-[220px]">
+                              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-80">
+                                <DollarSign size={14} className="text-yellow-400" />
+                                Presupuesto Propuesto
+                              </div>
+                              <div className="text-2xl font-black">S/.{msg.offer_price}</div>
+                              <p className="text-[11px] opacity-70 leading-relaxed">{msg.message_text}</p>
+                              
+                              {!isMine && msg.offer_status === 'pending' && (
+                                <div className="flex gap-2 pt-2">
+                                  <button 
+                                    onClick={() => handleAcceptOffer(msg.id)}
+                                    className="flex-1 bg-white text-primary py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/90 shadow-lg"
+                                  >
+                                    Aceptar
+                                  </button>
+                                  <button 
+                                    onClick={() => handleRejectOffer(msg.id)}
+                                    className="flex-1 bg-white/10 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/20"
+                                  >
+                                    Rechazar
+                                  </button>
+                                </div>
+                              )}
+                              
+                              {msg.offer_status === 'accepted' && (
+                                <div className="flex items-center gap-2 bg-success/20 p-2 rounded-lg text-success text-[10px] font-black uppercase">
+                                  <CheckCircle2 size={12} />
+                                  Presupuesto Aceptado
+                                </div>
+                              )}
+                              {msg.offer_status === 'rejected' && (
+                                <div className="flex items-center gap-2 bg-error/20 p-2 rounded-lg text-error text-[10px] font-black uppercase">
+                                  <X size={12} />
+                                  Presupuesto Rechazado
+                                </div>
+                              )}
+                            </div>
+                          ) : msg.message_type === 'appointment' ? (
+                            <div className="space-y-4 min-w-[240px]">
+                               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-80">
+                                  <Calendar size={14} className="text-primary" />
+                                  Detalles del Servicio
+                               </div>
+                               <div className="bg-white/10 p-4 rounded-2xl border border-white/5 space-y-3">
+                                  <div className="flex items-center justify-between">
+                                     <div className="flex items-center gap-2 text-white font-black text-xs">
+                                        <Clock size={14} className="text-primary" />
+                                        {msg.appointment_date || 'Fecha pendiente'}
+                                     </div>
+                                     <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-md ${
+                                       msg.appointment_status === 'pending' ? 'bg-yellow-500/20 text-yellow-500' :
+                                       msg.appointment_status === 'confirmed' ? 'bg-primary/20 text-primary' :
+                                       msg.appointment_status === 'paid' ? 'bg-success/20 text-success' :
+                                       'bg-error/20 text-error'
+                                     }`}>
+                                       {msg.appointment_status || 'Pendiente'}
+                                     </span>
+                                  </div>
+                                  <p className="text-[11px] text-white/70 leading-relaxed italic">"{msg.message_text}"</p>
+                                  
+                                  {msg.appointment_price > 0 && (
+                                    <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                                      <span className="text-[10px] text-text-dim uppercase font-bold">Costo del servicio</span>
+                                      <span className="text-sm font-black text-white">S/.{msg.appointment_price}</span>
+                                    </div>
+                                  )}
+                               </div>
+
+                               {/* ACTIONS BASED ON ROLE AND STATUS */}
+                               <div className="space-y-2 pt-1">
+                                  {/* TECH ACTIONS */}
+                                  {currentUser.role === 'tech' && msg.appointment_status === 'pending' && !msg.appointment_price && (
+                                    <button 
+                                      onClick={() => { setSelectedAppointment(msg); setShowPriceModal(true); }}
+                                      className="w-full bg-primary text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
+                                    >
+                                      Establecer Monto
+                                    </button>
+                                  )}
+                                  {currentUser.role === 'tech' && msg.appointment_status === 'paid' && (
+                                    <button 
+                                      onClick={() => handleConfirmPayment(msg.appointment_id)}
+                                      className="w-full bg-success text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-lg"
+                                    >
+                                      Confirmar Pago Recibido
+                                    </button>
+                                  )}
+
+                                  {/* CLIENT ACTIONS */}
+                                  {currentUser.role === 'client' && msg.appointment_status === 'confirmed' && msg.appointment_price > 0 && (
+                                    <button 
+                                      onClick={() => { setSelectedAppointment(msg); setShowPaymentModal(true); }}
+                                      className="w-full bg-primary text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-lg"
+                                    >
+                                      Pagar Servicio
+                                    </button>
+                                  )}
+                                  
+                                  {msg.appointment_status !== 'completed' && msg.appointment_status !== 'cancelled' && msg.appointment_payment_status !== 'paid' && (
+                                    <button 
+                                      onClick={() => handleCancelAppointment(msg.appointment_id)}
+                                      className="w-full bg-white/5 text-white/50 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-error/10 hover:text-error transition-all"
+                                    >
+                                      Cancelar
+                                    </button>
+                                  )}
+                               </div>
+                            </div>
+                          ) : msg.message_type === 'order' ? (
+                            <div className="space-y-4 min-w-[240px]">
+                               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-80">
+                                  <Package size={14} className="text-primary" />
+                                  Pedido de Producto
+                               </div>
+                               <div className="bg-white/10 p-4 rounded-2xl border border-white/5 space-y-3">
+                                  <div className="flex items-center gap-3">
+                                     <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center text-primary">
+                                        <Package size={20} />
+                                     </div>
+                                     <div className="flex-1">
+                                        <h4 className="text-xs font-black text-white">{msg.product_name || 'Producto'}</h4>
+                                        <p className="text-[10px] text-text-dim">Cantidad: {msg.quantity || 1}</p>
+                                     </div>
+                                  </div>
+                                  <div className="flex items-center justify-between text-[10px] pt-2 border-t border-white/5">
+                                     <span className="text-text-dim font-bold uppercase">Estado</span>
+                                     <span className="text-primary font-black uppercase">{msg.order_status || 'Pendiente'}</span>
+                                  </div>
+                                  {msg.delivery_address && (
+                                    <div className="flex items-start gap-2 pt-1">
+                                      <MapPin size={12} className="text-text-dim shrink-0 mt-0.5" />
+                                      <p className="text-[10px] text-text-dim leading-tight">{msg.delivery_address}</p>
+                                    </div>
+                                  )}
+                               </div>
+                               <button 
+                                 onClick={() => navigate('/orders')}
+                                 className="w-full bg-white/5 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                               >
+                                 Ver detalles del pedido
+                               </button>
+                            </div>
+                          ) : (
+                            <p className="text-sm leading-relaxed">{msg.message_text}</p>
+                          )}
+                          
+                          <div className={`absolute bottom-1 ${isMine ? 'right-2' : 'left-2'} text-[8px] opacity-40`}>
+                             {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                          </div>
+                        </div>
+                        
+                        {isMine && (
+                          <div className="flex items-center gap-1 text-primary">
+                            {msg.is_read ? <CheckCheck size={12} /> : <Check size={12} />}
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
               <div ref={scrollRef} />
             </div>
 
@@ -323,6 +577,111 @@ const Chat = () => {
           </div>
         )}
       </div>
+
+      {/* Price Modal */}
+      <AnimatePresence>
+        {showPriceModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="glass-panel w-full max-w-sm p-8 relative"
+            >
+              <button onClick={() => setShowPriceModal(false)} className="absolute top-6 right-6 text-text-dim hover:text-white">
+                <X size={24} />
+              </button>
+              <div className="flex flex-col items-center text-center space-y-4 mb-8">
+                <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center text-primary">
+                  <DollarSign size={32} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white">Costo del Servicio</h3>
+                  <p className="text-text-dim text-xs">Indica el monto a cobrar por este trabajo.</p>
+                </div>
+              </div>
+              <div className="space-y-6">
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-primary">S/.</span>
+                  <input 
+                    type="number" 
+                    placeholder="0.00" 
+                    className="input-field w-full text-2xl font-black pl-14 pr-6 py-4"
+                    value={tempPrice}
+                    onChange={(e) => setTempPrice(e.target.value)}
+                  />
+                </div>
+                <button 
+                  onClick={handleSetAppointmentPrice}
+                  disabled={processing}
+                  className="btn-primary w-full py-4 font-black text-sm"
+                >
+                  {processing ? 'Procesando...' : 'Establecer y Notificar'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Payment Modal */}
+      <AnimatePresence>
+        {showPaymentModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="glass-panel w-full max-w-md p-8 relative"
+            >
+              <button onClick={() => setShowPaymentModal(false)} className="absolute top-6 right-6 text-text-dim hover:text-white">
+                <X size={24} />
+              </button>
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-14 h-14 bg-success/20 rounded-2xl flex items-center justify-center text-success">
+                  <Wallet size={28} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white">Pagar Servicio</h3>
+                  <p className="text-text-dim text-xs">Monto a pagar: <span className="text-white font-black">S/.{selectedAppointment?.appointment_price}</span></p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-3">
+                {[
+                  { id: 'yape', name: 'Yape', icon: Smartphone, color: 'bg-[#742284]' },
+                  { id: 'plin', name: 'Plin', icon: Smartphone, color: 'bg-[#00d0c3]' },
+                  { id: 'transfer', name: 'Transferencia', icon: Banknote, color: 'bg-primary' },
+                  { id: 'cash', name: 'Efectivo', icon: Banknote, color: 'bg-success' }
+                ].map((method) => (
+                  <button 
+                    key={method.id}
+                    onClick={() => handlePayAppointment(method.id)}
+                    disabled={processing}
+                    className="flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 hover:border-primary/50 transition-all group"
+                  >
+                    <div className={`w-12 h-12 ${method.color} rounded-xl flex items-center justify-center text-white`}>
+                      <method.icon size={24} />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <span className="text-sm font-black text-white block">{method.name}</span>
+                      <span className="text-[10px] text-text-dim uppercase tracking-widest">Pago inmediato</span>
+                    </div>
+                    <ArrowRight size={18} className="text-text-dim group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex gap-3">
+                <AlertCircle size={20} className="text-yellow-500 shrink-0" />
+                <p className="text-[10px] text-yellow-500/80 leading-relaxed italic">
+                  Una vez realizado el pago por el medio seleccionado, el técnico deberá confirmar la recepción para finalizar el servicio oficialmente.
+                </p>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Offer Modal */}
       <AnimatePresence>
