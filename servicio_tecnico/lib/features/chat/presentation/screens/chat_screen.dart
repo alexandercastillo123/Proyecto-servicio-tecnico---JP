@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -33,6 +34,8 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _otherUserName;
   String? _otherUserRole;
   String? _userRole;
+  Timer? _pollingTimer; // Para "tiempo real"
+  bool _isDisposed = false;
 
   String _formatTime(String? timestamp) {
     if (timestamp == null) return '';
@@ -106,6 +109,22 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!_isDisposed && _otherUserId != null) {
+        _loadMessages(_otherUserId!, isPolling: true);
+      }
+    });
+  }
+
   Future<void> _loadInitialData(int userId) async {
     try {
       final profileRes = await _userService.getProfile();
@@ -113,31 +132,50 @@ class _ChatScreenState extends State<ChatScreen> {
         _userRole = profileRes.data?['role'];
       }
       await _loadMessages(userId);
+      _startPolling();
     } catch (e) {
       await _loadMessages(userId);
+      _startPolling();
     }
   }
 
-  Future<void> _loadMessages(int userId) async {
+  Future<void> _loadMessages(int userId, {bool isPolling = false}) async {
     try {
       final response = await _messageService.getMessages(userId);
       if (response.success) {
+        final newMessages = response.data ?? [];
+
+        // Mark as read unread incoming messages
+        for (var m in newMessages) {
+          if (!(m['is_me'] ?? false) &&
+              m['sender_id'].toString() == userId.toString() &&
+              m['is_read'] == false) {
+            _messageService.markAsRead(m['id']);
+          }
+        }
+
+        if (_isDisposed) return;
+
         setState(() {
-          _messages = response.data ?? [];
-          _isLoading = false;
+          _messages = newMessages;
+          if (!isPolling) _isLoading = false;
         });
-        _scrollToBottom();
+        if (!isPolling) _scrollToBottom();
       } else {
+        if (!isPolling && !_isDisposed) {
+          setState(() {
+            _errorMessage = response.message;
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (!isPolling && !_isDisposed) {
         setState(() {
-          _errorMessage = response.message;
+          _errorMessage = 'Error al cargar mensajes';
           _isLoading = false;
         });
       }
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error al cargar mensajes';
-        _isLoading = false;
-      });
     }
   }
 
@@ -251,12 +289,15 @@ class _ChatScreenState extends State<ChatScreen> {
             if (_otherUserId != null) {
               if (_otherUserRole == 'tech' || _otherUserRole == 'technician') {
                 context.push('/technician-profile', extra: _otherUserId);
-              } else if (_otherUserRole == 'store' || _otherUserRole == 'provider') {
+              } else if (_otherUserRole == 'store' ||
+                  _otherUserRole == 'provider') {
                 context.push('/store-profile/$_otherUserId');
               } else {
                 // Client role - no action or show snackbar
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('No hay perfil público para clientes')),
+                  const SnackBar(
+                    content: Text('No hay perfil público para clientes'),
+                  ),
                 );
               }
             }
@@ -427,6 +468,13 @@ class _ChatScreenState extends State<ChatScreen> {
                           time: time,
                           isMe: isMe,
                         );
+                      } else if (msg['message_type'] == 'appointment_progress') {
+                        bubble = _buildAppointmentProgressBubble(
+                          message: msg['message_text'] ?? '',
+                          status: msg['appointment_status'] ?? 'pending',
+                          time: time,
+                          isMe: isMe,
+                        );
                       } else if (msg['message_type'] == 'appointment') {
                         bubble = _buildAppointmentBubble(
                           appointmentId: msg['appointment_id'],
@@ -455,11 +503,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           isMe: isMe,
                         );
                       } else {
-                        bubble = _buildMessageBubble(
-                          message: msg['message_text'] ?? '',
-                          time: time,
-                          isMe: isMe,
-                        );
+                        bubble = _buildMessageBubble(msg: msg, isMe: isMe);
                       }
 
                       if (showDateSeparator) {
@@ -1284,57 +1328,198 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
+  Widget _buildStatusChecks(Map<String, dynamic> msg) {
+    if (msg['is_read'] == true) {
+      return const Icon(Icons.done_all, color: Colors.blue, size: 14);
+    } else if (msg['delivered_at'] != null) {
+      return const Icon(Icons.done_all, color: Colors.grey, size: 14);
+    } else {
+      return const Icon(Icons.done, color: Colors.grey, size: 14);
+    }
+  }
+
   Widget _buildMessageBubble({
-    required String message,
-    required String time,
+    required Map<String, dynamic> msg,
     required bool isMe,
   }) {
+    final message = msg['message_text'] ?? '';
+    final time = _formatTime(msg['created_at']);
+    final isDeleted = msg['deleted_at'] != null;
+    final isEdited = msg['is_edited'] == true;
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Column(
-        crossAxisAlignment: isMe
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
-        children: [
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 4),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            constraints: const BoxConstraints(maxWidth: 280),
-            decoration: BoxDecoration(
-              color: isMe ? const Color(0xFF3B28FF) : const Color(0xFFEBEBEB),
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(12),
-                topRight: const Radius.circular(12),
-                bottomLeft: isMe ? const Radius.circular(12) : Radius.zero,
-                bottomRight: isMe ? Radius.zero : const Radius.circular(12),
+      child: GestureDetector(
+        onLongPress: isDeleted ? null : () => _showMessageOptions(msg, isMe),
+        child: Column(
+          crossAxisAlignment: isMe
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
+          children: [
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              constraints: const BoxConstraints(maxWidth: 280),
+              decoration: BoxDecoration(
+                color: isMe ? const Color(0xFF3B28FF) : const Color(0xFFEBEBEB),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(12),
+                  topRight: const Radius.circular(12),
+                  bottomLeft: isMe ? const Radius.circular(12) : Radius.zero,
+                  bottomRight: isMe ? Radius.zero : const Radius.circular(12),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    message,
+                    style: TextStyle(
+                      color: isMe ? Colors.white : AppColors.textPrimary,
+                      fontSize: 14,
+                      fontStyle: isDeleted
+                          ? FontStyle.italic
+                          : FontStyle.normal,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (isEdited && !isDeleted)
+                        Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Text(
+                            'editado',
+                            style: TextStyle(
+                              color:
+                                  (isMe
+                                          ? Colors.white
+                                          : AppColors.textSecondary)
+                                      .withOpacity(0.6),
+                              fontSize: 9,
+                            ),
+                          ),
+                        ),
+                      Text(
+                        time,
+                        style: TextStyle(
+                          color: (isMe ? Colors.white : AppColors.textSecondary)
+                              .withOpacity(0.6),
+                          fontSize: 10,
+                        ),
+                      ),
+                      if (isMe && !isDeleted) ...[
+                        const SizedBox(width: 4),
+                        _buildStatusChecks(msg),
+                      ],
+                    ],
+                  ),
+                ],
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  message,
-                  style: TextStyle(
-                    color: isMe ? Colors.white : Colors.blue,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  time,
-                  style: TextStyle(
-                    color: (isMe ? Colors.white : Colors.blue).withValues(
-                      alpha: 0.6,
-                    ),
-                    fontSize: 10,
-                  ),
-                ),
-              ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMessageOptions(Map<String, dynamic> msg, bool isMe) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isMe && msg['message_type'] == 'text')
+              ListTile(
+                leading: const Icon(Icons.edit, color: AppColors.primary),
+                title: const Text('Editar mensaje'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showEditDialog(msg);
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: Text(isMe ? 'Eliminar para todos' : 'Eliminar para mí'),
+              onTap: () {
+                Navigator.pop(context);
+                _handleDeleteMessage(msg, isMe);
+              },
             ),
+            if (isMe)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: Colors.grey),
+                title: const Text('Eliminar para mí'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _handleDeleteMessage(
+                    msg,
+                    false,
+                  ); // false here means only for me
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditDialog(Map<String, dynamic> msg) {
+    final controller = TextEditingController(text: msg['message_text']);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Editar mensaje'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(hintText: 'Nuevo mensaje...'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              if (controller.text.trim().isNotEmpty) {
+                final res = await _messageService.updateMessage(
+                  msg['id'],
+                  controller.text.trim(),
+                );
+                if (mounted) Navigator.pop(context);
+                if (res.success) _loadMessages(_otherUserId!);
+              }
+            },
+            child: const Text('Guardar'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _handleDeleteMessage(
+    Map<String, dynamic> msg,
+    bool forEveryone,
+  ) async {
+    final res = await _messageService.deleteMessage(
+      msg['id'],
+      forEveryone: forEveryone,
+    );
+    if (res.success) {
+      _loadMessages(_otherUserId!);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(res.message ?? 'Error al eliminar mensaje')),
+        );
+      }
+    }
   }
 
   Widget _buildOfferBubble({
@@ -1364,9 +1549,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 Text(
                   'Tarifa de servicio:',
                   style: TextStyle(
-                    color: (isMe ? Colors.white : Colors.blue).withValues(
-                      alpha: 0.4,
-                    ),
+                    color: (isMe ? Colors.white : Colors.blue).withOpacity(0.4),
                     fontSize: 12,
                   ),
                 ),
@@ -1404,7 +1587,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isCanceled
-                          ? const Color(0xFFBDBDBD).withValues(alpha: 0.5)
+                          ? const Color(0xFFBDBDBD).withOpacity(0.5)
                           : (isMe
                                 ? Colors.transparent
                                 : const Color(0xFF3B28FF)),
@@ -1422,7 +1605,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       isMe ? 'Cancelar Oferta' : 'Pagar',
                       style: TextStyle(
                         color: isCanceled
-                            ? Colors.white.withValues(alpha: 0.6)
+                            ? Colors.white.withOpacity(0.6)
                             : Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1612,13 +1795,16 @@ class _ChatScreenState extends State<ChatScreen> {
     final String productName =
         latestOrderMsg['order_product_name'] ?? 'Producto';
 
-
-
     final List<dynamic> statusInfo = _getOrderStatusInfo(status);
     final Color statusColor = statusInfo[0];
     final String statusText = statusInfo[1];
 
-    final bool isTechOrStore = _userRole == 'tech' || _userRole == 'technician' || _userRole == 'provider' || _userRole == 'store' || _userRole == 'sucursal';
+    final bool isTechOrStore =
+        _userRole == 'tech' ||
+        _userRole == 'technician' ||
+        _userRole == 'provider' ||
+        _userRole == 'store' ||
+        _userRole == 'sucursal';
     final bool canMarkAsDelivered = status == 'shipped' && !isTechOrStore;
 
     final String? deliveryAddress = latestOrderMsg['order_address'];
@@ -1647,8 +1833,11 @@ class _ChatScreenState extends State<ChatScreen> {
                   color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(Icons.shopping_bag,
-                    color: AppColors.primary, size: 22),
+                child: const Icon(
+                  Icons.shopping_bag,
+                  color: AppColors.primary,
+                  size: 22,
+                ),
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -1658,7 +1847,9 @@ class _ChatScreenState extends State<ChatScreen> {
                     Text(
                       productName,
                       style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 16),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Row(
@@ -1667,7 +1858,9 @@ class _ChatScreenState extends State<ChatScreen> {
                           width: 8,
                           height: 8,
                           decoration: BoxDecoration(
-                              color: statusColor, shape: BoxShape.circle),
+                            color: statusColor,
+                            shape: BoxShape.circle,
+                          ),
                         ),
                         const SizedBox(width: 6),
                         Text(
@@ -1708,8 +1901,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ],
           ),
-          if (deliveryAddress != null &&
-              (_userRole != 'client')) ...[
+          if (deliveryAddress != null && (_userRole != 'client')) ...[
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
@@ -1721,7 +1913,11 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.location_on, color: Colors.redAccent, size: 16),
+                  const Icon(
+                    Icons.location_on,
+                    color: Colors.redAccent,
+                    size: 16,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -1758,7 +1954,8 @@ class _ChatScreenState extends State<ChatScreen> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
                   elevation: 0,
                 ),
               ),
@@ -1804,14 +2001,20 @@ class _ChatScreenState extends State<ChatScreen> {
     final double? lat = double.tryParse(orderLat?.toString() ?? '');
     final double? lng = double.tryParse(orderLng?.toString() ?? '');
 
-    final bool isTechOrStore = _userRole == 'tech' || _userRole == 'technician' || _userRole == 'provider' || _userRole == 'store' || _userRole == 'sucursal';
+    final bool isTechOrStore =
+        _userRole == 'tech' ||
+        _userRole == 'technician' ||
+        _userRole == 'provider' ||
+        _userRole == 'store' ||
+        _userRole == 'sucursal';
     final bool canMarkAsDelivered = status == 'shipped' && !isTechOrStore;
 
     return Align(
       alignment: !isMe ? Alignment.centerLeft : Alignment.centerRight,
       child: Column(
-        crossAxisAlignment:
-            !isMe ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+        crossAxisAlignment: !isMe
+            ? CrossAxisAlignment.start
+            : CrossAxisAlignment.end,
         children: [
           Container(
             margin: const EdgeInsets.symmetric(vertical: 8),
@@ -1892,7 +2095,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: statusColor.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(6),
@@ -1934,13 +2139,18 @@ class _ChatScreenState extends State<ChatScreen> {
                       icon: const Icon(Icons.check_circle_outline, size: 16),
                       label: const Text(
                         'CONFIRMAR RECEPCIÓN',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                         elevation: 0,
                       ),
                     ),
@@ -1957,10 +2167,7 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             child: Text(
               time,
-              style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 10,
-              ),
+              style: const TextStyle(color: Colors.grey, fontSize: 10),
             ),
           ),
         ],
@@ -2041,6 +2248,140 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildAppointmentProgressBubble({
+    required String message,
+    required String status,
+    required String time,
+    required bool isMe,
+  }) {
+    final steps = [
+      {'id': 'confirmed', 'label': 'Confirmado', 'icon': Icons.verified},
+      {'id': 'on_the_way', 'label': 'En Camino', 'icon': Icons.directions_car},
+      {'id': 'arrived', 'label': 'Llegó', 'icon': Icons.location_on},
+      {'id': 'in_progress', 'label': 'Trabajando', 'icon': Icons.build},
+      {'id': 'completed', 'label': 'Terminado', 'icon': Icons.stars},
+    ];
+
+    int currentIndex = steps.indexWhere((s) => s['id'] == status);
+    
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.info_outline, color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Progreso del Servicio',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: const TextStyle(fontSize: 14, color: Colors.black87),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(steps.length, (index) {
+              final step = steps[index];
+              final bool isPast = index < currentIndex;
+              final bool isCurrent = index == currentIndex;
+              
+              Color color;
+              if (isPast) color = const Color(0xFF4CAF50);
+              else if (isCurrent) color = AppColors.primary;
+              else color = Colors.grey.shade300;
+
+              return Expanded(
+                child: Column(
+                  children: [
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        if (index < steps.length - 1)
+                          Positioned(
+                            left: 15,
+                            right: -15,
+                            child: Container(
+                              height: 2,
+                              color: index < currentIndex 
+                                  ? const Color(0xFF4CAF50) 
+                                  : Colors.grey.shade200,
+                            ),
+                          ),
+                        Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: isCurrent ? color : Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: color, width: 2),
+                          ),
+                          child: Icon(
+                            step['icon'] as IconData,
+                            size: 14,
+                            color: isCurrent ? Colors.white : color,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      step['label'] as String,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 8,
+                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                        color: isCurrent ? AppColors.primary : Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.bottomRight,
+            child: Text(
+              time,
+              style: const TextStyle(fontSize: 10, color: Colors.grey),
+            ),
+          ),
+        ],
       ),
     );
   }

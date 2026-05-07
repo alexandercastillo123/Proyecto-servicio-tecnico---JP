@@ -4,6 +4,8 @@ import 'package:animate_do/animate_do.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/store.dart';
@@ -26,6 +28,7 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
   bool _isLoading = true;
   LatLng? _selectedOrderLocation; // Nueva ubicación de entrega seleccionada
   String _selectedAddress = '';
+  DateTime? _lastOrderTapTime; // Para detectar doble clic en el mapa de pedidos
 
   @override
   void initState() {
@@ -52,20 +55,40 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
 
   void _showOrderDialog(StoreProduct product) {
     int quantity = 1;
-    final addressController = TextEditingController(text: _selectedAddress.isNotEmpty ? _selectedAddress : (_store?.address ?? ''));
-    
-    // Si no hay ubicación aún, intentamos obtenerla
+    final addressController = TextEditingController(
+      text: _selectedAddress.isNotEmpty
+          ? _selectedAddress
+          : 'Cargando ubicación...',
+    );
+
+    // Si ya tenemos una ubicación guardada en el estado, la usamos para rellenar el texto
+    if (_selectedAddress.isNotEmpty) {
+      addressController.text = _selectedAddress;
+    }
+
+    // Si no hay ubicación aún, intentamos obtenerla de forma asíncrona
     if (_selectedOrderLocation == null) {
-      Geolocator.getCurrentPosition().then((pos) {
-        _selectedOrderLocation = LatLng(pos.latitude, pos.longitude);
-      });
+      Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
+          .then((pos) {
+            if (mounted) {
+              final latLng = LatLng(pos.latitude, pos.longitude);
+              setState(() => _selectedOrderLocation = latLng);
+              // Actualizar dirección automáticamente
+              _updateAddressFromCoords(latLng, addressController);
+            }
+          })
+          .catchError((e) {
+            debugPrint("Error obteniendo GPS para pedido: $e");
+          });
     }
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: Row(
             children: [
               const Icon(Icons.shopping_cart, color: AppColors.primary),
@@ -86,12 +109,26 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                      onPressed: quantity > 1 ? () => setDialogState(() => quantity--) : null,
+                      icon: const Icon(
+                        Icons.remove_circle_outline,
+                        color: Colors.red,
+                      ),
+                      onPressed: quantity > 1
+                          ? () => setDialogState(() => quantity--)
+                          : null,
                     ),
-                    Text('$quantity', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text(
+                      '$quantity',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     IconButton(
-                      icon: const Icon(Icons.add_circle_outline, color: Colors.green),
+                      icon: const Icon(
+                        Icons.add_circle_outline,
+                        color: Colors.green,
+                      ),
                       onPressed: () => setDialogState(() => quantity++),
                     ),
                   ],
@@ -108,13 +145,14 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
-                  onPressed: () => _openLocationPicker((LatLng loc, String addr) {
-                    setDialogState(() {
-                      _selectedOrderLocation = loc;
-                      _selectedAddress = addr;
-                      addressController.text = addr;
-                    });
-                  }),
+                  onPressed: () =>
+                      _openLocationPicker((LatLng loc, String addr) {
+                        setDialogState(() {
+                          _selectedOrderLocation = loc;
+                          _selectedAddress = addr;
+                          addressController.text = addr;
+                        });
+                      }),
                   icon: const Icon(Icons.location_on),
                   label: const Text('Confirmar en el Mapa'),
                   style: OutlinedButton.styleFrom(
@@ -127,7 +165,11 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                     padding: const EdgeInsets.only(top: 8.0),
                     child: Text(
                       '📌 Ubicación confirmada',
-                      style: TextStyle(color: Colors.green[700], fontSize: 12, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Colors.green[700],
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 const SizedBox(height: 20),
@@ -140,10 +182,17 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Total:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text(
+                        'Total:',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       Text(
                         'S/ ${(product.price * quantity).toStringAsFixed(2)}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.primary),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ],
                   ),
@@ -158,6 +207,17 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
+                if (_selectedOrderLocation == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Por favor confirma tu ubicación en el mapa',
+                      ),
+                    ),
+                  );
+                  return;
+                }
+
                 final res = await _storeService.createOrder(
                   productId: product.id,
                   quantity: quantity,
@@ -169,20 +229,34 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                   Navigator.pop(context);
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text(res.success ? '¡Pedido realizado con éxito!' : 'Error: ${res.message}'),
+                      content: Text(
+                        res.success
+                            ? '¡Pedido realizado con éxito!'
+                            : 'Error: ${res.message}',
+                      ),
                       backgroundColor: res.success ? Colors.green : Colors.red,
                     ),
                   );
-                  if (res.success && _store?.userId != null) {
+                  if (res.success && _store != null) {
                     // Navegar al chat con el dueño de la tienda
-                    context.push('/chat', extra: _store!.userId);
+                    context.push(
+                      '/chat',
+                      extra: {
+                        'receiverId': _store!.userId,
+                        'receiverName': _store!.name,
+                        'receiverRole': 'store',
+                      },
+                    );
                   }
                 }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
               ),
               child: const Text('Confirmar Pedido'),
             ),
@@ -193,7 +267,12 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
   }
 
   void _openLocationPicker(Function(LatLng, String) onPicked) {
-    LatLng pickingLoc = _selectedOrderLocation ?? const LatLng(-12.0453, -77.0428);
+    // Si aún no tenemos ubicación, usamos la de la tienda o la de Lima como último recurso
+    LatLng pickingLoc =
+        _selectedOrderLocation ??
+        (_store?.latitude != null && _store?.longitude != null
+            ? LatLng(_store!.latitude!, _store!.longitude!)
+            : const LatLng(-12.0453, -77.0428));
 
     showModalBottomSheet(
       context: context,
@@ -209,27 +288,57 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
           child: Column(
             children: [
               const SizedBox(height: 12),
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
               const Padding(
                 padding: EdgeInsets.all(16.0),
-                child: Text('Mueve el marcador a tu ubicación de entrega', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                child: Text(
+                  'Mueve el marcador a tu ubicación de entrega',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
               ),
               Expanded(
                 child: FlutterMap(
                   options: MapOptions(
                     initialCenter: pickingLoc,
                     initialZoom: 15,
-                    onTap: (tapPos, p) => setPickerState(() => pickingLoc = p),
+                    onTap: (tapPos, p) {
+                      final now = DateTime.now();
+                      if (_lastOrderTapTime != null &&
+                          now.difference(_lastOrderTapTime!) <
+                              const Duration(milliseconds: 400)) {
+                        setPickerState(() => pickingLoc = p);
+                        // Update main state immediately
+                        setState(() {
+                          _selectedOrderLocation = p;
+                          _selectedAddress = 'Cargando dirección...';
+                        });
+                      }
+                      _lastOrderTapTime = now;
+                    },
                   ),
                   children: [
-                    TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                    TileLayer(
+                      urlTemplate:
+                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    ),
                     MarkerLayer(
                       markers: [
                         Marker(
                           point: pickingLoc,
                           width: 80,
                           height: 80,
-                          child: const Icon(Icons.location_on, color: Colors.red, size: 45),
+                          child: const Icon(
+                            Icons.location_on,
+                            color: Colors.red,
+                            size: 45,
+                          ),
                         ),
                       ],
                     ),
@@ -241,12 +350,26 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                 child: SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      final addr = 'Lat: ${pickingLoc.latitude.toStringAsFixed(4)}, Lng: ${pickingLoc.longitude.toStringAsFixed(4)}';
-                      onPicked(pickingLoc, addr);
-                      Navigator.pop(context);
+                    onPressed: () async {
+                      // Mostrar indicador de carga breve
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Obteniendo dirección...'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                      final newAddr = await _updateAddressFromCoords(
+                        pickingLoc,
+                        null,
+                      );
+                      onPicked(pickingLoc, newAddr);
+                      if (context.mounted) Navigator.pop(context);
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white, padding: const EdgeInsets.all(16)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.all(16),
+                    ),
                     child: const Text('CONFIRMAR ESTA UBICACIÓN'),
                   ),
                 ),
@@ -292,10 +415,18 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                     ? Image.network(
                         ApiConstants.getStorageUrl(_store!.imageUrl),
                         fit: BoxFit.cover,
-                        errorBuilder: (c, e, s) => const Icon(Icons.store, size: 80, color: Colors.white54),
+                        errorBuilder: (c, e, s) => const Icon(
+                          Icons.store,
+                          size: 80,
+                          color: Colors.white54,
+                        ),
                       )
                     : const Center(
-                        child: Icon(Icons.store, size: 80, color: Colors.white54),
+                        child: Icon(
+                          Icons.store,
+                          size: 80,
+                          color: Colors.white54,
+                        ),
                       ),
               ),
             ),
@@ -306,7 +437,8 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (_store!.description != null && _store!.description!.isNotEmpty) ...[
+                  if (_store!.description != null &&
+                      _store!.description!.isNotEmpty) ...[
                     Text(
                       _store!.description!,
                       style: TextStyle(color: Colors.grey[700], fontSize: 15),
@@ -315,15 +447,28 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                   ],
                   Row(
                     children: [
-                      const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                      const Icon(
+                        Icons.location_on,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
-                      Expanded(child: Text(_store!.address, style: const TextStyle(fontSize: 14))),
+                      Expanded(
+                        child: Text(
+                          _store!.address,
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(Icons.phone, color: AppColors.primary, size: 20),
+                      const Icon(
+                        Icons.phone,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Text(_store!.phone, style: const TextStyle(fontSize: 14)),
                     ],
@@ -331,11 +476,18 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      const Icon(Icons.access_time, color: AppColors.primary, size: 20),
+                      const Icon(
+                        Icons.access_time,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Horario: ${_store!.openingTime ?? "No def."} - ${_store!.closingTime ?? "No def."}',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),
@@ -352,14 +504,17 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             sliver: _products.isEmpty
-                ? const SliverToBoxAdapter(child: Center(child: Text('No hay productos disponibles')))
+                ? const SliverToBoxAdapter(
+                    child: Center(child: Text('No hay productos disponibles')),
+                  )
                 : SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.75,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.75,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
                     delegate: SliverChildBuilderDelegate((context, index) {
                       final p = _products[index];
                       return FadeInUp(
@@ -377,16 +532,32 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                                 child: Container(
                                   decoration: BoxDecoration(
                                     color: Colors.grey[100],
-                                    borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                                    image: (p.imageUrl != null && p.imageUrl!.isNotEmpty)
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(16),
+                                    ),
+                                    image:
+                                        (p.imageUrl != null &&
+                                            p.imageUrl!.isNotEmpty)
                                         ? DecorationImage(
-                                            image: NetworkImage(ApiConstants.getStorageUrl(p.imageUrl)),
+                                            image: NetworkImage(
+                                              ApiConstants.getStorageUrl(
+                                                p.imageUrl,
+                                              ),
+                                            ),
                                             fit: BoxFit.cover,
                                           )
                                         : null,
                                   ),
-                                  child: (p.imageUrl == null || p.imageUrl!.isEmpty)
-                                      ? const Center(child: Icon(Icons.shopping_bag, color: Colors.grey, size: 40))
+                                  child:
+                                      (p.imageUrl == null ||
+                                          p.imageUrl!.isEmpty)
+                                      ? const Center(
+                                          child: Icon(
+                                            Icons.shopping_bag,
+                                            color: Colors.grey,
+                                            size: 40,
+                                          ),
+                                        )
                                       : null,
                                 ),
                               ),
@@ -397,7 +568,10 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                                   children: [
                                     Text(
                                       p.name,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -405,13 +579,17 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                                     if (p.description != null)
                                       Text(
                                         p.description!,
-                                        style: TextStyle(color: Colors.grey[600], fontSize: 11),
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 11,
+                                        ),
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     const SizedBox(height: 8),
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
                                           'S/ ${p.price.toStringAsFixed(2)}',
@@ -426,11 +604,19 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: AppColors.primary,
                                             foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                            ),
                                             minimumSize: const Size(0, 32),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
                                           ),
-                                          child: const Text('Pedir', style: TextStyle(fontSize: 12)),
+                                          child: const Text(
+                                            'Pedir',
+                                            style: TextStyle(fontSize: 12),
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -451,15 +637,24 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 30),
         decoration: BoxDecoration(
           color: Colors.white,
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+          boxShadow: [
+            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+          ],
         ),
         child: Row(
           children: [
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () {
-                  if (_store?.userId != null) {
-                    context.push('/chat', extra: _store!.userId);
+                  if (_store != null) {
+                    context.push(
+                      '/chat',
+                      extra: {
+                        'receiverId': _store!.userId,
+                        'receiverName': _store!.name,
+                        'receiverRole': 'store',
+                      },
+                    );
                   }
                 },
                 icon: const Icon(Icons.message),
@@ -475,12 +670,15 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () {
-                  context.push('/appointment-scheduling', extra: {
-                    'id': _store!.userId,
-                    'storeId': _store!.id,
-                    'name': _store!.name,
-                    'isStore': true
-                  });
+                  context.push(
+                    '/appointment-scheduling',
+                    extra: {
+                      'id': _store!.userId,
+                      'storeId': _store!.id,
+                      'name': _store!.name,
+                      'isStore': true,
+                    },
+                  );
                 },
                 icon: const Icon(Icons.calendar_today),
                 label: const Text('Cita Local'),
@@ -494,5 +692,42 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
         ),
       ),
     );
+  }
+
+  Future<String> _updateAddressFromCoords(
+    LatLng loc,
+    TextEditingController? controller,
+  ) async {
+    String addr =
+        'Lat: ${loc.latitude.toStringAsFixed(4)}, Lng: ${loc.longitude.toStringAsFixed(4)}';
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=${loc.latitude}&lon=${loc.longitude}&zoom=18&addressdetails=1',
+      );
+      final response = await http
+          .get(
+            uri,
+            headers: {
+              'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
+            },
+          )
+          .timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['display_name'] != null) {
+          addr = data['display_name'];
+          if (mounted) {
+            setState(() {
+              _selectedAddress = addr;
+            });
+            controller?.text = addr;
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Reverse geocoding error: $e');
+    }
+    return addr;
   }
 }

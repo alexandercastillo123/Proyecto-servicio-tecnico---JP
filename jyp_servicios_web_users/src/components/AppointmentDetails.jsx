@@ -104,12 +104,21 @@ const AppointmentDetails = () => {
         <div className={`px-4 py-1.5 rounded-full border text-[10px] font-black uppercase tracking-widest ${
           appt.status === 'pending' ? 'bg-warning/10 text-warning border-warning/20' :
           appt.status === 'confirmed' ? 'bg-primary/10 text-primary border-primary/20' :
+          appt.status === 'on_the_way' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
           appt.status === 'arrived' ? 'bg-info/10 text-info border-info/20' :
           appt.status === 'in_progress' ? 'bg-secondary/10 text-secondary border-secondary/20' :
           appt.status === 'completed' ? 'bg-success/10 text-success border-success/20' :
           'bg-error/10 text-error border-error/20'
         }`}>
-          {appt.status}
+          {appt.status === 'pending' ? 'Pendiente' :
+           appt.status === 'confirmed' ? 'Confirmada' :
+           appt.status === 'on_the_way' ? 'En camino 🚚' :
+           appt.status === 'arrived' ? 'En el sitio 📍' :
+           appt.status === 'in_progress' ? 'En progreso 🛠' :
+           appt.status === 'completed' ? 'Terminado 🎉' :
+           appt.status === 'cancelled' ? 'Cancelado' :
+           appt.status === 'expired' ? 'Expirado' :
+           appt.status}
         </div>
       </div>
 
@@ -251,6 +260,15 @@ const AppointmentDetails = () => {
                 )}
                 {appt.status === 'confirmed' && (
                   <button 
+                    onClick={() => handleUpdateStatus('on_the_way')}
+                    disabled={actionLoading}
+                    className="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:brightness-110 transition-all"
+                  >
+                    Marcar En Camino
+                  </button>
+                )}
+                {appt.status === 'on_the_way' && (
+                  <button 
                     onClick={() => handleUpdateStatus('arrived')}
                     disabled={actionLoading}
                     className="w-full bg-info text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-info/20 hover:brightness-110 transition-all"
@@ -312,6 +330,15 @@ const AppointmentDetails = () => {
                   >
                     <CreditCard size={16} />
                     Pagar Ahora S/.{appt.price}
+                  </button>
+                )}
+                {appt.status === 'confirmed' && appt.service_type === 'local' && (
+                  <button 
+                    onClick={() => handleUpdateStatus('on_the_way')}
+                    disabled={actionLoading}
+                    className="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:brightness-110 transition-all"
+                  >
+                    Estoy En Camino al Local
                   </button>
                 )}
                 {appt.status !== 'completed' && appt.status !== 'cancelled' && (

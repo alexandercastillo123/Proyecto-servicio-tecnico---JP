@@ -42,10 +42,11 @@ class ApiConstants {
   static String cancelAppointment(int id) => '$baseUrl/appointments/$id';
 
   // Message Endpoints
-  static const String conversations = '$baseUrl/messages/conversations';
-  static String messagesWithUser(int userId) => '$baseUrl/messages/$userId';
-  static const String sendMessage = '$baseUrl/messages';
-  static const String sendOffer = '$baseUrl/messages/offer';
+  static const String messages = '$baseUrl/messages';
+  static const String conversations = '$messages/conversations';
+  static String messagesWithUser(int userId) => '$messages/$userId';
+  static const String sendMessage = messages;
+  static const String sendOffer = '$messages/offer';
   static String acceptOffer(int id) => '$baseUrl/messages/offer/$id/accept';
   static String rejectOffer(int id) => '$baseUrl/messages/offer/$id/reject';
   static String cancelOffer(int id) => '$baseUrl/messages/offer/$id/cancel';

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import 'package:path/path.dart' as p;
+import 'local_cache_service.dart';
 
 class ApiResponse<T> {
   final bool success;
@@ -30,19 +31,23 @@ class ApiService {
 
   void setToken(String token) {
     _token = token;
+    LocalCacheService.saveToken(token);
   }
 
   String? getToken() {
+    if (_token == null) {
+      _token = LocalCacheService.getToken();
+    }
     return _token;
   }
 
   void clearToken() {
     _token = null;
+    LocalCacheService.clearAuth();
   }
 
   Future<void> logout() async {
-    _token = null;
-    // Aquí se podría llamar a un endpoint de blacklist si fuera necesario
+    clearToken();
   }
 
   Map<String, String> _getHeaders({bool includeAuth = false}) {
@@ -143,6 +148,7 @@ class ApiService {
 
   Future<ApiResponse<T>> delete<T>(
     String url, {
+    Map<String, dynamic>? body,
     bool requiresAuth = false,
     T Function(dynamic)? fromJson,
   }) async {
@@ -150,6 +156,7 @@ class ApiService {
       final response = await http.delete(
         Uri.parse(url),
         headers: _getHeaders(includeAuth: requiresAuth),
+        body: body != null ? jsonEncode(body) : null,
       );
 
       return _handleResponse<T>(response, fromJson);

@@ -7,6 +7,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:servicio_tecnico_app/core/services/auth_service.dart';
 import 'package:servicio_tecnico_app/core/services/camera_service.dart';
+import 'package:servicio_tecnico_app/core/services/local_cache_service.dart';
 import 'package:servicio_tecnico_app/core/services/user_service.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -31,6 +32,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   double? _techLat;
   double? _techLng;
   bool _isGeocoding = false;
+  bool _policiesAccepted = false;
 
   // Schedules for Juridical Technicians
   final List<Map<String, dynamic>> _schedules = [
@@ -141,7 +143,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _initializeCamera() async {
     // Guard: prevent concurrent calls that trigger duplicate permission requests
     if (_isInitializingCamera) return;
-    if (_cameraController != null && _cameraController!.value.isInitialized) return;
+    if (_cameraController != null && _cameraController!.value.isInitialized)
+      return;
 
     setState(() => _isInitializingCamera = true);
 
@@ -160,7 +163,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         }
       } else if (status.isPermanentlyDenied) {
         if (mounted) {
-          _showError('Permiso de cámara denegado. Actívalo en la configuración del dispositivo.');
+          _showError(
+            'Permiso de cámara denegado. Actívalo en la configuración del dispositivo.',
+          );
           openAppSettings();
         }
       } else {
@@ -536,9 +541,123 @@ class _RegisterScreenState extends State<RegisterScreen> {
             isPassword: true,
           ),
           if (widget.role == 'client') ...[
-            const SizedBox(height: 30),
+            const SizedBox(height: 16),
+            _buildPoliciesCheckbox(),
+            const SizedBox(height: 16),
             CustomButton(text: 'Registrarme', onPressed: _submitRegistration),
+          ] else ...[
+            const SizedBox(height: 16),
+            _buildPoliciesCheckbox(),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPoliciesCheckbox() {
+    return Row(
+      children: [
+        Checkbox(
+          value: _policiesAccepted,
+          onChanged: (val) => setState(() => _policiesAccepted = val ?? false),
+          activeColor: AppColors.primary,
+        ),
+        Expanded(
+          child: GestureDetector(
+            onTap: _showPoliciesDialog,
+            child: RichText(
+              text: TextSpan(
+                style: TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  fontFamily: 'Outfit',
+                ),
+                children: [
+                  const TextSpan(text: 'Acepto los '),
+                  TextSpan(
+                    text: 'Términos de Servicio y la Política de Privacidad',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showPoliciesDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Políticas Generales - J&P',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF3B28FF),
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text(
+                '1. Uso de la Plataforma',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'Esta aplicación es exclusiva para la gestión de servicios técnicos y adquisición de repuestos proporcionados por J&P y sus aliados.',
+              ),
+              SizedBox(height: 12),
+              Text(
+                '2. Privacidad de Datos',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'Su información personal y geolocalización solo se utilizarán para facilitar la llegada del técnico o la entrega de pedidos.',
+              ),
+              SizedBox(height: 12),
+              Text(
+                '3. Compromiso de Servicio',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'Los técnicos se comprometen a cumplir con los horarios establecidos. Los clientes deben proporcionar una ubicación precisa.',
+              ),
+              SizedBox(height: 12),
+              Text(
+                '4. Pagos y Comisiones',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'Los pagos realizados a través de la app están protegidos. No se recomienda realizar pagos externos para servicios gestionados aquí.',
+              ),
+              SizedBox(height: 12),
+              Text(
+                '5. Conducta del Usuario',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'Se prohíbe el uso de lenguaje ofensivo en el chat. El incumplimiento puede resultar en la suspensión de la cuenta.',
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'Entendido',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
         ],
       ),
     );
@@ -546,6 +665,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _submitRegistration() async {
     if (!_validateLocalFields()) return;
+
+    if (!_policiesAccepted) {
+      _showError('Debes aceptar los términos y condiciones');
+      return;
+    }
 
     // Mostrar loading
     showDialog(
@@ -591,6 +715,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   )
                   .toList()
             : null,
+        policiesAccepted: _policiesAccepted,
       );
 
       // Cerrar loading
@@ -602,13 +727,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
           await UserService().uploadPhoto(_capturedFile!.path);
         }
 
-        if (context.mounted) {
-          final target = widget.role == 'tech' ? '/home' : '/client-home';
-          context.go(target);
+        if (response.success && response.data != null) {
+          final role = response.data!['role'] ?? widget.role;
+          final userId = response.data!['id'];
+          await LocalCacheService.saveRole(role);
+          if (userId != null) {
+            await LocalCacheService.saveUserId(userId);
+          }
+          await LocalCacheService.saveLastActivity();
+
+          if (context.mounted) {
+            final target = role == 'client' ? '/client-home' : '/home';
+            context.go(target);
+          }
+        } else {
+          if (context.mounted)
+            _showError(response.message ?? 'Error al registrarse');
         }
-      } else {
-        if (context.mounted)
-          _showError(response.message ?? 'Error al registrarse');
       }
     } catch (e) {
       if (context.mounted) Navigator.pop(context);
@@ -837,7 +972,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
                   ],
                 ),
-                child: const Icon(Icons.camera_alt_outlined, size: 64, color: AppColors.primary),
+                child: const Icon(
+                  Icons.camera_alt_outlined,
+                  size: 64,
+                  color: AppColors.primary,
+                ),
               ),
             )
           else
@@ -921,7 +1060,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 padding: const EdgeInsets.all(6),
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 4),
+                                  border: Border.all(
+                                    color: Colors.white,
+                                    width: 4,
+                                  ),
                                 ),
                                 child: Container(
                                   width: 60,
@@ -930,7 +1072,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     color: Colors.white,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(Icons.camera_alt, color: AppColors.primary, size: 28),
+                                  child: const Icon(
+                                    Icons.camera_alt,
+                                    color: AppColors.primary,
+                                    size: 28,
+                                  ),
                                 ),
                               ),
                             ),
@@ -982,7 +1128,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     height: 450,
                     width: double.infinity,
                     decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 1),
+                      border: Border.all(
+                        color: AppColors.primary.withOpacity(0.1),
+                        width: 1,
+                      ),
                       boxShadow: AppColors.premiumShadow,
                     ),
                     child: Image.file(
@@ -996,7 +1145,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: GestureDetector(
                     onTap: () => setState(() => _isPhotoTaken = false),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(20),
@@ -1004,7 +1156,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.refresh_rounded, color: AppColors.primary, size: 20),
+                          Icon(
+                            Icons.refresh_rounded,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
                           SizedBox(width: 8),
                           Text(
                             'REINTENTAR',
@@ -1124,6 +1280,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _showMapDialog(LatLng initialCoordinates, {bool isApproximate = false}) {
     LatLng currentMarker = initialCoordinates;
+    DateTime? lastTapTime;
+
+    void handleMarkLocation(LatLng latLng, Function setDialogState) async {
+      setDialogState(() {
+        currentMarker = latLng;
+        _referenceAddressController.text = "Cargando dirección...";
+      });
+      try {
+        final uri = Uri.parse(
+          'https://nominatim.openstreetmap.org/reverse?format=json&lat=${latLng.latitude}&lon=${latLng.longitude}&zoom=18&addressdetails=1',
+        );
+        final response = await http
+            .get(
+              uri,
+              headers: {
+                'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
+              },
+            )
+            .timeout(const Duration(seconds: 5));
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (data['display_name'] != null) {
+            setDialogState(() {
+              _referenceAddressController.text = data['display_name'];
+            });
+            setState(() {}); // Update main screen state as well
+          }
+        }
+      } catch (e) {
+        debugPrint('Error reverse geocoding: $e');
+      }
+    }
 
     showDialog(
       context: context,
@@ -1174,28 +1363,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           options: MapOptions(
                             initialCenter: initialCoordinates,
                             initialZoom: 15.0,
-                            onTap: (tapPosition, latLng) async {
-                              setDialogState(() {
-                                currentMarker = latLng;
-                              });
-                              try {
-                                final uri = Uri.parse(
-                                    'https://nominatim.openstreetmap.org/reverse?format=json&lat=${latLng.latitude}&lon=${latLng.longitude}&zoom=18&addressdetails=1');
-                                final response = await http.get(uri, headers: {
-                                  'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
-                                }).timeout(const Duration(seconds: 5));
-                                
-                                if (response.statusCode == 200) {
-                                  final data = jsonDecode(response.body);
-                                  if (data['display_name'] != null) {
-                                    setDialogState(() {
-                                      _referenceAddressController.text = data['display_name'];
-                                    });
-                                    setState(() {}); // Update main screen state as well
-                                  }
-                                }
-                              } catch (e) {
-                                debugPrint('Error reverse geocoding: $e');
+                            onTap: (tapPosition, latLng) {
+                              final now = DateTime.now();
+                              if (lastTapTime != null &&
+                                  now.difference(lastTapTime!) <
+                                      const Duration(milliseconds: 500)) {
+                                handleMarkLocation(latLng, setDialogState);
+                              } else {
+                                lastTapTime = now;
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Doble click para marcar ubicación',
+                                    ),
+                                    duration: Duration(milliseconds: 600),
+                                  ),
+                                );
                               }
                             },
                           ),

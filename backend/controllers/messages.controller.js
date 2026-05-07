@@ -59,33 +59,41 @@ const getMessages = async (req, res) => {
 
         const dbRes = await db.listar(
             `SELECT 
-        cm.id, cm.sender_id, cm.receiver_id, cm.message_text,
-        cm.message_type, cm.offer_price, cm.offer_status, cm.cancelled_by,
-        cm.created_at, cm.is_read, cm.appointment_id, cm.order_id,
-        a.status as appointment_status,
-        a.price as appointment_price,
-        a.payment_method as appointment_payment_method,
-        a.payment_status as appointment_payment_status,
-        a.payment_confirmed_at as appointment_payment_confirmed_at,
-        a.cancelled_by as app_cancelled_by,
-        (SELECT role FROM users WHERE id = a.cancelled_by) as canceller_role,
-        o.status as order_status,
-        p.name as order_product_name
-      FROM chat_messages cm
-      LEFT JOIN appointments a ON cm.appointment_id = a.id
-      LEFT JOIN store_orders o ON cm.order_id = o.id
-      LEFT JOIN store_products p ON o.product_id = p.id
-      WHERE (cm.sender_id = ? AND cm.receiver_id = ?)
-         OR (cm.sender_id = ? AND cm.receiver_id = ?)
-      ORDER BY cm.created_at ASC`,
+                cm.id, cm.sender_id, cm.receiver_id, cm.message_text,
+                cm.message_type, cm.offer_price, cm.offer_status, cm.cancelled_by,
+                cm.created_at, cm.is_read,
+                cm.appointment_id, cm.order_id,
+                a.status as appointment_status,
+                a.price as appointment_price,
+                a.payment_method as appointment_payment_method,
+                a.payment_status as appointment_payment_status,
+                a.payment_confirmed_at as appointment_payment_confirmed_at,
+                a.cancelled_by as app_cancelled_by,
+                (SELECT role FROM users WHERE id = a.cancelled_by) as canceller_role,
+                o.status as order_status,
+                o.delivery_address as order_address,
+                o.latitude as order_lat,
+                o.longitude as order_lng,
+                p.name as order_product_name
+            FROM chat_messages cm
+            LEFT JOIN appointments a ON cm.appointment_id = a.id
+            LEFT JOIN store_orders o ON cm.order_id = o.id
+            LEFT JOIN store_products p ON o.product_id = p.id
+            WHERE (cm.sender_id = ? AND cm.receiver_id = ?)
+               OR (cm.sender_id = ? AND cm.receiver_id = ?)
+            ORDER BY cm.created_at ASC`,
             true,
             [userId, otherUserId, otherUserId, userId]
         );
 
+        if (!dbRes.exito) {
+            throw new Error(dbRes.mensaje);
+        }
+
         // Mark messages as read
         await db.ejecutar(
             `UPDATE chat_messages SET is_read = TRUE
-       WHERE receiver_id = ? AND sender_id = ? AND is_read = FALSE`,
+             WHERE receiver_id = ? AND sender_id = ? AND is_read = FALSE`,
             [userId, otherUserId]
         );
 
@@ -344,6 +352,73 @@ const markAsRead = async (req, res) => {
     }
 };
 
+/**
+ * Update message text
+ */
+const updateMessage = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+        const { messageText } = req.body;
+
+        const dbRes = await db.ejecutar(
+            'UPDATE chat_messages SET message_text = ? WHERE id = ? AND sender_id = ? AND message_type = "text"',
+            [messageText, id, userId]
+        );
+
+        if (!dbRes.exito || dbRes.resultado.affectedRows === 0) {
+            respuesta.estado = 404;
+            respuesta.mensaje = 'Mensaje no encontrado o no autorizado para editar';
+            return res.status(404).json(respuesta);
+        }
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Mensaje actualizado';
+        res.json(respuesta);
+    } catch (error) {
+        res.status(500).json({ mensaje: error.message });
+    }
+};
+
+/**
+ * Delete message (Delete for everyone if requested)
+ */
+const deleteMessage = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const userId = req.user.id;
+        const { id } = req.params;
+        const { deleteForEveryone = false } = req.body;
+
+        // Fetch message details
+        const msgRes = await db.listar('SELECT sender_id FROM chat_messages WHERE id = ?', false, [id]);
+        
+        if (!msgRes.exito || !msgRes.resultado) {
+            return res.status(404).json({ mensaje: 'Mensaje no encontrado' });
+        }
+
+        const msg = msgRes.resultado;
+
+        if (deleteForEveryone) {
+            if (msg.sender_id !== userId) {
+                return res.status(403).json({ mensaje: 'No puedes eliminar mensajes de otros para todos' });
+            }
+
+            await db.ejecutar('UPDATE chat_messages SET message_text = "🚫 Este mensaje fue eliminado" WHERE id = ?', [id]);
+        } else {
+            // Delete for me
+            await db.ejecutar('DELETE FROM chat_messages WHERE id = ? AND (sender_id = ? OR receiver_id = ?)', [id, userId, userId]);
+        }
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Mensaje eliminado';
+        res.json(respuesta);
+    } catch (error) {
+        res.status(500).json({ mensaje: error.message });
+    }
+};
+
 module.exports = {
     getConversations,
     getMessages,
@@ -352,5 +427,7 @@ module.exports = {
     acceptOffer,
     rejectOffer,
     cancelOffer,
-    markAsRead
+    markAsRead,
+    updateMessage,
+    deleteMessage
 };

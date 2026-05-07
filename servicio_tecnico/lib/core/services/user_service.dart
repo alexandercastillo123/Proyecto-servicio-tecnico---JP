@@ -1,6 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
-import '../services/api_service.dart';
+import 'api_service.dart';
 import '../constants/api_constants.dart';
 
 class UserService {

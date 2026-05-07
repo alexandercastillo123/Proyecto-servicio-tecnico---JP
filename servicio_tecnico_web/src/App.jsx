@@ -18,17 +18,32 @@ export const DarkModeContext = createContext({ dark: false, toggle: () => { } })
 
 // ─── CONSTANTS ───────────────────────────────────────────────
 const STATUS_LABELS = {
-  pending: 'Pendiente', confirmed: 'Confirmada', completed: 'Completada',
-  cancelled: 'Cancelada', cancellation_pending: 'Cancel. Pend.'
+  pending: 'Pendiente', 
+  on_the_way: 'En camino 🚚',
+  arrived: 'En el sitio 📍', 
+  in_progress: 'En progreso 🛠',
+  confirmed: 'Confirmada', 
+  completed: 'Terminado 🎉',
+  cancelled: 'Cancelada', 
+  cancellation_pending: 'Cancel. Pend.',
+  expired: 'Expirada'
 };
 const ORDER_STATUS_LABELS = {
   pending: 'Pendiente', confirmed: 'Confirmado', shipped: 'En camino',
   delivered: 'Entregado', completed: 'Completado', cancelled: 'Cancelado'
 };
 const STATUS_COLORS_HEX = {
-  pending: '#FBBF24', confirmed: '#3B28FF', completed: '#10B981',
-  cancelled: '#F43F5E', cancellation_pending: '#F97316',
-  shipped: '#8B5CF6', delivered: '#14B8A6'
+  pending: '#FBBF24', 
+  on_the_way: '#3B82F6',
+  arrived: '#6366F1',
+  in_progress: '#8B5CF6',
+  confirmed: '#3B28FF', 
+  completed: '#10B981',
+  cancelled: '#F43F5E', 
+  cancellation_pending: '#F97316',
+  expired: '#94A3B8',
+  shipped: '#8B5CF6', 
+  delivered: '#14B8A6'
 };
 const ROLE_COLORS = ['#3B28FF', '#8B5CF6', '#EC4899', '#10B981'];
 const ROLE_LABELS = { client: 'Cliente', tech: 'Técnico', store: 'Tienda', admin: 'Admin' };
@@ -391,9 +406,13 @@ const AppointmentsPage = () => {
           className="px-5 py-3 rounded-2xl bg-card border border-card text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none cursor-pointer">
           <option value="all">Todos los estados</option>
           <option value="pending">Pendiente</option>
+          <option value="on_the_way">En camino</option>
+          <option value="arrived">En el sitio</option>
+          <option value="in_progress">En progreso</option>
           <option value="confirmed">Confirmada</option>
           <option value="completed">Completada</option>
           <option value="cancelled">Cancelada</option>
+          <option value="expired">Expirada</option>
           <option value="cancellation_pending">Cancel. Pend.</option>
         </select>
       </div>

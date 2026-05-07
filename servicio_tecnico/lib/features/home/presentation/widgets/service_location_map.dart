@@ -41,6 +41,7 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
   double _radius = 5.0; // km
   Timer? _searchTimer;
   int _searchSeconds = 0;
+  DateTime? _lastTapTime; // Para detectar doble clic
   static const int _expansionThreshold =
       15; // 15 segundos para pruebas, cambiar a 120 para 2 min
 
@@ -413,9 +414,10 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
                             'techId': tech['id'],
                             'serviceLat': point?.latitude,
                             'serviceLng': point?.longitude,
-                            'serviceAddress': point != null
-                                ? 'Lat: ${point.latitude.toStringAsFixed(5)}, Lng: ${point.longitude.toStringAsFixed(5)}'
-                                : null,
+                            'serviceAddress': _addressName ??
+                                (point != null
+                                    ? 'Lat: ${point.latitude.toStringAsFixed(5)}, Lng: ${point.longitude.toStringAsFixed(5)}'
+                                    : null),
                           },
                         );
                       },
@@ -431,6 +433,30 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
   }
 
   // ─── Build ────────────────────────────────────────────────────────────────
+
+    // ─── Reverse Geocoding ──────────────────────────────────────────────────
+  String? _addressName;
+
+  Future<void> _fetchAddressName(LatLng point) async {
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=${point.latitude}&lon=${point.longitude}&zoom=18&addressdetails=1',
+      );
+      final response = await http.get(url, headers: {
+        'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
+      });
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _addressName = data['display_name'] ??
+              'Lat: ${point.latitude.toStringAsFixed(5)}, Lng: ${point.longitude.toStringAsFixed(5)}';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error reverse geocoding: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -456,10 +482,22 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
             initialCenter: _clientLocation ?? _defaultLocation,
             initialZoom: 14.0,
             onTap: (tapPos, point) {
-              setState(() {
-                _servicePoint = point;
-                _selectedTech = null;
-              });
+              final now = DateTime.now();
+              if (_lastTapTime != null &&
+                  now.difference(_lastTapTime!) <
+                      const Duration(milliseconds: 400)) {
+                // Es un doble clic
+                setState(() {
+                  _servicePoint = point;
+                  _selectedTech = null;
+                });
+                _fetchAddressName(point); // Fetch address name
+                _showSnack(
+                  'Ubicación marcada correctamente',
+                  AppColors.primary,
+                );
+              }
+              _lastTapTime = now;
             },
           ),
           children: [
@@ -684,9 +722,10 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
                             'techId': _selectedTech['id'],
                             'serviceLat': point?.latitude,
                             'serviceLng': point?.longitude,
-                            'serviceAddress': point != null
-                                ? 'Lat: ${point.latitude.toStringAsFixed(5)}, Lng: ${point.longitude.toStringAsFixed(5)}'
-                                : null,
+                            'serviceAddress': _addressName ??
+                                (point != null
+                                    ? 'Lat: ${point.latitude.toStringAsFixed(5)}, Lng: ${point.longitude.toStringAsFixed(5)}'
+                                    : null),
                           },
                         );
                       },
@@ -747,7 +786,7 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
               _legendChip(
                 Colors.red.shade600,
                 Icons.location_on,
-                'Punto de servicio (toca)',
+                'Punto de servicio (doble toque)',
               ),
               const SizedBox(height: 6),
               _legendChip(AppColors.primary, Icons.handyman, 'Técnico'),

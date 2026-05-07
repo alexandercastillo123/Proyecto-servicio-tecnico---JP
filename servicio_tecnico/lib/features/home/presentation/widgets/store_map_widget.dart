@@ -34,6 +34,7 @@ class _StoreMapWidgetState extends State<StoreMapWidget> {
   Timer? _searchTimer;
   int _searchSeconds = 0;
   bool _isSearchActive = false;
+  DateTime? _lastTapTime; // Para detectar doble clic
   static const int _expansionThreshold = 15;
 
   static const LatLng _defaultLocation = LatLng(
@@ -322,10 +323,17 @@ class _StoreMapWidgetState extends State<StoreMapWidget> {
           options: MapOptions(
             initialCenter: _clientLocation ?? _defaultLocation,
             initialZoom: 14.0,
-            onTap: (_, point) => setState(() {
-              _searchPoint = point;
-              _selectedStore = null;
-            }),
+            onTap: (_, point) {
+              final now = DateTime.now();
+              if (_lastTapTime != null && 
+                  now.difference(_lastTapTime!) < const Duration(milliseconds: 400)) {
+                setState(() {
+                  _searchPoint = point;
+                  _selectedStore = null;
+                });
+              }
+              _lastTapTime = now;
+            },
           ),
           children: [
             TileLayer(

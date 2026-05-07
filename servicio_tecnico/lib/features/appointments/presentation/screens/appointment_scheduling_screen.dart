@@ -7,6 +7,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import '../../../../core/services/message_service.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class AppointmentSchedulingScreen extends StatefulWidget {
   const AppointmentSchedulingScreen({super.key});
@@ -32,10 +34,9 @@ class _AppointmentSchedulingScreenState
   double? _serviceLat;
   double? _serviceLng;
   String? _serviceAddress;
+  bool _isSubmitting = false; // Guard against double submission
 
-  final TextEditingController _timeController = TextEditingController(
-    text: '10:00',
-  );
+  final TextEditingController _timeController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   DateTime? _selectedDate;
   String _dateLabel = 'Seleccionar fecha';
@@ -52,8 +53,10 @@ class _AppointmentSchedulingScreenState
         _serviceLng = (extra['serviceLng'] as num?)?.toDouble();
         _serviceAddress = extra['serviceAddress'] as String?;
         
-        // If we have an address, default to domicilio
-        if (_serviceAddress != null && _serviceAddress!.isNotEmpty) {
+        // Technicians only do domicile services
+        if (!_isStore) {
+          _serviceType = 'domicilio';
+        } else if (_serviceAddress != null && _serviceAddress!.isNotEmpty) {
           _serviceType = 'domicilio';
         }
         
@@ -155,8 +158,39 @@ class _AppointmentSchedulingScreenState
     }
   }
 
+  // Helper to ensure coordinates are captured if domicile is selected
+  Future<void> _ensureLocation() async {
+    if (_serviceLat != null && _serviceLng != null) return;
+    
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high);
+      setState(() {
+        _serviceLat = position.latitude;
+        _serviceLng = position.longitude;
+      });
+
+      final uri = Uri.parse(
+          'https://nominatim.openstreetmap.org/reverse?format=json&lat=$_serviceLat&lon=$_serviceLng&zoom=18&addressdetails=1');
+      final response = await http.get(uri, headers: {
+        'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
+      }).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['display_name'] != null) {
+          setState(() {
+            _serviceAddress = data['display_name'];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('GPS capture error: $e');
+    }
+  }
+
   Future<void> _createAppointment() async {
-    if (_techInfo == null) return;
+    if (_techInfo == null || _isSubmitting) return;
 
     final targetId = _techInfo!['id'] ?? _techInfo!['storeUserId'];
     if (targetId == null) {
@@ -173,6 +207,13 @@ class _AppointmentSchedulingScreenState
       return;
     }
 
+    if (_timeController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor selecciona una hora')),
+      );
+      return;
+    }
+
     final description = _descriptionController.text.trim();
     if (description.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -181,34 +222,14 @@ class _AppointmentSchedulingScreenState
       return;
     }
 
-    if (_serviceType == 'domicilio' && (_serviceLat == null || _serviceLng == null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Obteniendo tu ubicación actual...')),
-      );
-      try {
-        Position position = await Geolocator.getCurrentPosition(
-            desiredAccuracy: LocationAccuracy.high);
-        setState(() {
-          _serviceLat = position.latitude;
-          _serviceLng = position.longitude;
-        });
+    setState(() => _isSubmitting = true);
 
-        final uri = Uri.parse(
-            'https://nominatim.openstreetmap.org/reverse?format=json&lat=$_serviceLat&lon=$_serviceLng&zoom=18&addressdetails=1');
-        final response = await http.get(uri, headers: {
-          'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
-        }).timeout(const Duration(seconds: 5));
-
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          if (data['display_name'] != null) {
-            setState(() {
-              _serviceAddress = data['display_name'];
-            });
-          }
-        }
-      } catch (e) {
-        debugPrint('GPS fallback error: $e');
+    if (_serviceType == 'domicilio') {
+      if (_serviceLat == null || _serviceLng == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Validando ubicación de servicio...')),
+        );
+        await _ensureLocation();
       }
     }
 
@@ -257,15 +278,6 @@ class _AppointmentSchedulingScreenState
 
       if (mounted) {
         if (response.success) {
-          // Send automatic message to chat
-          await _messageService.sendMessage(
-            receiverId: targetId,
-            messageText:
-                'Cita agendada para $scheduledDate a las ${_timeController.text}\nMotivo: $description',
-            messageType: 'appointment',
-            appointmentId: response.data?['appointmentId'],
-          );
-
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Cita agendada con éxito')),
           );
@@ -280,11 +292,9 @@ class _AppointmentSchedulingScreenState
           );
         }
       }
-    } catch (e) {
+    } finally {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Error de conexión')));
+        setState(() => _isSubmitting = false);
       }
     }
   }
@@ -480,9 +490,11 @@ class _AppointmentSchedulingScreenState
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              _timeController.text,
-                              style: const TextStyle(
-                                color: Color(0xFF3B28FF),
+                              _timeController.text.isEmpty ? 'Seleccionar hora' : _timeController.text,
+                              style: TextStyle(
+                                color: _timeController.text.isEmpty
+                                    ? Colors.grey[600]
+                                    : const Color(0xFF3B28FF),
                                 fontSize: 16,
                               ),
                             ),
@@ -497,6 +509,7 @@ class _AppointmentSchedulingScreenState
                     ),
                   ),
                   if (_isStore) ...[
+                    const SizedBox(height: 16),
                     _buildFormField(
                       label: 'Servicio:',
                       child: Container(
@@ -525,6 +538,9 @@ class _AppointmentSchedulingScreenState
                                 setState(() {
                                   _serviceType = val;
                                 });
+                                if (val == 'domicilio') {
+                                  _ensureLocation();
+                                }
                               }
                             },
                             style: const TextStyle(
@@ -539,8 +555,41 @@ class _AppointmentSchedulingScreenState
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
                   ],
+                  if (_serviceType == 'domicilio') ...[
+                    const SizedBox(height: 16),
+                    _buildFormField(
+                      label: 'Ubicación:',
+                      child: GestureDetector(
+                        onTap: () => _showMapDialog(LatLng(_serviceLat ?? -12.0464, _serviceLng ?? -77.0428)),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE8E8E8),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  _serviceAddress ?? 'Seleccionar ubicación en mapa',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: _serviceAddress == null ? Colors.grey[600] : const Color(0xFF3B28FF),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ),
+                              const Icon(Icons.map_outlined, color: Color(0xFF3B28FF), size: 20),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
                   _buildFormField(
                     label: 'Descripcion:',
                     alignTop: true,
@@ -563,14 +612,20 @@ class _AppointmentSchedulingScreenState
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
-                      child: const Text(
-                        'Agendar Cita',
-                        style: TextStyle(
-                          color: Color(0xFF3B28FF),
-                          fontWeight: FontWeight.w500,
-                          fontSize: 18,
-                        ),
-                      ),
+                      child: _isSubmitting 
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF3B28FF)),
+                          )
+                        : const Text(
+                            'Agendar Cita',
+                            style: TextStyle(
+                              color: Color(0xFF3B28FF),
+                              fontWeight: FontWeight.w500,
+                              fontSize: 18,
+                            ),
+                          ),
                     ),
                   ),
                   const SizedBox(height: 40),
@@ -628,6 +683,118 @@ class _AppointmentSchedulingScreenState
         Expanded(child: child),
       ],
     );
+  }
+
+  void _showMapDialog(LatLng initialCoordinates) {
+    LatLng currentMarker = initialCoordinates;
+    DateTime? lastTapTime;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFFD9D9D9),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: const Text(
+                'Seleccionar Ubicación',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Color(0xFF3B28FF), fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+              content: SizedBox(
+                width: 320,
+                height: 350,
+                child: Column(
+                  children: [
+                    const Text(
+                      'Doble click para marcar la ubicación del servicio.',
+                      style: TextStyle(fontSize: 12, color: Colors.red, fontWeight: FontWeight.w500),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: FlutterMap(
+                          options: MapOptions(
+                            initialCenter: initialCoordinates,
+                            initialZoom: 15.0,
+                            onTap: (tapPosition, latLng) {
+                              final now = DateTime.now();
+                              if (lastTapTime != null && now.difference(lastTapTime!) < const Duration(milliseconds: 500)) {
+                                setDialogState(() {
+                                  currentMarker = latLng;
+                                });
+                                // Update main state immediately
+                                setState(() {
+                                  _serviceLat = latLng.latitude;
+                                  _serviceLng = latLng.longitude;
+                                  _serviceAddress = 'Cargando dirección...';
+                                });
+                                // Reverse geocode
+                                _reverseGeocode(latLng);
+                              } else {
+                                lastTapTime = now;
+                              }
+                            },
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.jp.serviciotecnico.servicio_tecnico_app',
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: currentMarker,
+                                  width: 50,
+                                  height: 50,
+                                  child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Confirmar', style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> _reverseGeocode(LatLng latLng) async {
+    try {
+      final uri = Uri.parse(
+          'https://nominatim.openstreetmap.org/reverse?format=json&lat=${latLng.latitude}&lon=${latLng.longitude}&zoom=18&addressdetails=1');
+      final response = await http.get(uri, headers: {
+        'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
+      }).timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['display_name'] != null) {
+          setState(() {
+            _serviceAddress = data['display_name'];
+            _serviceLat = latLng.latitude;
+            _serviceLng = latLng.longitude;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Reverse geocoding error: $e');
+    }
   }
 
   Widget _buildTextField(

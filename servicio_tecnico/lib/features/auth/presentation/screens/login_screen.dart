@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:servicio_tecnico_app/core/services/auth_service.dart';
+import 'package:servicio_tecnico_app/core/services/local_cache_service.dart';
 import '../../../../core/constants/assets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
@@ -223,10 +224,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.success && response.data != null) {
         final role = response.data!['role'];
+        final userId = response.data!['id'];
+        await LocalCacheService.saveRole(role);
+        if (userId != null) {
+          await LocalCacheService.saveUserId(userId);
+        }
+        await LocalCacheService.saveLastActivity(); // Initialize activity tracking
+        
         if (mounted) {
-          if (role == 'client') context.go('/client-home');
-          else if (role == 'tech') context.go('/home');
-          else if (role == 'store') context.go('/store-home');
+          if (role == 'client') {
+            context.go('/client-home');
+          } else if (role == 'tech') {
+            context.go('/home');
+          } else if (role == 'store') {
+            context.go('/store-home');
+          }
         }
       } else {
         _showError(response.message ?? 'Crendeciales inválidas');

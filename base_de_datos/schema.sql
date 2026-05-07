@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
     role ENUM('client', 'tech', 'store', 'admin') NOT NULL,
+    policies_accepted BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -119,7 +120,7 @@ CREATE TABLE IF NOT EXISTS appointments (
     scheduled_date DATE NOT NULL,
     scheduled_time TIME NOT NULL,
     description TEXT,
-    status ENUM('pending', 'confirmed', 'completed', 'cancelled', 'cancellation_pending', 'expired') DEFAULT 'pending',
+    status ENUM('pending', 'confirmed', 'on_the_way', 'arrived', 'in_progress', 'completed', 'cancelled', 'cancellation_pending', 'expired') DEFAULT 'pending',
     cancelled_by INT DEFAULT NULL,
     price DECIMAL(10, 2) DEFAULT NULL,
     payment_method ENUM('yape', 'plin', 'transfer', 'cash') DEFAULT NULL,
@@ -129,6 +130,11 @@ CREATE TABLE IF NOT EXISTS appointments (
     service_lat DECIMAL(10, 7) DEFAULT NULL,
     service_lng DECIMAL(10, 7) DEFAULT NULL,
     service_address TEXT DEFAULT NULL,
+    en_camino_at TIMESTAMP NULL DEFAULT NULL,
+    llegado_at TIMESTAMP NULL DEFAULT NULL,
+    en_progreso_at TIMESTAMP NULL DEFAULT NULL,
+    completado_at TIMESTAMP NULL DEFAULT NULL,
+    client_confirmed_completion BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (client_id) REFERENCES users(id),
     FOREIGN KEY (technician_id) REFERENCES users(id),
@@ -142,7 +148,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     receiver_id INT NOT NULL,
     appointment_id INT DEFAULT NULL,
     message_text TEXT,
-    message_type ENUM('text', 'offer', 'appointment', 'order') DEFAULT 'text',
+    message_type ENUM('text', 'offer', 'appointment', 'order', 'appointment_progress') DEFAULT 'text',
     offer_price DECIMAL(10, 2),
     offer_status ENUM('pending', 'accepted', 'rejected', 'cancelled') DEFAULT 'pending',
     order_id INT DEFAULT NULL,
@@ -210,6 +216,29 @@ CREATE TABLE IF NOT EXISTS password_resets (
     code VARCHAR(6) NOT NULL,
     expires_at TIMESTAMP NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 14. Configuración de Notificaciones
+CREATE TABLE IF NOT EXISTS notification_settings (
+    user_id INT PRIMARY KEY,
+    appointment_reminders BOOLEAN DEFAULT TRUE,
+    chat_notifications BOOLEAN DEFAULT TRUE,
+    order_updates BOOLEAN DEFAULT TRUE,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 15. Historial de Notificaciones
+CREATE TABLE IF NOT EXISTS notifications (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    type VARCHAR(50), -- 'appointment', 'chat', 'order', 'system'
+    related_id INT,   -- id of appointment, order, etc.
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
 -- Índices para optimización
