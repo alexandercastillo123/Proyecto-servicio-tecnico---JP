@@ -20,9 +20,45 @@ import '../../features/appointments/presentation/screens/appointment_details_scr
 import '../../features/home/presentation/screens/store_home_screen.dart';
 import '../../features/home/presentation/screens/store_profile_screen.dart';
 import '../../features/store/presentation/screens/create_store_screen.dart';
+import '../../features/profile/presentation/screens/notification_settings_screen.dart';
+
+import 'package:servicio_tecnico_app/core/services/api_service.dart';
+import 'package:servicio_tecnico_app/core/services/local_cache_service.dart';
 
 final appRouter = GoRouter(
-  initialLocation: '/login', // Login is now the start
+  initialLocation: '/login',
+  redirect: (context, state) {
+    final token = ApiService().getToken();
+    final role = LocalCacheService.getRole();
+    final lastActivity = LocalCacheService.getLastActivity();
+
+    // Inactivity timeout: 24 hours
+    if (token != null && lastActivity != null) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now - lastActivity > 1000 * 60 * 60 * 24) {
+        ApiService().clearToken();
+        return '/login';
+      }
+    }
+
+    final isLoggingIn =
+        state.matchedLocation == '/login' ||
+        state.matchedLocation == '/role-selection' ||
+        state.matchedLocation.startsWith('/register');
+
+    if (token != null && isLoggingIn) {
+      LocalCacheService.saveLastActivity(); // Update activity
+      if (role == 'client') return '/client-home';
+      if (role == 'tech') return '/home';
+      if (role == 'store') return '/store-home';
+    }
+
+    if (token != null) {
+      LocalCacheService.saveLastActivity();
+    }
+
+    return null;
+  },
   routes: [
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     // Forgot Password Flow
@@ -99,6 +135,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/edit-data',
       builder: (context, state) => const EditDataScreen(),
+    ),
+    GoRoute(
+      path: '/notification-settings',
+      builder: (context, state) => const NotificationSettingsScreen(),
     ),
     GoRoute(
       path: '/technician-profile',

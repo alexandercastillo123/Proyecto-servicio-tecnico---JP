@@ -30,6 +30,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
   bool _loadingRecent = false;
   bool _loadingOrders = false; // Estado de carga de pedidos
   Store? _myStore;
+  bool _isPickerActive = false; // Bloqueo para evitar múltiples aperturas de cámara/galería
 
   @override
   void initState() {
@@ -1006,10 +1007,17 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
                 // Selector de Imagen
                 GestureDetector(
                   onTap: () async {
-                    final picker = ImagePicker();
-                    final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-                    if (pickedFile != null) {
-                      setDialogState(() => imageFile = File(pickedFile.path));
+                    if (_isPickerActive) return;
+                    setDialogState(() => _isPickerActive = true);
+                    
+                    try {
+                      final picker = ImagePicker();
+                      final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                      if (pickedFile != null) {
+                        setDialogState(() => imageFile = File(pickedFile.path));
+                      }
+                    } finally {
+                      setDialogState(() => _isPickerActive = false);
                     }
                   },
                   child: Container(

@@ -82,4 +82,26 @@ router.put('/offer/:id/cancel', authenticate, messagesController.cancelOffer);
  */
 router.put('/:id/read', authenticate, messagesController.markAsRead);
 
+/**
+ * @route   PUT /api/messages/:id
+ * @desc    Update message text
+ * @access  Private
+ */
+router.put(
+    '/:id',
+    authenticate,
+    [
+        body('messageText').notEmpty().withMessage('Message text is required')
+    ],
+    validate,
+    messagesController.updateMessage
+);
+
+/**
+ * @route   DELETE /api/messages/:id
+ * @desc    Delete message
+ * @access  Private
+ */
+router.delete('/:id', authenticate, messagesController.deleteMessage);
+
 module.exports = router;

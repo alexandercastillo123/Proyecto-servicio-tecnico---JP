@@ -21,10 +21,41 @@ class LocalCacheService {
     return box.get('auth_token');
   }
 
+  static Future<void> saveRole(String role) async {
+    var box = Hive.box(_settingsBox);
+    await box.put('user_role', role);
+  }
+
+  static String? getRole() {
+    var box = Hive.box(_settingsBox);
+    return box.get('user_role');
+  }
+
+  static Future<void> saveUserId(int id) async {
+    var box = Hive.box(_settingsBox);
+    await box.put('user_id', id);
+  }
+
+  static int? getUserId() {
+    var box = Hive.box(_settingsBox);
+    return box.get('user_id');
+  }
+
+  static Future<void> saveLastActivity() async {
+    var box = Hive.box(_settingsBox);
+    await box.put('last_activity', DateTime.now().millisecondsSinceEpoch);
+  }
+
+  static int? getLastActivity() {
+    var box = Hive.box(_settingsBox);
+    return box.get('last_activity');
+  }
+
   static Future<void> clearAuth() async {
     var box = Hive.box(_settingsBox);
     await box.delete('auth_token');
     await box.delete('user_profile');
+    await box.delete('user_role');
   }
 
   // Data Cache (Recent technicians, offline mode)

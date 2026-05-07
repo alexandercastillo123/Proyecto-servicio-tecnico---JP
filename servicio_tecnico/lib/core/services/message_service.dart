@@ -1,4 +1,4 @@
-import '../services/api_service.dart';
+import 'api_service.dart';
 import '../constants/api_constants.dart';
 
 class MessageService {
@@ -97,6 +97,26 @@ class MessageService {
     return await _apiService.put<Map<String, dynamic>>(
       ApiConstants.markAsRead(messageId),
       {},
+      requiresAuth: true,
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  /// Update message
+  Future<ApiResponse<Map<String, dynamic>>> updateMessage(int id, String text) async {
+    return await _apiService.put<Map<String, dynamic>>(
+      '${ApiConstants.messages}/$id',
+      {'messageText': text},
+      requiresAuth: true,
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  /// Delete message
+  Future<ApiResponse<Map<String, dynamic>>> deleteMessage(int id, {bool forEveryone = false}) async {
+    return await _apiService.delete<Map<String, dynamic>>(
+      '${ApiConstants.messages}/$id',
+      body: {'deleteForEveryone': forEveryone},
       requiresAuth: true,
       fromJson: (data) => data as Map<String, dynamic>,
     );

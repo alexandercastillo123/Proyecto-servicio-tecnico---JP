@@ -1,4 +1,4 @@
-import '../services/api_service.dart';
+import 'api_service.dart';
 import '../constants/api_constants.dart';
 
 class AppointmentService {
@@ -107,6 +107,16 @@ class AppointmentService {
   Future<ApiResponse<Map<String, dynamic>>> confirmPayment(int id) async {
     return await _apiService.post<Map<String, dynamic>>(
       '${ApiConstants.appointments}/$id/confirm-payment',
+      {},
+      requiresAuth: true,
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  /// Confirm work completion (By Client)
+  Future<ApiResponse<Map<String, dynamic>>> confirmCompletion(int id) async {
+    return await _apiService.post<Map<String, dynamic>>(
+      '${ApiConstants.appointments}/$id/confirm-completion',
       {},
       requiresAuth: true,
       fromJson: (data) => data as Map<String, dynamic>,

@@ -20,6 +20,7 @@ class _ChangePhotoScreenState extends State<ChangePhotoScreen> {
   File? _selectedImage;
   String? _currentPhotoUrl;
   bool _isUploading = false;
+  bool _isPickerActive = false;
 
   @override
   void initState() {
@@ -40,24 +41,36 @@ class _ChangePhotoScreenState extends State<ChangePhotoScreen> {
   }
 
   Future<void> _pickFromGallery() async {
-    final picked = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85,
-      maxWidth: 800,
-    );
-    if (picked != null && mounted) {
-      setState(() => _selectedImage = File(picked.path));
+    if (_isPickerActive) return;
+    setState(() => _isPickerActive = true);
+    try {
+      final picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 800,
+      );
+      if (picked != null && mounted) {
+        setState(() => _selectedImage = File(picked.path));
+      }
+    } finally {
+      if (mounted) setState(() => _isPickerActive = false);
     }
   }
 
   Future<void> _pickFromCamera() async {
-    final picked = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 85,
-      maxWidth: 800,
-    );
-    if (picked != null && mounted) {
-      setState(() => _selectedImage = File(picked.path));
+    if (_isPickerActive) return;
+    setState(() => _isPickerActive = true);
+    try {
+      final picked = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        maxWidth: 800,
+      );
+      if (picked != null && mounted) {
+        setState(() => _selectedImage = File(picked.path));
+      }
+    } finally {
+      if (mounted) setState(() => _isPickerActive = false);
     }
   }
 

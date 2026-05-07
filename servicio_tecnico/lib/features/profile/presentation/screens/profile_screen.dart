@@ -5,6 +5,8 @@ import '../../../../core/services/user_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/services/message_service.dart';
+import 'package:provider/provider.dart';
+import '../../../../core/providers/auth_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -443,8 +445,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 SizedBox(
                   width: double.infinity,
                   height: 56,
+                  child: ElevatedButton(
+                    onPressed: () => context.push('/notification-settings'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppColors.primary,
+                      side: const BorderSide(
+                        color: AppColors.primary,
+                        width: 1.5,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.notifications_active_outlined, size: 20),
+                        SizedBox(width: 10),
+                        Text(
+                          'Configurar Notificaciones',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
                   child: TextButton(
-                    onPressed: () => context.go('/login'),
+                    onPressed: () async {
+                      await context.read<AuthProvider>().logout();
+                      if (context.mounted) {
+                        context.go('/login');
+                      }
+                    },
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.redAccent,
                       shape: RoundedRectangleBorder(

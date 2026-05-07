@@ -31,7 +31,8 @@ const register = async (req, res) => {
             address,
             city,
             latitude,   // Coordenadas del técnico (geocodificadas en el app)
-            longitude
+            longitude,
+            policiesAccepted
         } = req.body;
 
         // Validate email existence (MX check)
@@ -88,8 +89,8 @@ const register = async (req, res) => {
 
         // Insert user
         const [userResult] = await connection.query(
-            'INSERT INTO users (email, username, password_hash, role) VALUES (?, ?, ?, ?)',
-            [email, username || null, passwordHash, role]
+            'INSERT INTO users (email, username, password_hash, role, policies_accepted) VALUES (?, ?, ?, ?, ?)',
+            [email, username || null, passwordHash, role, policiesAccepted || false]
         );
 
         const userId = userResult.insertId;

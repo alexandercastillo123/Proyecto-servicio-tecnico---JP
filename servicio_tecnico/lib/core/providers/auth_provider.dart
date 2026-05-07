@@ -26,7 +26,7 @@ class AuthProvider extends ChangeNotifier {
       if (response.success && response.data != null) {
         _user = response.data;
       }
-      
+
       _isLoading = false;
       notifyListeners();
       return response;
@@ -38,7 +38,8 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<ApiResponse<dynamic>> toggleAvailability(bool available) async {
-    if (_user == null) return ApiResponse(success: false, message: 'No user loaded');
+    if (_user == null)
+      return ApiResponse(success: false, message: 'No user loaded');
 
     try {
       final response = await _apiService.patch(
@@ -51,7 +52,7 @@ class AuthProvider extends ChangeNotifier {
         _user!.isAvailable = available;
         notifyListeners();
       }
-      
+
       return response;
     } catch (e) {
       return ApiResponse(success: false, message: e.toString());

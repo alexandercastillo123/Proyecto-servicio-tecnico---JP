@@ -56,7 +56,7 @@ const createAppointment = async (req, res) => {
 
         // --- PARITY FIX: Insert chat message for the appointment ---
         const chatMsg = `📅 *Nueva Cita Agendada*
-Servicio: ${serviceType === 'home' ? 'A Domicilio' : 'En Local'}
+Servicio: ${serviceType === 'domicilio' || serviceType === 'home' ? 'A Domicilio' : 'En Local'}
 Fecha: ${scheduledDate}
 Hora: ${scheduledTime}
 Descripción: ${description || 'Sin descripción'}`;
@@ -166,6 +166,7 @@ const getAppointmentById = async (req, res) => {
         a.id, a.scheduled_date, a.scheduled_time, a.description, a.status, a.created_at,
         a.price, a.payment_method, a.payment_status, a.payment_confirmed_at, a.service_type,
         a.service_lat, a.service_lng, a.service_address,
+        a.en_camino_at, a.llegado_at, a.en_progreso_at, a.completado_at, a.client_confirmed_completion,
         client.id as client_id, client.email as client_email, client.username as client_username,
         client_profile.names as client_names, client_profile.surnames as client_surnames,
         client_profile.phone as client_phone, client_profile.address as client_address,
@@ -204,18 +205,19 @@ const getAppointmentById = async (req, res) => {
 };
 
 /**
- * Update appointment status
+ * Update appointment status (State Machine logic)
  */
 const updateAppointmentStatus = async (req, res) => {
     let respuesta = new Respuesta();
     try {
         const { id } = req.params;
         const userId = req.user.id;
-        const { status } = req.body;
+        const userRole = req.user.role;
+        const { status: nextStatus } = req.body;
 
-        // Verify user is part of appointment
+        // Verify appointment existence and current state
         const appRes = await db.listar(
-            'SELECT client_id, technician_id FROM appointments WHERE id = ?',
+            'SELECT client_id, technician_id, status, service_type FROM appointments WHERE id = ?',
             false,
             [id]
         );
@@ -227,21 +229,126 @@ const updateAppointmentStatus = async (req, res) => {
         }
 
         const appointment = appRes.resultado;
-        if (appointment.client_id !== userId && appointment.technician_id !== userId) {
+        const currentStatus = appointment.status;
+
+        // Authorization: Participant or Admin
+        if (appointment.client_id !== userId && appointment.technician_id !== userId && userRole !== 'admin') {
             respuesta.estado = 403;
             respuesta.mensaje = 'No autorizado para actualizar esta cita';
             return res.status(403).json(respuesta);
         }
 
-        // Update status
-        const dbRes = await db.ejecutar(
-            'UPDATE appointments SET status = ? WHERE id = ?',
-            [status, id]
-        );
+        // Logic: State Machine Transitions
+        const validTransitions = {
+            'pending': ['confirmed', 'cancelled', 'expired'],
+            'confirmed': ['on_the_way', 'arrived', 'cancelled', 'cancellation_pending', 'expired'],
+            'on_the_way': ['arrived', 'cancelled'],
+            'arrived': ['in_progress', 'cancelled'],
+            'in_progress': ['completed', 'cancelled'],
+            'cancellation_pending': ['cancelled', 'confirmed'], // Store confirms or rejects cancellation
+            'expired': [],
+            'completed': [],
+            'cancelled': []
+        };
+
+        if (!validTransitions[currentStatus].includes(nextStatus)) {
+            respuesta.estado = 400;
+            respuesta.mensaje = `Transición de estado inválida: de ${currentStatus} a ${nextStatus}`;
+            return res.status(400).json(respuesta);
+        }
+
+        // Role-based logic for transitions
+        if (nextStatus === 'on_the_way' || nextStatus === 'arrived') {
+            const isDomicilio = appointment.service_type === 'domicilio';
+            if (isDomicilio) {
+                // For Domicilio, only the tech can mark "on the way" or "arrived"
+                if (appointment.technician_id !== userId && userRole !== 'admin') {
+                    respuesta.estado = 403;
+                    respuesta.mensaje = 'Solo el técnico puede marcar que está en camino al domicilio';
+                    return res.status(403).json(respuesta);
+                }
+            } else {
+                // For Local, only the client can mark "on the way" or "arrived"
+                if (appointment.client_id !== userId && userRole !== 'admin') {
+                    respuesta.estado = 403;
+                    respuesta.mensaje = 'Solo el cliente puede marcar que está en camino al local';
+                    return res.status(403).json(respuesta);
+                }
+            }
+        }
+
+        if (['in_progress', 'completed'].includes(nextStatus)) {
+            if (appointment.technician_id !== userId && userRole !== 'admin') {
+                respuesta.estado = 403;
+                respuesta.mensaje = 'Solo el prestador del servicio puede marcar este estado';
+                return res.status(403).json(respuesta);
+            }
+        }
+
+        // Determine timestamp column to update
+        let timestampCol = null;
+        if (nextStatus === 'on_the_way') timestampCol = 'en_camino_at';
+        if (nextStatus === 'arrived') timestampCol = 'llegado_at';
+        if (nextStatus === 'in_progress') timestampCol = 'en_progreso_at';
+        if (nextStatus === 'completed') timestampCol = 'completado_at';
+
+        // Update status and timestamp if applicable
+        let updateQuery = 'UPDATE appointments SET status = ?';
+        let updateParams = [nextStatus];
+        
+        if (timestampCol) {
+            updateQuery += `, ${timestampCol} = NOW()`;
+        }
+        
+        updateQuery += ' WHERE id = ?';
+        updateParams.push(id);
+
+        const dbRes = await db.ejecutar(updateQuery, updateParams);
+
+        // --- Notificar por chat sobre el cambio de estado ---
+        const statusMsg = {
+            confirmed: '✅ Tu cita ha sido confirmada.',
+            on_the_way: '🚚 En camino.',
+            arrived: '📍 Ha llegado.',
+            in_progress: '🛠 El servicio está en progreso.',
+            completed: '🎉 ¡Servicio completado! Por favor, confirma la finalización.',
+            cancelled: '❌ La cita ha sido cancelada.'
+        };
+
+        if (statusMsg[nextStatus]) {
+            const receiverId = userId === appointment.client_id ? appointment.technician_id : appointment.client_id;
+            
+            // Custom messages for dynamic journey
+            let customMsg = statusMsg[nextStatus];
+            if (nextStatus === 'on_the_way') {
+                customMsg = appointment.service_type === 'domicilio' 
+                    ? '🚚 *¡Voy en camino!* El técnico está dirigiéndose a tu domicilio.'
+                    : '🚶 *¡Voy para allá!* El cliente está en camino al local.';
+            } else if (nextStatus === 'arrived') {
+                customMsg = appointment.service_type === 'domicilio'
+                    ? '📍 *¡He llegado!* El técnico ya está en tu ubicación.'
+                    : '🏬 *¡He llegado!* El cliente ya está en el local.';
+            } else if (nextStatus === 'in_progress') {
+                customMsg = '🛠 *Servicio en curso:* Estamos trabajando en tu equipo ahora mismo.';
+            } else if (nextStatus === 'completed') {
+                customMsg = '🎉 *¡Trabajo terminado!* El servicio ha sido completado con éxito.';
+            }
+
+            await db.ejecutar(
+                'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id) VALUES (?, ?, ?, "appointment_progress", ?)',
+                [userId, receiverId, customMsg, id]
+            );
+
+            // Also create a system notification
+            await db.ejecutar(
+                'INSERT INTO notifications (user_id, title, message, type, related_id) VALUES (?, ?, ?, "appointment", ?)',
+                [receiverId, 'Actualización de Cita', customMsg, id]
+            );
+        }
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Estado de la cita actualizado con éxito';
+        respuesta.mensaje = `Cita actualizada a ${nextStatus} con éxito`;
         res.json(respuesta);
 
     } catch (error) {
@@ -346,6 +453,21 @@ const setAppointmentPrice = async (req, res) => {
 
         await db.ejecutar('UPDATE appointments SET price = ? WHERE id = ?', [price, id]);
 
+        // Notify client via chat and notification
+        const client_id = appRes.resultado.client_id || (await db.listar('SELECT client_id FROM appointments WHERE id = ?', false, [id])).resultado.client_id;
+        
+        const priceMsg = `💰 *Precio Establecido*\nEl prestador ha fijado el precio del servicio en: *S/ ${price}*.\nYa puedes proceder con el pago.`;
+        
+        await db.ejecutar(
+            'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id) VALUES (?, ?, ?, "appointment", ?)',
+            [userId, client_id, priceMsg, 'appointment', id]
+        );
+
+        await db.ejecutar(
+            'INSERT INTO notifications (user_id, title, message, type, related_id) VALUES (?, ?, ?, "appointment", ?)',
+            [client_id, 'Precio Establecido', `Se ha fijado un precio de S/ ${price} para tu cita.`, 'appointment', id]
+        );
+
         respuesta.exito = true;
         respuesta.mensaje = 'Precio establecido con éxito';
         res.json(respuesta);
@@ -404,7 +526,59 @@ const payAppointment = async (req, res) => {
 };
 
 /**
- * Confirm payment (By Provider)
+ * Confirm completion by client
+ */
+const confirmCompletion = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        const appRes = await db.listar(
+            'SELECT client_id, status FROM appointments WHERE id = ?',
+            false,
+            [id]
+        );
+
+        if (!appRes.resultado) {
+            respuesta.estado = 404;
+            respuesta.mensaje = 'Cita no encontrada';
+            return res.status(404).json(respuesta);
+        }
+
+        if (appRes.resultado.client_id !== userId) {
+            respuesta.estado = 403;
+            respuesta.mensaje = 'Solo el cliente puede confirmar la finalización del trabajo';
+            return res.status(403).json(respuesta);
+        }
+
+        if (appRes.resultado.status !== 'completed') {
+            respuesta.estado = 400;
+            respuesta.mensaje = 'El trabajo aún no ha sido marcado como completado por el técnico';
+            return res.status(400).json(respuesta);
+        }
+
+        await db.ejecutar(
+            'UPDATE appointments SET client_confirmed_completion = TRUE WHERE id = ?',
+            [id]
+        );
+
+        // Notify tech
+        await db.ejecutar(
+            'INSERT INTO notifications (user_id, title, message, type, related_id) VALUES (?, ?, ?, "appointment", ?)',
+            [appRes.resultado.technician_id, 'Trabajo Confirmado', 'El cliente ha confirmado la finalización exitosa del trabajo.', id]
+        );
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Finalización confirmada con éxito';
+        res.json(respuesta);
+    } catch (error) {
+        console.error('Confirm completion error:', error);
+        res.status(500).json({ mensaje: 'Error al confirmar finalización' });
+    }
+};
+/**
+ * Confirm payment by provider
  */
 const confirmPayment = async (req, res) => {
     let respuesta = new Respuesta();
@@ -413,7 +587,7 @@ const confirmPayment = async (req, res) => {
         const userId = req.user.id;
 
         const appRes = await db.listar(
-            'SELECT technician_id, payment_status FROM appointments WHERE id = ?',
+            'SELECT technician_id FROM appointments WHERE id = ?',
             false,
             [id]
         );
@@ -430,13 +604,28 @@ const confirmPayment = async (req, res) => {
             return res.status(403).json(respuesta);
         }
 
+        // Update payment status AND appointment status to confirmed if it was pending
         await db.ejecutar(
-            'UPDATE appointments SET payment_status = "paid", payment_confirmed_at = NOW() WHERE id = ?',
+            'UPDATE appointments SET payment_status = "paid", payment_confirmed_at = NOW(), status = IF(status = "pending", "confirmed", status) WHERE id = ?',
             [id]
         );
 
+        // Notify client
+        const client_id = (await db.listar('SELECT client_id FROM appointments WHERE id = ?', false, [id])).resultado.client_id;
+        const confirmMsg = '✅ *Pago Confirmado*\nEl técnico ha confirmado la recepción de tu pago. La cita ahora está confirmada y el servicio puede iniciar.';
+
+        await db.ejecutar(
+            'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id) VALUES (?, ?, ?, "appointment", ?)',
+            [userId, client_id, confirmMsg, 'appointment', id]
+        );
+
+        await db.ejecutar(
+            'INSERT INTO notifications (user_id, title, message, type, related_id) VALUES (?, ?, ?, "appointment", ?)',
+            [client_id, 'Pago Confirmado', 'Tu pago ha sido validado por el técnico.', 'appointment', id]
+        );
+
         respuesta.exito = true;
-        respuesta.mensaje = 'Pago confirmado con éxito. La cita ahora es incancelable.';
+        respuesta.mensaje = 'Pago confirmado con éxito. La cita ahora está confirmada.';
         res.json(respuesta);
     } catch (error) {
         console.error('Confirm payment error:', error);
@@ -452,5 +641,6 @@ module.exports = {
     cancelAppointment,
     setAppointmentPrice,
     payAppointment,
-    confirmPayment
+    confirmPayment,
+    confirmCompletion
 };

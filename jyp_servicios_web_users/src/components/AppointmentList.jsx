@@ -43,8 +43,11 @@ const AppointmentList = () => {
     switch (status) {
       case 'pending': return 'bg-warning/10 text-warning border-warning/20';
       case 'confirmed': return 'bg-primary/10 text-primary border-primary/20';
+      case 'arrived': return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
+      case 'in_progress': return 'bg-purple-500/10 text-purple-400 border-purple-500/20';
       case 'completed': return 'bg-success/10 text-success border-success/20';
       case 'cancelled': return 'bg-error/10 text-error border-error/20';
+      case 'expired': return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
       default: return 'bg-white/5 text-text-dim border-white/10';
     }
   };
@@ -53,8 +56,11 @@ const AppointmentList = () => {
     switch (status) {
       case 'pending': return 'Pendiente';
       case 'confirmed': return 'Confirmada';
+      case 'arrived': return 'En el sitio';
+      case 'in_progress': return 'En progreso';
       case 'completed': return 'Completada';
       case 'cancelled': return 'Cancelada';
+      case 'expired': return 'Expirada';
       default: return status;
     }
   };

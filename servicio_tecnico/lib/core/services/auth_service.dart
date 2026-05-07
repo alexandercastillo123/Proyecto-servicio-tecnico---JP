@@ -1,4 +1,4 @@
-import '../services/api_service.dart';
+import 'api_service.dart';
 import '../constants/api_constants.dart';
 
 class AuthService {
@@ -23,6 +23,7 @@ class AuthService {
     double? latitude,
     double? longitude,
     List<Map<String, dynamic>>? schedules,
+    bool policiesAccepted = false,
   }) async {
     final response = await _apiService
         .post<Map<String, dynamic>>(ApiConstants.register, {
@@ -31,6 +32,7 @@ class AuthService {
           'password': password,
           'role': role,
           'personType': personType,
+          'policiesAccepted': policiesAccepted,
           if (names != null) 'names': names,
           if (surnames != null) 'surnames': surnames,
           if (dni != null) 'dni': dni,
