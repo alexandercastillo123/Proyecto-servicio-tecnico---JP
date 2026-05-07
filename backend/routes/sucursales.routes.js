@@ -119,6 +119,18 @@ router.get('/orders/my-orders', authenticate, sucursalesController.getMyOrders);
 router.get('/orders/store/:id', authenticate, sucursalesController.getStoreOrders);
 
 /**
+ * @route   POST /api/sucursales/orders/:id/pay
+ * @desc    Cliente paga un pedido (manual: Yape, Plin, Transfer)
+ */
+router.post('/orders/:id/pay', authenticate, sucursalesController.payOrder);
+
+/**
+ * @route   POST /api/sucursales/orders/:id/confirm-payment
+ * @desc    Tienda confirma que recibió el pago manual
+ */
+router.post('/orders/:id/confirm-payment', authenticate, sucursalesController.confirmOrderPayment);
+
+/**
  * @route   PATCH /api/sucursales/orders/:id/status
  * @desc    Update order status
  */

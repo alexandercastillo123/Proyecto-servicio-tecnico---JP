@@ -91,6 +91,17 @@ class ApiConstants {
   static const String myOrders = '$baseUrl/sucursales/orders/my-orders';
   static String storeOrders(int id) => '$baseUrl/sucursales/orders/store/$id';
   static String updateOrderStatus(int id) => '$baseUrl/sucursales/orders/$id/status';
+  static String payOrder(int id) => '$baseUrl/sucursales/orders/$id/pay';
+  static String confirmOrderPayment(int id) => '$baseUrl/sucursales/orders/$id/confirm-payment';
+
+  // Appointment Payment Endpoints
+  static String payAppointment(int id) => '$baseUrl/appointments/$id/pay';
+  static String confirmAppointmentPayment(int id) => '$baseUrl/appointments/$id/confirm-payment';
+
+  // Culqi Payment Endpoints (TEST MODE)
+  static const String culqiPublicKey = '$baseUrl/culqi/public-key';
+  static String culqiPayAppointment(int id) => '$baseUrl/culqi/pay-appointment/$id';
+  static String culqiPayOrder(int id) => '$baseUrl/culqi/pay-order/$id';
 
   // Health Check
   static const String health = 'http://localhost:3000/health';

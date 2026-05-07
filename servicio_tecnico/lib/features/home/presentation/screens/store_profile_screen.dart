@@ -237,16 +237,13 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                       backgroundColor: res.success ? Colors.green : Colors.red,
                     ),
                   );
-                  if (res.success && _store != null) {
-                    // Navegar al chat con el dueño de la tienda
-                    context.push(
-                      '/chat',
-                      extra: {
-                        'receiverId': _store!.userId,
-                        'receiverName': _store!.name,
-                        'receiverRole': 'store',
-                      },
-                    );
+                  if (res.success && _store != null && res.data != null) {
+                    final int orderId = res.data['orderId'] ?? 0;
+                    if (orderId > 0) {
+                      _showPaymentDialog(orderId, product.price * quantity);
+                    } else {
+                      _goToChat();
+                    }
                   }
                 }
               },
@@ -263,6 +260,107 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  void _goToChat() {
+    if (_store == null || !mounted) return;
+    context.push(
+      '/chat',
+      extra: {
+        'receiverId': _store!.userId,
+        'receiverName': _store!.name,
+        'receiverRole': 'store',
+      },
+    );
+  }
+
+  void _showPaymentDialog(int orderId, double price) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle, color: Colors.green, size: 40),
+              const SizedBox(height: 8),
+              const Text(
+                'Paso 2: Realizar Pago',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Total a pagar: S/ ${price.toStringAsFixed(2)}',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 16),
+              _paymentOption(Icons.qr_code, 'Yape', 'yape', orderId),
+              _paymentOption(Icons.qr_code_scanner, 'Plin', 'plin', orderId),
+              _paymentOption(Icons.account_balance, 'Transferencia', 'transfer', orderId),
+              _paymentOption(Icons.payments, 'Efectivo', 'cash', orderId),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.credit_card, color: Colors.blueAccent),
+                title: const Text('Culqi (Modo Prueba)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                onTap: () {
+                  Navigator.pop(context); // Cierra diálogo
+                  context.push('/culqi-payment', extra: {
+                    'entityId': orderId,
+                    'paymentType': 'order',
+                    'amount': price,
+                    'description': 'Pago de Pedido #$orderId',
+                  }).then((_) {
+                    // Después del pago Culqi, vamos al chat
+                    _goToChat();
+                  });
+                },
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  _goToChat();
+                },
+                child: const Text('Pagar después en el Chat'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _paymentOption(IconData icon, String label, String value, int id) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.primary),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+      onTap: () async {
+        Navigator.pop(context);
+        final response = await _storeService.payOrder(id, value);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.success 
+                  ? 'Pago registrado. Espera confirmación.' 
+                  : 'Error al registrar pago.'),
+              backgroundColor: response.success ? Colors.green : Colors.red,
+            ),
+          );
+          _goToChat();
+        }
+      },
     );
   }
 
