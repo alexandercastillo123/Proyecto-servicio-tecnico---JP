@@ -657,12 +657,11 @@ const createOrder = async (req, res) => {
         if (storeRes && storeRes.length > 0) {
             const storeUserId = storeRes[0].user_id;
 
-            // Insertar mensaje automático en el chat tipo 'order'
             const chatMsg = `🛒 *Nuevo Pedido Recibido*
 Producto: ${product_name}
 Cantidad: ${quantity}
 Total: S/ ${total_price.toFixed(2)}
-Forma de pago: Coordinar por aquí.`;
+💳 Por favor, selecciona tu método de pago en la card del pedido.`;
 
             await connection.query(
                 'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, order_id) VALUES (?, ?, ?, "order", ?)',
@@ -685,6 +684,139 @@ Forma de pago: Coordinar por aquí.`;
         res.status(500).json(respuesta);
     } finally {
         if (connection) connection.release();
+    }
+};
+
+/**
+ * POST /api/sucursales/orders/:id/pay
+ * El cliente elige método de pago manual (Yape, Plin, Transfer, Cash)
+ */
+const payOrder = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+        const { paymentMethod } = req.body;
+        const userId = req.user.id;
+
+        const validMethods = ['yape', 'plin', 'transfer', 'cash'];
+        if (!validMethods.includes(paymentMethod)) {
+            respuesta.mensaje = 'Método de pago inválido';
+            return res.status(400).json(respuesta);
+        }
+
+        const orderRes = await db.listar(
+            `SELECT o.*, s.user_id as store_user_id, p.name as product_name
+             FROM store_orders o
+             JOIN sucursales s ON o.sucursal_id = s.id
+             JOIN store_products p ON o.product_id = p.id
+             WHERE o.id = ?`,
+            false, [id]
+        );
+
+        if (!orderRes.resultado) {
+            respuesta.estado = 404;
+            respuesta.mensaje = 'Pedido no encontrado';
+            return res.status(404).json(respuesta);
+        }
+
+        const order = orderRes.resultado;
+
+        if (order.client_id !== userId) {
+            respuesta.estado = 403;
+            respuesta.mensaje = 'Solo el cliente puede pagar este pedido';
+            return res.status(403).json(respuesta);
+        }
+
+        if (order.payment_status !== 'pending') {
+            respuesta.estado = 400;
+            respuesta.mensaje = 'Este pedido ya tiene un pago en proceso o completado';
+            return res.status(400).json(respuesta);
+        }
+
+        await db.ejecutar(
+            'UPDATE store_orders SET payment_method = ?, payment_status = "waiting_confirmation" WHERE id = ?',
+            [paymentMethod, id]
+        );
+
+        // Notificar a la tienda
+        const chatMsg = `💸 *El cliente realizó el pago* de S/ ${parseFloat(order.total_price).toFixed(2)} por "${order.product_name}" vía *${paymentMethod.toUpperCase()}*. Confirma cuando lo recibas.`;
+        await db.ejecutar(
+            'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, order_id) VALUES (?, ?, ?, "order", ?)',
+            [userId, order.store_user_id, chatMsg, id]
+        );
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Pago notificado. Esperando confirmación de la tienda.';
+        res.json(respuesta);
+    } catch (error) {
+        console.error('payOrder error:', error);
+        respuesta.mensaje = 'Error al procesar pago: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
+/**
+ * POST /api/sucursales/orders/:id/confirm-payment
+ * La tienda confirma que recibió el pago manual
+ */
+const confirmOrderPayment = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const { id } = req.params;
+        const userId = req.user.id;
+
+        const orderRes = await db.listar(
+            `SELECT o.*, s.user_id as store_user_id, p.name as product_name
+             FROM store_orders o
+             JOIN sucursales s ON o.sucursal_id = s.id
+             JOIN store_products p ON o.product_id = p.id
+             WHERE o.id = ?`,
+            false, [id]
+        );
+
+        if (!orderRes.resultado) {
+            respuesta.estado = 404;
+            respuesta.mensaje = 'Pedido no encontrado';
+            return res.status(404).json(respuesta);
+        }
+
+        const order = orderRes.resultado;
+
+        if (order.store_user_id !== userId) {
+            respuesta.estado = 403;
+            respuesta.mensaje = 'Solo la tienda puede confirmar el pago';
+            return res.status(403).json(respuesta);
+        }
+
+        if (order.payment_status !== 'waiting_confirmation') {
+            respuesta.estado = 400;
+            respuesta.mensaje = 'No hay un pago pendiente de confirmación para este pedido';
+            return res.status(400).json(respuesta);
+        }
+
+        await db.ejecutar(
+            `UPDATE store_orders 
+             SET payment_status = 'paid', 
+                 status = 'confirmed',
+                 payment_confirmed_at = NOW()
+             WHERE id = ?`,
+            [id]
+        );
+
+        // Notificar al cliente
+        const chatMsg = `✅ *¡Pago confirmado!* La tienda confirmó el pago de S/ ${parseFloat(order.total_price).toFixed(2)} por "${order.product_name}". Tu pedido está *confirmado*.`;
+        await db.ejecutar(
+            'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, order_id) VALUES (?, ?, ?, "order", ?)',
+            [userId, order.client_id, chatMsg, id]
+        );
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Pago confirmado. Pedido marcado como confirmado.';
+        res.json(respuesta);
+    } catch (error) {
+        console.error('confirmOrderPayment error:', error);
+        respuesta.mensaje = 'Error al confirmar pago: ' + error.message;
+        res.status(500).json(respuesta);
     }
 };
 
@@ -880,6 +1012,8 @@ module.exports = {
     uploadStoreImage,
     uploadProductImage,
     createOrder,
+    payOrder,
+    confirmOrderPayment,
     getMyOrders,
     getStoreOrders,
     updateOrderStatus,

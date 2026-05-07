@@ -122,4 +122,13 @@ class AppointmentService {
       fromJson: (data) => data as Map<String, dynamic>,
     );
   }
+
+  /// Pagar una cita con Culqi (TEST MODE)
+  Future<ApiResponse<dynamic>> culqiPayAppointment(int id, String culqiToken) async {
+    return await _apiService.post(
+      ApiConstants.culqiPayAppointment(id),
+      {'culqiToken': culqiToken},
+      requiresAuth: true,
+    );
+  }
 }

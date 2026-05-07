@@ -51,6 +51,82 @@ const sendResetCode = async (email, code) => {
     }
 };
 
+/**
+ * Send a payment confirmation email for orders or appointments
+ * @param {string} email - Recipient email
+ * @param {Object} details - Details of the purchase (item name, amount, id, etc)
+ */
+const sendPaymentConfirmation = async (email, details) => {
+    try {
+        const { type, id, itemName, amount, date } = details;
+        const title = type === 'order' ? 'Confirmación de Pedido' : 'Confirmación de Cita';
+        const referenceLabel = type === 'order' ? 'Pedido #' : 'Cita #';
+
+        const mailOptions = {
+            from: '"J&P Periféricos S.A.C" <mail_sender@codecta.pe>',
+            to: email,
+            subject: `✔ Pago Exitoso - ${title} ${id}`,
+            html: `
+                <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.1); border: 1px solid #e0e0e0;">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(135deg, #3B28FF 0%, #8B5CF6 100%); padding: 40px 20px; text-align: center;">
+                        <h1 style="color: #ffffff; margin: 0; font-size: 28px; letter-spacing: 1px;">¡Pago Exitoso!</h1>
+                        <p style="color: #e0e0e0; margin-top: 10px;">Gracias por confiar en J&P Periféricos</p>
+                    </div>
+
+                    <!-- Body -->
+                    <div style="padding: 30px; color: #333333;">
+                        <p style="font-size: 16px;">Hola,</p>
+                        <p style="font-size: 16px; line-height: 1.6;">Queremos informarte que hemos recibido tu pago correctamente a través de <strong>Culqi</strong>. Tu ${type === 'order' ? 'pedido' : 'cita'} ha sido confirmado automáticamente y ya está siendo procesado.</p>
+                        
+                        <!-- Details Card -->
+                        <div style="background-color: #f8fafc; border-radius: 12px; padding: 20px; margin: 25px 0; border-left: 4px solid #3B28FF;">
+                            <h3 style="margin-top: 0; color: #3B28FF; font-size: 14px; text-transform: uppercase; letter-spacing: 1px;">Resumen de Transacción</h3>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <tr>
+                                    <td style="padding: 8px 0; color: #64748b;">${referenceLabel}</td>
+                                    <td style="padding: 8px 0; text-align: right; font-weight: bold;">${id}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #64748b;">Concepto:</td>
+                                    <td style="padding: 8px 0; text-align: right; font-weight: bold;">${itemName}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #64748b;">Monto Pagado:</td>
+                                    <td style="padding: 8px 0; text-align: right; font-weight: bold; color: #10b981; font-size: 18px;">S/ ${parseFloat(amount).toFixed(2)}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 8px 0; color: #64748b;">Fecha:</td>
+                                    <td style="padding: 8px 0; text-align: right; font-weight: bold;">${new Date().toLocaleDateString()}</td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <div style="text-align: center; margin-top: 30px;">
+                            <a href="#" style="background-color: #3B28FF; color: #ffffff; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Ver mi Cuenta</a>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="background-color: #f1f5f9; padding: 20px; text-align: center; font-size: 12px; color: #64748b;">
+                        <p style="margin-bottom: 5px;">Este es un correo automático, por favor no respondas a este mensaje.</p>
+                        <p><strong>J&P Periféricos S.A.C</strong><br>Av. Wilson, Lima, Perú</p>
+                        <p style="margin-top: 15px;">&copy; ${new Date().getFullYear()} Todos los derechos reservados.</p>
+                    </div>
+                </div>
+            `
+        };
+
+        const info = await transporter.sendMail(mailOptions);
+        console.log('Payment Confirmation Email sent: %s', info.messageId);
+        return true;
+    } catch (error) {
+        console.error('Error sending payment confirmation email:', error);
+        return false;
+    }
+};
+
 module.exports = {
-    sendResetCode
+    sendResetCode,
+    sendPaymentConfirmation
 };

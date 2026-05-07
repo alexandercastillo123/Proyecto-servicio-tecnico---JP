@@ -501,6 +501,9 @@ class _ChatScreenState extends State<ChatScreen> {
                           message: msg['message_text'] ?? '',
                           time: time,
                           isMe: isMe,
+                          paymentStatus: msg['order_payment_status'],
+                          paymentMethod: msg['order_payment_method'],
+                          price: double.tryParse(msg['order_price']?.toString() ?? ''),
                         );
                       } else {
                         bubble = _buildMessageBubble(msg: msg, isMe: isMe);
@@ -672,7 +675,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   if (!isTech && price != null && paymentStatus == 'pending')
                     _buildActionButton(
                       label: '💳 Pagar S/. ${price.toStringAsFixed(2)}',
-                      onPressed: () => _showPaymentMethodDialog(appointmentId),
+                      onPressed: () => _showPaymentMethodDialog(appointmentId, price),
                       bgColor: const Color(0xFF00C853),
                       fgColor: Colors.white,
                     ),
@@ -979,7 +982,7 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  void _showPaymentMethodDialog(int appointmentId) {
+  void _showPaymentMethodDialog(int appointmentId, double price) {
     showDialog(
       context: context,
       builder: (context) => Dialog(
@@ -1016,6 +1019,20 @@ class _ChatScreenState extends State<ChatScreen> {
                 appointmentId,
               ),
               _paymentOption(Icons.payments, 'Efectivo', 'cash', appointmentId),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.credit_card, color: Colors.blueAccent),
+                title: const Text('Culqi (Modo Prueba)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/culqi-payment', extra: {
+                    'entityId': appointmentId,
+                    'paymentType': 'appointment',
+                    'amount': price,
+                    'description': 'Pago de Cita #$appointmentId',
+                  });
+                },
+              ),
             ],
           ),
         ),
@@ -1052,6 +1069,87 @@ class _ChatScreenState extends State<ChatScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('¡Pago confirmado! Cita asegurada.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+
+  void _showOrderPaymentMethodDialog(int orderId, double price) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Método de Pago (Pedido)',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _orderPaymentOption(Icons.qr_code, 'Yape', 'yape', orderId),
+              _orderPaymentOption(Icons.qr_code_scanner, 'Plin', 'plin', orderId),
+              _orderPaymentOption(Icons.account_balance, 'Transferencia', 'transfer', orderId),
+              _orderPaymentOption(Icons.payments, 'Efectivo', 'cash', orderId),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.credit_card, color: Colors.blueAccent),
+                title: const Text('Culqi (Modo Prueba)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/culqi-payment', extra: {
+                    'entityId': orderId,
+                    'paymentType': 'order',
+                    'amount': price,
+                    'description': 'Pago de Pedido #$orderId',
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _orderPaymentOption(IconData icon, String label, String value, int id) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.primary),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+      onTap: () async {
+        Navigator.pop(context);
+        final response = await _storeService.payOrder(id, value);
+        if (response.success) {
+          _loadMessages(_otherUserId!);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pago de pedido registrado. Espera confirmación de la tienda.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> _handleConfirmOrderPayment(int id) async {
+    final response = await _storeService.confirmOrderPayment(id);
+    if (response.success) {
+      _loadMessages(_otherUserId!);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Pago de pedido confirmado!'),
           backgroundColor: Colors.green,
         ),
       );
@@ -1993,6 +2091,9 @@ class _ChatScreenState extends State<ChatScreen> {
     required String message,
     required String time,
     required bool isMe,
+    String? paymentStatus,
+    String? paymentMethod,
+    double? price,
   }) {
     final List<dynamic> statusInfo = _getOrderStatusInfo(status);
     final Color statusColor = statusInfo[0];
@@ -2000,6 +2101,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
     final double? lat = double.tryParse(orderLat?.toString() ?? '');
     final double? lng = double.tryParse(orderLng?.toString() ?? '');
+
+    final bool isPaid = paymentStatus == 'paid';
+    final bool isWaiting = paymentStatus == 'waiting_confirmation';
 
     final bool isTechOrStore =
         _userRole == 'tech' ||
@@ -2127,6 +2231,102 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                   ],
                 ),
+                
+                // Price and Payment Status
+                if (price != null) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Total: S/. ${price.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          color: isMe ? Colors.white : AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      if (isPaid)
+                        Text(
+                          'PAGADO',
+                          style: TextStyle(
+                            color: isMe ? Colors.greenAccent : Colors.green[700],
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+
+                const SizedBox(height: 12),
+
+                // Payment Action Buttons
+                if (status != 'cancelled' && orderId != null && price != null) ...[
+                  // Client Pays
+                  if (!isTechOrStore && paymentStatus == 'pending')
+                    _buildActionButton(
+                      label: '💳 Pagar S/. ${price.toStringAsFixed(2)}',
+                      onPressed: () => _showOrderPaymentMethodDialog(orderId, price),
+                      bgColor: const Color(0xFF00C853),
+                      fgColor: Colors.white,
+                    ),
+
+                  // Waiting / Confirm flow
+                  if (isWaiting || isPaid) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 8,
+                      ),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      decoration: BoxDecoration(
+                        color: isPaid
+                            ? Colors.green.withOpacity(0.25)
+                            : Colors.orange.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isPaid ? Icons.lock : Icons.access_time,
+                            size: 14,
+                            color: isPaid ? Colors.green : Colors.orange,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              isPaid
+                                  ? '✅ Pedido Pagado'
+                                  : (isTechOrStore
+                                        ? '⏳ Pagó vía ${(paymentMethod ?? '').toUpperCase()} — Confirma el pago'
+                                        : '⏳ Esperando confirmación de tienda...'),
+                              style: TextStyle(
+                                color: isPaid
+                                    ? (isMe ? Colors.white : Colors.green[800])
+                                    : (isMe ? Colors.white : Colors.orange[900]),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Confirm button (Store only while waiting)
+                    if (isTechOrStore && isWaiting) ...[
+                      _buildActionButton(
+                        label: '✔ Confirmar Pago Recibido',
+                        onPressed: () => _handleConfirmOrderPayment(orderId),
+                        bgColor: AppColors.primary,
+                        fgColor: Colors.white,
+                      ),
+                    ],
+                  ],
+                ],
+                
                 if (canMarkAsDelivered) ...[
                   const SizedBox(height: 12),
                   SizedBox(

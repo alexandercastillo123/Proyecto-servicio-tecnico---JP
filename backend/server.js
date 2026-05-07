@@ -18,6 +18,7 @@ const messagesRoutes = require('./routes/messages.routes');
 const sucursalesRoutes = require('./routes/sucursales.routes');
 const adminRoutes = require('./routes/admin.routes');
 const notificationsRoutes = require('./routes/notifications.routes');
+const culqiRoutes = require('./routes/culqi.routes');
 const appointmentManager = require('./utils/appointmentManager');
 
 const app = express();
@@ -61,6 +62,7 @@ app.use('/api/messages', messagesRoutes);
 app.use('/api/sucursales', sucursalesRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/culqi', culqiRoutes);
 
 // Manejador de ruta no encontrada (404)
 app.use((req, res) => {

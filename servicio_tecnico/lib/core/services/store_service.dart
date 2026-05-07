@@ -204,4 +204,31 @@ class StoreService {
       requiresAuth: true,
     );
   }
+
+  /// Cliente paga un pedido con método manual (Yape, Plin, Transfer, Cash)
+  Future<ApiResponse<dynamic>> payOrder(int orderId, String paymentMethod) async {
+    return await _apiService.post(
+      ApiConstants.payOrder(orderId),
+      {'paymentMethod': paymentMethod},
+      requiresAuth: true,
+    );
+  }
+
+  /// Tienda confirma que recibió el pago manual de un pedido
+  Future<ApiResponse<dynamic>> confirmOrderPayment(int orderId) async {
+    return await _apiService.post(
+      ApiConstants.confirmOrderPayment(orderId),
+      {},
+      requiresAuth: true,
+    );
+  }
+
+  /// Pagar un pedido con Culqi (TEST MODE)
+  Future<ApiResponse<dynamic>> culqiPayOrder(int orderId, String culqiToken) async {
+    return await _apiService.post(
+      ApiConstants.culqiPayOrder(orderId),
+      {'culqiToken': culqiToken},
+      requiresAuth: true,
+    );
+  }
 }
