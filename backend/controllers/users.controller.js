@@ -174,9 +174,11 @@ const getUserById = async (req, res) => {
         up.phone, up.profile_image_url, up.address, up.city,
         up.person_type, up.names, up.surnames, up.dni,
         up.company_name, up.ruc, up.reference_address,
-        up.rating, up.reviews_count
+        up.rating, up.reviews_count,
+        s.id as store_id
       FROM users u
       LEFT JOIN user_profiles up ON u.id = up.user_id
+      LEFT JOIN sucursales s ON u.id = s.user_id
       WHERE u.id = ?`,
             false,
             [id]
@@ -214,9 +216,23 @@ const toggleAvailability = async (req, res) => {
         const userId = req.user.id;
         const { is_available } = req.body;
 
-        if (typeof is_available !== 'boolean') {
-            respuesta.mensaje = 'El campo is_available debe ser true o false';
-            return res.status(400).json(respuesta);
+        if (!is_available) {
+            // Verificar si tiene citas activas (pendientes o confirmadas) en el futuro
+            // status IN ('pending', 'confirmed', 'on_the_way', 'arrived', 'in_progress')
+            const appointmentsRes = await db.listar(
+                `SELECT id FROM appointments 
+                 WHERE technician_id = ? 
+                 AND status IN ('pending', 'confirmed', 'on_the_way', 'arrived', 'in_progress') 
+                 AND (scheduled_date > CURDATE() OR (scheduled_date = CURDATE() AND scheduled_time >= CURTIME()))`,
+                false,
+                [userId]
+            );
+
+            if (appointmentsRes.resultado) {
+                respuesta.estado = 400;
+                respuesta.mensaje = 'No puedes desactivar tu cuenta mientras tengas citas activas programadas. Finaliza o cancela tus servicios pendientes primero.';
+                return res.status(400).json(respuesta);
+            }
         }
 
         const dbRes = await db.ejecutar(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/store_service.dart';
 import '../../../../core/services/message_service.dart';
@@ -11,6 +12,8 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import '../../../../core/widgets/custom_avatar.dart';
+import '../../../../core/utils/date_formatter.dart';
 
 class StoreHomeScreen extends StatefulWidget {
   const StoreHomeScreen({super.key});
@@ -143,6 +146,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
           if (i == 3) _loadRecentChats();
         },
         selectedItemColor: AppColors.primary,
+        unselectedItemColor: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : Colors.grey,
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Panel'),
@@ -169,7 +173,14 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
 
     return GestureDetector(
       onTap: () async {
-        await context.push('/chat', extra: recent['other_user_id']);
+        await context.push(
+          '/chat',
+          extra: {
+            'receiverId': recent['other_user_id'],
+            'receiverName': name,
+            'receiverRole': 'client',
+          },
+        );
         _loadRecentChats();
       },
       child: Container(
@@ -273,18 +284,25 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
                   ),
                 ],
               ),
-              GestureDetector(
-                onTap: () => setState(() => _selectedIndex = 3),
-                child: CircleAvatar(
-                  radius: 25,
-                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                  backgroundImage: (_myStore?.imageUrl != null)
-                      ? NetworkImage(ApiConstants.getStorageUrl(_myStore!.imageUrl))
-                      : null,
-                  child: (_myStore?.imageUrl == null)
-                      ? const Icon(Icons.store, color: AppColors.primary, size: 30)
-                      : null,
-                ),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => context.push('/notifications'),
+                    icon: const Icon(Icons.notifications_none_rounded, color: AppColors.primary),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => setState(() => _selectedIndex = 3),
+                    child: CustomAvatar(
+                      imageUrl: _myStore?.imageUrl != null
+                          ? ApiConstants.getStorageUrl(_myStore!.imageUrl)
+                          : null,
+                      name: _myStore?.name ?? 'S',
+                      size: 50,
+                      fontSize: 20,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -672,7 +690,14 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
                           ),
                         ),
                       GestureDetector(
-                        onTap: () => context.push('/chat', extra: order['client_id']),
+                        onTap: () => context.push(
+                          '/chat',
+                          extra: {
+                            'receiverId': order['client_id'],
+                            'receiverName': client,
+                            'receiverRole': 'client',
+                          },
+                        ),
                         child: Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
@@ -692,6 +717,18 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
         ),
       ),
     );
+  }
+
+  String _getStatusText(String status) {
+    switch (status) {
+      case 'pending': return 'Pendiente';
+      case 'confirmed': return 'Confirmado';
+      case 'shipped': return 'En camino';
+      case 'delivered': return 'Entregado';
+      case 'completed': return 'Completado';
+      case 'cancelled': return 'Cancelado';
+      default: return status;
+    }
   }
 
   Widget _buildActionButton({
@@ -733,7 +770,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✅ El pedido ha sido marcado como: ${newStatus.toUpperCase()}'),
+            content: Text('✅ El pedido ha sido marcado como: ${_getStatusText(newStatus).toUpperCase()}'),
             backgroundColor: Colors.green[800],
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -770,22 +807,78 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
   }
 
   Widget _buildRecentChatCard(dynamic chat) {
-    final name = chat['username'] ?? 'Cliente';
-    final lastMsg = chat['last_message'] ?? 'Consulta';
-    final unread = (chat['unread_count'] ?? 0) > 0;
+    final unread = (chat['unread_count'] ?? 0) as int;
+    final name = chat['username'] ?? chat['names'] ?? 'Cliente';
+    final lastMsg = chat['last_message_text'] ?? chat['last_message'] ?? 'Toca para chatear';
+    final timeStr = DateFormatter.formatRelative(chat['last_message_time']);
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      decoration: BoxDecoration(
+        color: AppColors.getSurfaceColor(context),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: Theme.of(context).brightness == Brightness.dark ? [] : AppColors.softShadow,
+      ),
       child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-          child: const Icon(Icons.person, color: AppColors.primary),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: CustomAvatar(
+          name: name,
+          imageUrl: chat['profile_image_url'] != null ? ApiConstants.getStorageUrl(chat['profile_image_url']) : null,
+          size: 55,
         ),
-        title: Text(name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(lastMsg, maxLines: 1, overflow: TextOverflow.ellipsis),
-        trailing: unread ? const CircleAvatar(radius: 5, backgroundColor: Colors.red) : const Icon(Icons.chevron_right),
-        onTap: () => context.push('/chat', extra: chat['other_user_id']),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Text(
+              timeStr,
+              style: TextStyle(
+                fontSize: 11,
+                color: unread > 0 ? AppColors.primary : Colors.grey,
+                fontWeight: unread > 0 ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+        subtitle: Row(
+          children: [
+            Expanded(
+              child: Text(
+                lastMsg,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: unread > 0 ? AppColors.textPrimary : Colors.grey,
+                  fontWeight: unread > 0 ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ),
+            if (unread > 0)
+              Container(
+                margin: const EdgeInsets.only(left: 8),
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                child: Text(
+                  '$unread',
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+          ],
+        ),
+        onTap: () async {
+          await context.push('/chat', extra: {
+            'receiverId': chat['other_user_id'],
+            'receiverName': name,
+            'receiverRole': 'client',
+          });
+          _loadRecentChats();
+        },
       ),
     );
   }
@@ -1280,6 +1373,23 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
           ],
           
           const SizedBox(height: 30),
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: () => context.push('/settings'),
+              icon: const Icon(Icons.settings_outlined),
+              label: const Text('CONFIGURACIÓN GENERAL'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.getSurfaceColor(context),
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary, width: 1.5),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 10),
           OutlinedButton.icon(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:lottie/lottie.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/services/store_service.dart';
@@ -39,6 +40,7 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
   final _nameController = TextEditingController();
 
   bool _isProcessing = false;
+  bool _paymentSuccess = false;
   String? _errorMsg;
   late AnimationController _animController;
   late Animation<double> _scaleAnim;
@@ -137,8 +139,15 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
       if (!mounted) return;
 
       if (response.success) {
-        Navigator.of(context).pop(true);
+        setState(() => _paymentSuccess = true);
         _showSuccess();
+        // Respaldo: cerrar después de 4 segundos si la animación falla o no carga
+        Future.delayed(const Duration(seconds: 4), () {
+          if (mounted) {
+            // Usar popUntil o verificar si aún estamos en esta pantalla
+            Navigator.of(context).pop(true);
+          }
+        });
       } else {
         setState(() => _errorMsg = response.message ?? 'Pago rechazado');
       }
@@ -168,266 +177,306 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
 
   @override
   Widget build(BuildContext context) {
-    return ScaleTransition(
-      scale: _scaleAnim,
-      child: Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Header
-                  Row(
+    return Stack(
+      children: [
+        ScaleTransition(
+          scale: _scaleAnim,
+          child: Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.credit_card, color: Colors.white, size: 24),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Pagar con Culqi',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF1E1B4B),
+                                  ),
+                                ),
+                                Text(
+                                  '🧪 MODO PRUEBA',
+                                  style: GoogleFonts.outfit(
+                                    fontSize: 11,
+                                    color: Colors.orange[700],
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            icon: const Icon(Icons.close, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+    
+                      const SizedBox(height: 16),
+    
+                      // Monto
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
                             colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
                           ),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Icon(Icons.credit_card, color: Colors.white, size: 24),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Pagar con Culqi',
+                              'Total a pagar',
+                              style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                            ),
+                            Text(
+                              'S/ ${widget.amount.toStringAsFixed(2)}',
                               style: GoogleFonts.outfit(
-                                fontSize: 18,
+                                color: Colors.white,
+                                fontSize: 32,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF1E1B4B),
                               ),
                             ),
                             Text(
-                              '🧪 MODO PRUEBA',
-                              style: GoogleFonts.outfit(
-                                fontSize: 11,
-                                color: Colors.orange[700],
-                                fontWeight: FontWeight.w600,
-                              ),
+                              widget.description,
+                              style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11),
                             ),
                           ],
                         ),
                       ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(false),
-                        icon: const Icon(Icons.close, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Monto
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          'Total a pagar',
-                          style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
-                        ),
-                        Text(
-                          'S/ ${widget.amount.toStringAsFixed(2)}',
+    
+                      const SizedBox(height: 20),
+    
+                      // Tarjetas de prueba hint
+                      ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        title: Text(
+                          '🧪 Tarjetas de prueba',
                           style: GoogleFonts.outfit(
-                            color: Colors.white,
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.orange[700],
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        Text(
-                          widget.description,
-                          style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Tarjetas de prueba hint
-                  ExpansionTile(
-                    tilePadding: EdgeInsets.zero,
-                    title: Text(
-                      '🧪 Tarjetas de prueba',
-                      style: GoogleFonts.outfit(
-                        fontSize: 13,
-                        color: Colors.orange[700],
-                        fontWeight: FontWeight.w600,
+                        children: _testCards.map((c) => ListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(c['label']!, style: const TextStyle(fontSize: 12)),
+                          subtitle: Text(c['number']!, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+                          trailing: IconButton(
+                            icon: const Icon(Icons.copy, size: 16),
+                            onPressed: () {
+                              _cardNumberController.text = c['number']!;
+                              _cvvController.text = '123';
+                              _expiryController.text = '12/26';
+                              _emailController.text = 'test@culqi.com';
+                              _nameController.text = 'Prueba Culqi';
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Datos de prueba cargados'), duration: Duration(seconds: 1)),
+                              );
+                            },
+                          ),
+                        )).toList(),
                       ),
-                    ),
-                    children: _testCards.map((c) => ListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(c['label']!, style: const TextStyle(fontSize: 12)),
-                      subtitle: Text(c['number']!, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.copy, size: 16),
-                        onPressed: () {
-                          _cardNumberController.text = c['number']!;
-                          _cvvController.text = '123';
-                          _expiryController.text = '12/26';
-                          _emailController.text = 'test@culqi.com';
-                          _nameController.text = 'Prueba Culqi';
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Datos de prueba cargados'), duration: Duration(seconds: 1)),
-                          );
+    
+                      const Divider(),
+                      const SizedBox(height: 8),
+    
+                      // Campos del formulario
+                      _buildField(
+                        controller: _nameController,
+                        label: 'Nombre en la tarjeta',
+                        icon: Icons.person_outline,
+                        validator: (v) => (v == null || v.isEmpty) ? 'Ingresa el nombre' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildField(
+                        controller: _emailController,
+                        label: 'Correo electrónico',
+                        icon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (v) => (v == null || !v.contains('@')) ? 'Correo inválido' : null,
+                      ),
+                      const SizedBox(height: 12),
+                      _buildField(
+                        controller: _cardNumberController,
+                        label: 'Número de tarjeta',
+                        icon: Icons.credit_card,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          _CardNumberFormatter(),
+                        ],
+                        maxLength: 19,
+                        validator: (v) {
+                          final digits = v?.replaceAll(' ', '') ?? '';
+                          return digits.length < 13 ? 'Número inválido' : null;
                         },
                       ),
-                    )).toList(),
-                  ),
-
-                  const Divider(),
-                  const SizedBox(height: 8),
-
-                  // Campos del formulario
-                  _buildField(
-                    controller: _nameController,
-                    label: 'Nombre en la tarjeta',
-                    icon: Icons.person_outline,
-                    validator: (v) => (v == null || v.isEmpty) ? 'Ingresa el nombre' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildField(
-                    controller: _emailController,
-                    label: 'Correo electrónico',
-                    icon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (v) => (v == null || !v.contains('@')) ? 'Correo inválido' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildField(
-                    controller: _cardNumberController,
-                    label: 'Número de tarjeta',
-                    icon: Icons.credit_card,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      _CardNumberFormatter(),
-                    ],
-                    maxLength: 19,
-                    validator: (v) {
-                      final digits = v?.replaceAll(' ', '') ?? '';
-                      return digits.length < 13 ? 'Número inválido' : null;
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildField(
-                          controller: _expiryController,
-                          label: 'MM/AA',
-                          icon: Icons.calendar_today_outlined,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            _ExpiryFormatter(),
-                          ],
-                          maxLength: 5,
-                          validator: (v) => (v == null || v.length < 5) ? 'Fecha inválida' : null,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildField(
-                          controller: _cvvController,
-                          label: 'CVV',
-                          icon: Icons.lock_outline,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          maxLength: 4,
-                          obscureText: true,
-                          validator: (v) => (v == null || v.length < 3) ? 'CVV inválido' : null,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  if (_errorMsg != null) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.red.shade200),
-                      ),
-                      child: Row(
+                      const SizedBox(height: 12),
+                      Row(
                         children: [
-                          const Icon(Icons.error_outline, color: Colors.red, size: 18),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(_errorMsg!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                          Expanded(
+                            child: _buildField(
+                              controller: _expiryController,
+                              label: 'MM/AA',
+                              icon: Icons.calendar_today_outlined,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                                _ExpiryFormatter(),
+                              ],
+                              maxLength: 5,
+                              validator: (v) => (v == null || v.length < 5) ? 'Fecha inválida' : null,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildField(
+                              controller: _cvvController,
+                              label: 'CVV',
+                              icon: Icons.lock_outline,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              maxLength: 4,
+                              obscureText: true,
+                              validator: (v) => (v == null || v.length < 3) ? 'CVV inválido' : null,
+                            ),
+                          ),
                         ],
                       ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 24),
-
-                  // Botón de pago
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: _isProcessing ? null : _processPay,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: const Color(0xFF6366F1),
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: Colors.grey.shade300,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        elevation: 0,
-                      ),
-                      child: _isProcessing
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.lock, size: 18),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Pagar S/ ${widget.amount.toStringAsFixed(2)}',
-                                  style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold),
+    
+                      if (_errorMsg != null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.error_outline, color: Colors.red, size: 18),
+                              const SizedBox(width: 8),
+                              Expanded(child: Text(_errorMsg!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                            ],
+                          ),
+                        ),
+                      ],
+    
+                      const SizedBox(height: 24),
+    
+                      // Botón de pago
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isProcessing ? null : _processPay,
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: const Color(0xFF6366F1),
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: Colors.grey.shade300,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            elevation: 0,
+                          ),
+                          child: _isProcessing
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.lock, size: 18),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Pagar S/ ${widget.amount.toStringAsFixed(2)}',
+                                      style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                    ),
+                        ),
+                      ),
+    
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Text(
+                          '🔒 Procesado de forma segura por Culqi (TEST)',
+                          style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey),
+                        ),
+                      ),
+                    ],
                   ),
-
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Text(
-                      '🔒 Procesado de forma segura por Culqi (TEST)',
-                      style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey),
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (_paymentSuccess)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.9),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Lottie.network(
+                    'https://lottie.host/8046b0a1-77e4-4c8d-88f5-44243a37f5b4/FpU38X3yqP.json',
+                    height: 200,
+                    repeat: false,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Icon(Icons.check_circle, size: 100, color: Colors.green);
+                    },
+                    onLoaded: (composition) {
+                      Future.delayed(const Duration(seconds: 3), () {
+                        if (mounted) Navigator.of(context).pop(true);
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    '¡PAGO EXITOSO!',
+                    style: GoogleFonts.outfit(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green[700],
                     ),
                   ),
                 ],
               ),
             ),
           ),
-        ),
-      ),
+      ],
     );
   }
 

@@ -11,6 +11,7 @@ import '../../../../core/services/technician_service.dart';
 import '../../../../core/services/store_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/widgets/custom_avatar.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -36,6 +37,8 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _userRole;
   Timer? _pollingTimer; // Para "tiempo real"
   bool _isDisposed = false;
+  bool _otherUserAvailable = true;
+  int? _otherStoreId; // ID de la sucursal (si aplica)
 
   String _formatTime(String? timestamp) {
     if (timestamp == null) return '';
@@ -131,6 +134,16 @@ class _ChatScreenState extends State<ChatScreen> {
       if (profileRes.success) {
         _userRole = profileRes.data?['role'];
       }
+
+      // Obtener disponibilidad del otro usuario (si es técnico)
+      final otherRes = await _userService.getUserById(userId);
+      if (otherRes.success) {
+        setState(() {
+          _otherUserAvailable = otherRes.data?['is_available'] ?? true;
+          _otherStoreId = otherRes.data?['store_id']; // Capturar ID de sucursal
+        });
+      }
+
       await _loadMessages(userId);
       _startPolling();
     } catch (e) {
@@ -230,7 +243,6 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Widget _buildAppBarAvatar() {
-    // Determine profile image by looking at recent messages
     String? profileUrl;
     try {
       final msgWithPic = _messages.reversed.firstWhere(
@@ -245,30 +257,11 @@ class _ChatScreenState extends State<ChatScreen> {
       }
     } catch (_) {}
 
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: AppColors.primary.withOpacity(0.1), width: 2),
-      ),
-      child: CircleAvatar(
-        radius: 18,
-        backgroundColor: AppColors.primaryLight,
-        backgroundImage: (profileUrl != null && profileUrl.isNotEmpty)
-            ? NetworkImage(ApiConstants.getStorageUrl(profileUrl))
-            : null,
-        child: (profileUrl == null || profileUrl.isEmpty)
-            ? Text(
-                (_otherUserName ?? '?').isNotEmpty
-                    ? (_otherUserName ?? '?')[0].toUpperCase()
-                    : '?',
-                style: GoogleFonts.outfit(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                ),
-              )
-            : null,
-      ),
+    return CustomAvatar(
+      imageUrl: profileUrl != null ? ApiConstants.getStorageUrl(profileUrl) : null,
+      name: _otherUserName ?? '?',
+      size: 36,
+      fontSize: 14,
     );
   }
 
@@ -288,17 +281,18 @@ class _ChatScreenState extends State<ChatScreen> {
           onTap: () {
             if (_otherUserId != null) {
               if (_otherUserRole == 'tech' || _otherUserRole == 'technician') {
-                context.push('/technician-profile', extra: _otherUserId);
+                context.push('/technician-profile', extra: {'techId': _otherUserId});
               } else if (_otherUserRole == 'store' ||
-                  _otherUserRole == 'provider') {
-                context.push('/store-profile/$_otherUserId');
+                  _otherUserRole == 'provider' ||
+                  _otherUserRole == 'sucursal') {
+                // Usar store_id si lo tenemos, si no, intentar con userId (aunque idealmente es store_id)
+                final idToUse = _otherStoreId ?? _otherUserId;
+                context.push('/store-profile/$idToUse');
               } else {
-                // Client role - no action or show snackbar
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('No hay perfil público para clientes'),
-                  ),
-                );
+                // Perfil de cliente
+                if (_userRole == 'tech' || _userRole == 'technician' || _userRole == 'store' || _userRole == 'provider') {
+                  _showClientProfileDialog();
+                }
               }
             }
           },
@@ -323,8 +317,8 @@ class _ChatScreenState extends State<ChatScreen> {
                       _getSubtitleRole(),
                       style: GoogleFonts.outfit(
                         color: AppColors.textSecondary,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ],
@@ -334,6 +328,21 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.info_outline_rounded, color: AppColors.primary),
+            onPressed: () {
+               if (_otherUserId != null) {
+                if (_otherUserRole == 'tech' || _otherUserRole == 'technician') {
+                  context.push('/technician-profile', extra: {'techId': _otherUserId});
+                } else if (_otherUserRole == 'store' || _otherUserRole == 'provider' || _otherUserRole == 'sucursal') {
+                  final idToUse = _otherStoreId ?? _otherUserId;
+                  context.push('/store-profile/$idToUse');
+                } else {
+                  if (_userRole != 'client') _showClientProfileDialog();
+                }
+              }
+            },
+          ),
           if (_userRole == 'tech' ||
               _userRole == 'technician' ||
               _userRole == 'provider')
@@ -518,6 +527,28 @@ class _ChatScreenState extends State<ChatScreen> {
                     },
                   ),
                 ),
+                if (!_otherUserAvailable && (_otherUserRole == 'tech' || _otherUserRole == 'store'))
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                    color: Colors.orange.shade50,
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.orange.shade900, size: 18),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            '⚠️ El técnico se encuentra fuera de servicio o de vacaciones. Las respuestas pueden tardar.',
+                            style: TextStyle(
+                              color: Colors.orange.shade900,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 _buildInputArea(),
               ],
             ),
@@ -724,7 +755,8 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
 
                     // Confirm button (tech only while waiting)
-                    if (isTech && isWaiting) ...[
+                    // HIDE if payment method is Culqi (since it's automated)
+                    if (isTech && isWaiting && (paymentMethod ?? '').toLowerCase() != 'culqi') ...[
                       const SizedBox(height: 6),
                       _buildActionButton(
                         label: '✔ Confirmar Pago Recibido',
@@ -816,7 +848,19 @@ class _ChatScreenState extends State<ChatScreen> {
                       ),
                     ),
 
-                  if (isPaid)
+                  if (appointmentStatus == 'completed' &&
+                      !(isTech ||
+                          _userRole == 'technician' ||
+                          _userRole == 'store'))
+                    _buildActionButton(
+                      label: '⭐ Calificar Servicio',
+                      onPressed: () =>
+                          _showTechnicianRatingDialog(appointmentId),
+                      bgColor: Colors.amber,
+                      fgColor: Colors.black,
+                    ),
+
+                  if (isPaid && appointmentStatus != 'completed')
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
@@ -852,6 +896,141 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showTechnicianRatingDialog(int appointmentId) {
+    int selectedStars = 5;
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD9D9D9),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Califica a ${_otherUserName ?? "tu técnico"}',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF3B28FF),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'Puntua el servicio recibido para ayudar a la comunidad',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF3B28FF), fontSize: 14),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return GestureDetector(
+                          onTap: () {
+                            setDialogState(() {
+                              selectedStars = index + 1;
+                            });
+                          },
+                          child: Icon(
+                            Icons.star,
+                            color: index < selectedStars
+                                ? const Color(0xFFFFD700)
+                                : const Color(0xFFBDBDBD),
+                            size: 40,
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 30),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              backgroundColor: const Color(0xFFBDBDBD),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text(
+                              'Cancelar',
+                              style: TextStyle(
+                                color: Color(0xFF3B28FF),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () async {
+                              if (_otherUserId != null) {
+                                final response = await _technicianService
+                                    .addReview(
+                                      technicianId: _otherUserId!,
+                                      rating: selectedStars,
+                                      comment: 'Calificación de servicio finalizado',
+                                      appointmentId: appointmentId,
+                                    );
+
+                                if (context.mounted) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        response.message ??
+                                            (response.success
+                                                ? '¡Gracias por tu calificación!'
+                                                : 'Error al enviar reseña'),
+                                      ),
+                                      backgroundColor: response.success
+                                          ? Colors.green
+                                          : Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
+                            style: TextButton.styleFrom(
+                              backgroundColor: const Color(0xFFEEEEEE),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              side: const BorderSide(color: Color(0xFFBDBDBD)),
+                            ),
+                            child: const Text(
+                              'Valorar',
+                              style: TextStyle(
+                                color: Color(0xFF3B28FF),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -1436,14 +1615,51 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void _showClientProfileDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CustomAvatar(name: _otherUserName ?? 'Cliente', size: 80, fontSize: 32),
+            const SizedBox(height: 16),
+            Text(
+              _otherUserName ?? 'Cliente',
+              style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const Text('Cliente verificado J&P'),
+            const SizedBox(height: 16),
+            const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.star, color: Colors.amber),
+                Text(' 4.9 (Promedio de servicios)'),
+              ],
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cerrar'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMessageBubble({
     required Map<String, dynamic> msg,
     required bool isMe,
   }) {
     final message = msg['message_text'] ?? '';
     final time = _formatTime(msg['created_at']);
-    final isDeleted = msg['deleted_at'] != null;
-    final isEdited = msg['is_edited'] == true;
+    // Detección mejorada de mensaje eliminado
+    final isDeleted = msg['deleted_at'] != null || 
+                     message.contains('🚫') ||
+                     message.toLowerCase().contains('mensaje eliminado');
+    final isEdited = msg['is_edited'] == true || msg['is_edited'] == 1;
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -1470,16 +1686,17 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    message,
-                    style: TextStyle(
-                      color: isMe ? Colors.white : AppColors.textPrimary,
-                      fontSize: 14,
-                      fontStyle: isDeleted
-                          ? FontStyle.italic
-                          : FontStyle.normal,
-                    ),
-                  ),
+                      Text(
+                        isDeleted ? 'Mensaje eliminado' : message,
+                        style: TextStyle(
+                          color: isMe 
+                              ? (isDeleted ? Colors.white70 : Colors.white) 
+                              : (isDeleted ? AppColors.textSecondary : AppColors.textPrimary),
+                          fontSize: 14,
+                          fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
+                          decoration: isDeleted ? TextDecoration.none : TextDecoration.none,
+                        ),
+                      ),
                   const SizedBox(height: 4),
                   Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1523,6 +1740,12 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _showMessageOptions(Map<String, dynamic> msg, bool isMe) {
+    final message = msg['message_text'] ?? '';
+    final bool isDeleted = msg['deleted_at'] != null || 
+                         message.contains('🚫') ||
+                         message.toLowerCase().contains('mensaje eliminado');
+    if (isDeleted) return; // No options for deleted messages
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -2316,7 +2539,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
 
                     // Confirm button (Store only while waiting)
-                    if (isTechOrStore && isWaiting) ...[
+                    if (isTechOrStore && isWaiting && (paymentMethod ?? '').toLowerCase() != 'culqi') ...[
                       _buildActionButton(
                         label: '✔ Confirmar Pago Recibido',
                         onPressed: () => _handleConfirmOrderPayment(orderId),

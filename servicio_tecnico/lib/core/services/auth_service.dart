@@ -139,4 +139,14 @@ class AuthService {
   bool isAuthenticated() {
     return _apiService.getToken() != null;
   }
+
+  /// Change password for authenticated user
+  Future<ApiResponse<Map<String, dynamic>>> changePassword(String newPassword) async {
+    return await _apiService.post<Map<String, dynamic>>(
+      ApiConstants.changePassword,
+      {'newPassword': newPassword},
+      requiresAuth: true,
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
 }

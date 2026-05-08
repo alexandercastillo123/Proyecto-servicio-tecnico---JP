@@ -472,6 +472,43 @@ const validateUsernameEndpoint = async (req, res) => {
     }
 };
 
+/**
+ * Change password for authenticated user
+ */
+const changePassword = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const userId = req.user.id;
+        const { newPassword } = req.body;
+
+        if (!newPassword || newPassword.length < 6) {
+            respuesta.mensaje = 'La nueva contraseña debe tener al menos 6 caracteres';
+            return res.status(400).json(respuesta);
+        }
+
+        const passwordHash = await bcrypt.hash(newPassword, 10);
+
+        const [result] = await db.pool.query(
+            'UPDATE users SET password_hash = ? WHERE id = ?',
+            [passwordHash, userId]
+        );
+
+        if (result.affectedRows === 0) {
+            respuesta.mensaje = 'Usuario no encontrado';
+            return res.status(404).json(respuesta);
+        }
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Contraseña actualizada con éxito';
+        res.json(respuesta);
+
+    } catch (error) {
+        console.error('Change password error:', error);
+        respuesta.mensaje = 'Error al cambiar la contraseña: ' + error.message;
+        res.status(500).json(respuesta);
+    }
+};
+
 module.exports = {
     register,
     login,
@@ -479,5 +516,6 @@ module.exports = {
     verifyCode,
     resetPassword,
     validateEmail: validateEmailEndpoint,
-    validateUsername: validateUsernameEndpoint
+    validateUsername: validateUsernameEndpoint,
+    changePassword
 };

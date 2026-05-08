@@ -14,10 +14,6 @@ const CULQI_PUBLIC_KEY = process.env.CULQI_PUBLIC_KEY || 'pk_test_Q7byV7qjU6Jpn0
 
 /**
  * Crear un cargo en Culqi con un token de tarjeta
- * @param {string} token    - Token generado por Culqi.js en el cliente
- * @param {number} amount   - Monto en centavos (soles * 100)
- * @param {string} email    - Email del cliente
- * @param {string} desc     - Descripción del cargo
  */
 async function createCulqiCharge(token, amount, email, desc) {
     const response = await axios.post(
@@ -41,11 +37,29 @@ async function createCulqiCharge(token, amount, email, desc) {
 }
 
 /**
+ * Helper para registrar logs de pago en la BD
+ */
+async function logPayment(details) {
+    try {
+        const { type, entityId, method, chargeId, amount, status, error, raw } = details;
+        await db.ejecutar(
+            `INSERT INTO payment_logs 
+            (entity_type, entity_id, payment_method, culqi_charge_id, amount, status, error_message, raw_response) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [type, entityId, method || 'culqi', chargeId, amount, status, error || null, JSON.stringify(raw || {})]
+        );
+    } catch (e) {
+        console.error('Error saving payment log:', e.message);
+    }
+}
+
+/**
  * POST /api/culqi/pay-appointment/:id
  * Pagar una CITA con Culqi (token generado en el frontend)
  */
 const payAppointmentCulqi = async (req, res) => {
     const respuesta = new Respuesta();
+    let appData = null;
     try {
         const { id } = req.params;
         const { culqiToken } = req.body;
@@ -69,35 +83,60 @@ const payAppointmentCulqi = async (req, res) => {
             return res.status(404).json(respuesta);
         }
 
-        const app = appRes.resultado;
+        appData = appRes.resultado;
 
-        if (app.client_id !== userId) {
+        if (appData.client_id !== userId) {
             respuesta.estado = 403;
             respuesta.mensaje = 'Solo el cliente puede pagar esta cita';
             return res.status(403).json(respuesta);
         }
 
-        if (!app.price) {
+        if (!appData.price) {
             respuesta.estado = 400;
             respuesta.mensaje = 'El técnico aún no ha establecido el precio';
             return res.status(400).json(respuesta);
         }
 
-        if (app.payment_status === 'paid') {
+        if (appData.payment_status === 'paid') {
             respuesta.estado = 400;
             respuesta.mensaje = 'Esta cita ya fue pagada';
             return res.status(400).json(respuesta);
         }
 
         // Realizar el cargo en Culqi
-        const charge = await createCulqiCharge(
-            culqiToken,
-            parseFloat(app.price),
-            app.email,
-            `Cita de servicio técnico #${id}`
-        );
+        let charge;
+        try {
+            charge = await createCulqiCharge(
+                culqiToken,
+                parseFloat(appData.price),
+                appData.email,
+                `Cita de servicio técnico #${id}`
+            );
+        } catch (culqiError) {
+            const errMsg = culqiError.response?.data?.user_message || culqiError.message;
+            // Log fallido
+            await logPayment({
+                type: 'appointment',
+                entityId: id,
+                amount: appData.price,
+                status: 'failed',
+                error: errMsg,
+                raw: culqiError.response?.data || { message: culqiError.message }
+            });
+            respuesta.mensaje = errMsg;
+            return res.status(402).json(respuesta);
+        }
 
         if (charge.object !== 'charge' || charge.outcome?.type !== 'venta_exitosa') {
+            await logPayment({
+                type: 'appointment',
+                entityId: id,
+                chargeId: charge.id,
+                amount: appData.price,
+                status: 'rejected',
+                error: charge.user_message || 'Rechazado por Culqi',
+                raw: charge
+            });
             respuesta.estado = 402;
             respuesta.mensaje = charge.user_message || 'Pago rechazado por Culqi';
             return res.status(402).json(respuesta);
@@ -116,19 +155,29 @@ const payAppointmentCulqi = async (req, res) => {
         );
 
         // Notificar al técnico por chat
-        const receiverId = app.technician_id;
-        const chatMsg = `💳 *¡Pago con Culqi confirmado!* El cliente pagó S/ ${app.price} para la cita #${id}. La cita está *confirmada automáticamente*.`;
+        const receiverId = appData.technician_id;
+        const chatMsg = `💳 *¡Pago con Culqi confirmado!* El cliente pagó S/ ${appData.price} para la cita #${id}. La cita está *confirmada automáticamente*.`;
         await db.ejecutar(
             'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id) VALUES (?, ?, ?, "appointment", ?)',
             [userId, receiverId, chatMsg, id]
         );
 
         // Enviar correo de confirmación
-        emailService.sendPaymentConfirmation(app.email, {
+        emailService.sendPaymentConfirmation(appData.email, {
             type: 'appointment',
             id: id,
             itemName: 'Servicio Técnico / Cita',
-            amount: app.price
+            amount: appData.price
+        });
+
+        // Log exitoso
+        await logPayment({
+            type: 'appointment',
+            entityId: id,
+            chargeId: charge.id,
+            amount: appData.price,
+            status: 'success',
+            raw: charge
         });
 
         respuesta.exito = true;
@@ -137,10 +186,9 @@ const payAppointmentCulqi = async (req, res) => {
         res.json(respuesta);
 
     } catch (error) {
-        console.error('Culqi appointment pay error:', error.response?.data || error.message);
-        const culqiMsg = error.response?.data?.user_message || 'Error al procesar el pago con Culqi';
-        respuesta.mensaje = culqiMsg;
-        res.status(402).json(respuesta);
+        console.error('Culqi appointment pay error:', error.message);
+        respuesta.mensaje = 'Error al procesar el pago con Culqi';
+        res.status(500).json(respuesta);
     }
 };
 
@@ -150,6 +198,7 @@ const payAppointmentCulqi = async (req, res) => {
  */
 const payOrderCulqi = async (req, res) => {
     const respuesta = new Respuesta();
+    let orderData = null;
     try {
         const { id } = req.params;
         const { culqiToken } = req.body;
@@ -178,29 +227,54 @@ const payOrderCulqi = async (req, res) => {
             return res.status(404).json(respuesta);
         }
 
-        const order = orderRes.resultado;
+        orderData = orderRes.resultado;
 
-        if (order.client_id !== userId) {
+        if (orderData.client_id !== userId) {
             respuesta.estado = 403;
             respuesta.mensaje = 'Solo el cliente puede pagar este pedido';
             return res.status(403).json(respuesta);
         }
 
-        if (order.payment_status === 'paid') {
+        if (orderData.payment_status === 'paid') {
             respuesta.estado = 400;
             respuesta.mensaje = 'Este pedido ya fue pagado';
             return res.status(400).json(respuesta);
         }
 
         // Cargo Culqi
-        const charge = await createCulqiCharge(
-            culqiToken,
-            parseFloat(order.total_price),
-            order.email,
-            `Pedido de ${order.product_name} x${order.quantity} - Tienda #${order.sucursal_id}`
-        );
+        let charge;
+        try {
+            charge = await createCulqiCharge(
+                culqiToken,
+                parseFloat(orderData.total_price),
+                orderData.email,
+                `Pedido de ${orderData.product_name} x${orderData.quantity} - Tienda #${orderData.sucursal_id}`
+            );
+        } catch (culqiError) {
+            const errMsg = culqiError.response?.data?.user_message || culqiError.message;
+            // Log fallido
+            await logPayment({
+                type: 'order',
+                entityId: id,
+                amount: orderData.total_price,
+                status: 'failed',
+                error: errMsg,
+                raw: culqiError.response?.data || { message: culqiError.message }
+            });
+            respuesta.mensaje = errMsg;
+            return res.status(402).json(respuesta);
+        }
 
         if (charge.object !== 'charge' || charge.outcome?.type !== 'venta_exitosa') {
+            await logPayment({
+                type: 'order',
+                entityId: id,
+                chargeId: charge.id,
+                amount: orderData.total_price,
+                status: 'rejected',
+                error: charge.user_message || 'Rechazado por Culqi',
+                raw: charge
+            });
             respuesta.estado = 402;
             respuesta.mensaje = charge.user_message || 'Pago rechazado por Culqi';
             return res.status(402).json(respuesta);
@@ -219,18 +293,28 @@ const payOrderCulqi = async (req, res) => {
         );
 
         // Notificar a la tienda
-        const chatMsg = `💳 *¡Pago con Culqi exitoso!* El cliente pagó S/ ${parseFloat(order.total_price).toFixed(2)} por "${order.product_name}" x${order.quantity}. El pedido está *confirmado automáticamente*.`;
+        const chatMsg = `💳 *¡Pago con Culqi exitoso!* El cliente pagó S/ ${parseFloat(orderData.total_price).toFixed(2)} por "${orderData.product_name}" x${orderData.quantity}. El pedido está *confirmado automáticamente*.`;
         await db.ejecutar(
             'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, order_id) VALUES (?, ?, ?, "order", ?)',
-            [userId, order.store_user_id, chatMsg, id]
+            [userId, orderData.store_user_id, chatMsg, id]
         );
 
         // Enviar correo de confirmación
-        emailService.sendPaymentConfirmation(order.email, {
+        emailService.sendPaymentConfirmation(orderData.email, {
             type: 'order',
             id: id,
-            itemName: order.product_name,
-            amount: order.total_price
+            itemName: orderData.product_name,
+            amount: orderData.total_price
+        });
+
+        // Log exitoso
+        await logPayment({
+            type: 'order',
+            entityId: id,
+            chargeId: charge.id,
+            amount: orderData.total_price,
+            status: 'success',
+            raw: charge
         });
 
         respuesta.exito = true;
@@ -239,10 +323,9 @@ const payOrderCulqi = async (req, res) => {
         res.json(respuesta);
 
     } catch (error) {
-        console.error('Culqi order pay error:', error.response?.data || error.message);
-        const culqiMsg = error.response?.data?.user_message || 'Error al procesar el pago con Culqi';
-        respuesta.mensaje = culqiMsg;
-        res.status(402).json(respuesta);
+        console.error('Culqi order pay error:', error.message);
+        respuesta.mensaje = 'Error al procesar el pago con Culqi';
+        res.status(500).json(respuesta);
     }
 };
 

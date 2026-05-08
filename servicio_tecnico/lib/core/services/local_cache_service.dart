@@ -68,4 +68,17 @@ class LocalCacheService {
     var box = Hive.box(_dataBox);
     return box.get(key);
   }
+
+  // Instance methods for generic access
+  Future<void> saveData(String key, dynamic value) async {
+    var box = Hive.box(_settingsBox);
+    await box.put(key, value);
+  }
+
+  Future<T?> getData<T>(String key) async {
+    var box = Hive.box(_settingsBox);
+    final data = box.get(key);
+    if (data == null) return null;
+    return data as T;
+  }
 }

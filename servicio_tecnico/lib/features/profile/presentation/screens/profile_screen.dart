@@ -7,6 +7,7 @@ import '../../../../core/constants/api_constants.dart';
 import '../../../../core/services/message_service.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/widgets/custom_avatar.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -273,26 +274,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 20),
                 Stack(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.primary, width: 4),
-                      ),
-                      child: CircleAvatar(
-                        radius: 75,
-                        backgroundColor: Colors.white,
-                        backgroundImage: profileImg.isNotEmpty
-                            ? NetworkImage(ApiConstants.getStorageUrl(profileImg))
-                            : null,
-                        child: profileImg.isEmpty
-                            ? const Icon(
-                                Icons.person_outline,
-                                color: AppColors.primary,
-                                size: 80,
-                              )
-                            : null,
-                      ),
+                    CustomAvatar(
+                      imageUrl: profileImg.isNotEmpty ? ApiConstants.getStorageUrl(profileImg) : null,
+                      name: name,
+                      size: 150,
+                      fontSize: 40,
                     ),
                     Positioned(
                       bottom: 0,
@@ -412,7 +398,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   width: double.infinity,
                   height: 56,
                   child: ElevatedButton(
-                    onPressed: _showEditDialog,
+                    onPressed: () => context.push('/settings'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: AppColors.primary,
@@ -428,44 +414,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.edit_outlined, size: 20),
+                        Icon(Icons.settings_outlined, size: 20),
                         SizedBox(width: 10),
                         Text(
-                          'Editar Datos',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: ElevatedButton(
-                    onPressed: () => context.push('/notification-settings'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(
-                        color: AppColors.primary,
-                        width: 1.5,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.notifications_active_outlined, size: 20),
-                        SizedBox(width: 10),
-                        Text(
-                          'Configurar Notificaciones',
+                          'Configuración General',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -526,22 +478,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.primary, width: 2),
-            ),
-            child: CircleAvatar(
-              radius: 18,
-              backgroundColor: AppColors.primaryLight,
-              backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
-                  ? NetworkImage(ApiConstants.getStorageUrl(imageUrl))
-                  : null,
-              child: (imageUrl == null || imageUrl.isEmpty)
-                  ? const Icon(Icons.person, color: AppColors.primary, size: 20)
-                  : null,
-            ),
+          CustomAvatar(
+            imageUrl: imageUrl != null && imageUrl.isNotEmpty ? ApiConstants.getStorageUrl(imageUrl) : null,
+            name: name,
+            size: 36,
+            fontSize: 14,
           ),
           const SizedBox(width: 16),
           Expanded(

@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const Respuesta = require('../utils/Respuesta');
+const NotificationService = require('../services/notification.service');
 
 /**
  * Create new appointment

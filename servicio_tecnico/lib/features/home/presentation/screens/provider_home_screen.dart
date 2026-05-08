@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/services/message_service.dart';
 import '../../../../core/services/user_service.dart';
@@ -9,6 +10,8 @@ import '../../../../core/constants/assets.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/providers/auth_provider.dart';
+import '../../../../core/widgets/custom_avatar.dart';
+import '../../../../core/utils/date_formatter.dart';
 
 class ProviderHomeScreen extends StatefulWidget {
   const ProviderHomeScreen({super.key});
@@ -29,6 +32,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   bool _togglingAvailability = false;
+  int _currentIndex = 0;
 
   @override
   void initState() {
@@ -149,7 +153,14 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
 
     return GestureDetector(
       onTap: () async {
-        await context.push('/chat', extra: recent['other_user_id']);
+        await context.push(
+          '/chat',
+          extra: {
+            'receiverId': recent['other_user_id'],
+            'receiverName': name,
+            'receiverRole': 'client',
+          },
+        );
         _loadData();
       },
       child: Container(
@@ -229,23 +240,34 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _errorMessage != null
-            ? Center(child: Text(_errorMessage!))
-            : RefreshIndicator(
-                onRefresh: _loadData,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Column(
-                    children: [
+        child: IndexedStack(
+          index: _currentIndex,
+          children: [
+            _buildDashboard(),
+            _buildChatTab(),
+            _buildProfileTab(),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomNavBar(),
+    );
+  }
+
+  Widget _buildDashboard() {
+    final auth = context.watch<AuthProvider>();
+    return RefreshIndicator(
+      onRefresh: _loadData,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          children: [
                       // ── Header con Toggle de Disponibilidad ────────────
                       Container(
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                        color: Colors.white,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
@@ -312,31 +334,25 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                                 ),
                               ),
                             ),
-                            // Avatar
-                            GestureDetector(
-                              onTap: () => context.push('/provider-profile'),
-                              child: Container(
-                                width: 46,
-                                height: 46,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: AppColors.primaryGradient,
-                                  boxShadow: AppColors.softShadow,
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(2.0),
-                                  child: Container(
-                                    decoration: const BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: ClipOval(
-                                      child: _buildProfileImage(),
+                             Row(
+                                children: [
+                                   IconButton(
+                                    onPressed: () => context.push('/notifications'),
+                                    icon: const Icon(Icons.notifications_none_rounded, color: AppColors.primary),
+                                  ),
+                                  GestureDetector(
+                                    onTap: () => context.push('/provider-profile'),
+                                    child: CustomAvatar(
+                                      imageUrl: auth.user?.profileImageUrl != null
+                                          ? ApiConstants.getStorageUrl(auth.user!.profileImageUrl!)
+                                          : null,
+                                      name: auth.user?.username ?? '?',
+                                      size: 46,
+                                      fontSize: 18,
                                     ),
                                   ),
-                                ),
+                                ],
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -351,7 +367,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                           child: Text(
                             'Consultas de Clientes',
                             style: TextStyle(
-                              color: AppColors.textPrimary,
+                              color: AppColors.getTextPrimary(context),
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                             ),
@@ -374,11 +390,11 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                           children: [
                             Text(
                               'Propuestas de Chamba',
-                              style: TextStyle(
-                                color: AppColors.textPrimary,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                                style: TextStyle(
+                                  color: AppColors.getTextPrimary(context),
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
                             ),
                             if (_proposals.isNotEmpty) ...[
                               const SizedBox(width: 10),
@@ -441,10 +457,107 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                     ],
                   ),
                 ),
+    );
+  }
+
+  Widget _buildChatTab() {
+    return Column(
+      children: [
+        AppBar(
+          title: Text('Mis Mensajes', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          automaticallyImplyLeading: false,
+        ),
+        Expanded(
+          child: _recentChats.isEmpty 
+            ? _buildEmptyState(Icons.chat_bubble_outline, 'No hay chats recientes')
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _recentChats.length,
+                itemBuilder: (context, index) => _buildRecentChatCard(_recentChats[index]),
               ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProfileTab() {
+    final user = context.watch<AuthProvider>().user;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          CustomAvatar(
+            imageUrl: user?.profileImageUrl != null ? ApiConstants.getStorageUrl(user!.profileImageUrl) : null,
+            name: user?.username ?? 'Técnico',
+            size: 120,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            user?.username ?? 'Cargando...',
+            style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          Text(
+            user?.email ?? '',
+            style: GoogleFonts.outfit(color: Colors.grey),
+          ),
+          const SizedBox(height: 30),
+          _buildProfileOption(
+            icon: Icons.settings_outlined,
+            title: 'Configuración General',
+            onTap: () => context.push('/settings'),
+          ),
+          _buildProfileOption(
+            icon: Icons.logout,
+            title: 'Cerrar Sesión',
+            textColor: Colors.redAccent,
+            onTap: () async {
+              await context.read<AuthProvider>().logout();
+              if (mounted) context.go('/login');
+            },
+          ),
+        ],
       ),
     );
   }
+
+  Widget _buildProfileOption({required IconData icon, required String title, required VoidCallback onTap, Color? textColor}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppColors.getSurfaceColor(context),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: ListTile(
+        leading: Icon(icon, color: textColor ?? AppColors.primary),
+        title: Text(title, style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: textColor)),
+        trailing: const Icon(Icons.chevron_right, size: 20),
+        onTap: onTap,
+      ),
+    );
+  }
+
+  Widget _buildBottomNavBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.getSurfaceColor(context),
+        boxShadow: Theme.of(context).brightness == Brightness.dark ? [] : AppColors.softShadow,
+      ),
+      child: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (i) => setState(() => _currentIndex = i),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        selectedItemColor: AppColors.primary,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard), label: 'Panel'),
+          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), activeIcon: Icon(Icons.chat_bubble), label: 'Chat'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Perfil'),
+        ],
+      ),
+    );
+  }
+
 
   /// Construye la imagen de perfil del técnico con fallback al ícono
   Widget _buildProfileImage() {
@@ -505,7 +618,14 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                             : item['client_id'];
 
                         if (otherId != null) {
-                          await context.push('/chat', extra: otherId);
+                          await context.push(
+                            '/chat',
+                            extra: {
+                              'receiverId': otherId,
+                              'receiverName': _getDisplayName(item, isConsultation),
+                              'receiverRole': 'client',
+                            },
+                          );
                           _loadData(); // Refresh after return
                         }
                       },
@@ -556,20 +676,10 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: unreadCount > 0 ? AppColors.primaryGradient : null,
-                border: unreadCount == 0
-                    ? Border.all(color: AppColors.primaryLight, width: 2)
-                    : null,
-              ),
-              child: const Icon(
-                Icons.person_outline,
-                size: 25,
-                color: Color(0xFF3B28FF),
-              ),
+            CustomAvatar(
+              name: name,
+              size: 35,
+              fontSize: 14,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -616,6 +726,98 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
               const Icon(Icons.chevron_right, color: Color(0xFF3B28FF)),
           ],
         ),
+      ),
+    );
+  }
+  Widget _buildRecentChatCard(dynamic chat) {
+    final unread = chat['unread_count'] ?? 0;
+    final name = chat['username'] ?? chat['names'] ?? 'Cliente';
+    final lastMsg = chat['last_message_text'] ?? 'Toca para chatear';
+    final timeStr = DateFormatter.formatRelative(chat['last_message_time']);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppColors.getSurfaceColor(context),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: Theme.of(context).brightness == Brightness.dark ? [] : AppColors.softShadow,
+      ),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: CustomAvatar(
+          name: name,
+          imageUrl: chat['profile_image_url'] != null ? ApiConstants.getStorageUrl(chat['profile_image_url']) : null,
+          size: 55,
+        ),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                name,
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Text(
+              timeStr,
+              style: TextStyle(
+                fontSize: 11,
+                color: unread > 0 ? AppColors.primary : Colors.grey,
+                fontWeight: unread > 0 ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+        subtitle: Row(
+          children: [
+            Expanded(
+              child: Text(
+                lastMsg,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: unread > 0 ? AppColors.textPrimary : Colors.grey,
+                  fontWeight: unread > 0 ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ),
+            if (unread > 0)
+              Container(
+                margin: const EdgeInsets.only(left: 8),
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                child: Text(
+                  '$unread',
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                ),
+              ),
+          ],
+        ),
+        onTap: () async {
+          await context.push('/chat', extra: {
+            'receiverId': chat['other_user_id'],
+            'receiverName': name,
+            'receiverRole': 'client',
+          });
+          _loadData();
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(IconData icon, String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 80, color: Colors.grey[300]),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            style: GoogleFonts.outfit(color: Colors.grey, fontSize: 16),
+          ),
+        ],
       ),
     );
   }

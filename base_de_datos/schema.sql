@@ -127,7 +127,8 @@ CREATE TABLE IF NOT EXISTS appointments (
     status ENUM('pending', 'confirmed', 'on_the_way', 'arrived', 'in_progress', 'completed', 'cancelled', 'cancellation_pending', 'expired') DEFAULT 'pending',
     cancelled_by INT DEFAULT NULL,
     price DECIMAL(10, 2) DEFAULT NULL,
-    payment_method ENUM('yape', 'plin', 'transfer', 'cash') DEFAULT NULL,
+    payment_method ENUM('yape', 'plin', 'transfer', 'cash', 'culqi') DEFAULT NULL,
+    culqi_charge_id VARCHAR(100) DEFAULT NULL,
     payment_status ENUM('pending', 'waiting_confirmation', 'paid') DEFAULT 'pending',
     payment_confirmed_at TIMESTAMP NULL DEFAULT NULL,
     service_type ENUM('local', 'domicilio') DEFAULT 'local',
@@ -159,6 +160,8 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     cancelled_by INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     is_read BOOLEAN DEFAULT FALSE,
+    deleted_at TIMESTAMP NULL DEFAULT NULL,
+    is_edited BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (sender_id) REFERENCES users(id),
     FOREIGN KEY (receiver_id) REFERENCES users(id),
     FOREIGN KEY (appointment_id) REFERENCES appointments(id) ON DELETE SET NULL,
@@ -249,3 +252,18 @@ CREATE TABLE IF NOT EXISTS notifications (
 CREATE INDEX idx_user_profiles_available ON user_profiles(is_available);
 CREATE INDEX idx_sucursales_status ON sucursales(status);
 CREATE INDEX idx_sucursales_location ON sucursales(latitude, longitude);
+
+-- 16. Logs de Pagos (Auditoría)
+CREATE TABLE IF NOT EXISTS payment_logs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    entity_type ENUM('appointment', 'order') NOT NULL,
+    entity_id INT NOT NULL,
+    payment_method VARCHAR(50) DEFAULT 'culqi',
+    culqi_charge_id VARCHAR(100),
+    amount DECIMAL(10, 2) NOT NULL,
+    currency VARCHAR(10) DEFAULT 'PEN',
+    status VARCHAR(50) NOT NULL, -- 'success', 'failed', 'refunded'
+    error_message TEXT,
+    raw_response JSON, -- Respuesta completa de Culqi para auditoría técnica
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

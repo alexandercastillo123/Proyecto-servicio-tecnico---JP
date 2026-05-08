@@ -8,6 +8,8 @@ import '../../../profile/presentation/screens/profile_screen.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../widgets/service_location_map.dart';
 import '../widgets/store_map_widget.dart';
+import '../../../../core/widgets/custom_avatar.dart';
+import '../../../../core/utils/date_formatter.dart';
 
 class ClientHomeScreen extends StatefulWidget {
   const ClientHomeScreen({super.key});
@@ -46,8 +48,8 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: AppColors.background,
       body: SafeArea(
         child: IndexedStack(
           index: _currentIndex,
@@ -64,11 +66,12 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   }
 
   Widget _buildBottomNavBar() {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final hasUnread = _recentChats.any((c) => (c['unread_count'] ?? 0) > 0);
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: AppColors.softShadow,
+        color: AppColors.getSurfaceColor(context),
+        boxShadow: isDark ? [] : AppColors.softShadow,
       ),
       child: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -76,11 +79,11 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           setState(() => _currentIndex = index);
           if (index == 2) _loadRecentChats();
         },
-        backgroundColor: Colors.transparent,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppColors.surfaceOverlay : Colors.white,
+        elevation: 8,
         selectedItemColor: AppColors.primary,
-        unselectedItemColor: AppColors.textLight,
+        unselectedItemColor: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : AppColors.textSecondary,
         type: BottomNavigationBarType.fixed,
-        elevation: 0,
         selectedLabelStyle: GoogleFonts.outfit(
           fontWeight: FontWeight.w700,
           fontSize: 12,
@@ -256,6 +259,10 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
               ],
             ),
           ),
+          IconButton(
+            onPressed: () => context.push('/notifications'),
+            icon: const Icon(Icons.notifications_none_rounded, color: AppColors.primary, size: 28),
+          ),
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -319,7 +326,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         ),
         child: Row(
           children: [
-            _buildAvatar(chat['profile_image_url'], true),
+            _buildAvatar(chat['profile_image_url'], true, name),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -369,25 +376,12 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     );
   }
 
-  Widget _buildAvatar(String? url, bool isOverPrimary) {
-    return Container(
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: isOverPrimary ? Colors.white24 : AppColors.divider,
-          width: 2,
-        ),
-      ),
-      child: CircleAvatar(
-        radius: 24,
-        backgroundColor: isOverPrimary ? Colors.white12 : AppColors.primaryLight,
-        backgroundImage: (url != null && url.isNotEmpty)
-            ? NetworkImage(ApiConstants.getStorageUrl(url))
-            : null,
-        child: (url == null || url.isEmpty)
-            ? Icon(Icons.person, color: isOverPrimary ? Colors.white : AppColors.primary)
-            : null,
-      ),
+  Widget _buildAvatar(String? url, bool isOverPrimary, String name) {
+    return CustomAvatar(
+      imageUrl: url != null && url.isNotEmpty ? ApiConstants.getStorageUrl(url) : null,
+      name: name,
+      size: 48,
+      fontSize: 18,
     );
   }
 
@@ -481,41 +475,77 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
 
   Widget _buildRecentTechCard(dynamic chat) {
     final unread = chat['unread_count'] ?? 0;
-    final name = chat['username'] ?? 'Técnico';
-    final lastMsg = chat['last_message'] ?? 'Ver perfil';
+    final name = chat['username'] ?? chat['names'] ?? 'Técnico';
+    final lastMsg = chat['last_message_text'] ?? chat['last_message'] ?? 'Toca para chatear';
+    final timeStr = DateFormatter.formatRelative(chat['last_message_time']);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.getSurfaceColor(context),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: AppColors.softShadow,
+        boxShadow: Theme.of(context).brightness == Brightness.dark ? [] : AppColors.softShadow,
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: Stack(
+        leading: CustomAvatar(
+          name: name,
+          imageUrl: chat['profile_image_url'] != null ? ApiConstants.getStorageUrl(chat['profile_image_url']) : null,
+          size: 55,
+        ),
+        title: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildAvatar(chat['profile_image_url'], false),
+            Expanded(
+              child: Text(
+                name,
+                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Text(
+              timeStr,
+              style: TextStyle(
+                fontSize: 11,
+                color: unread > 0 ? AppColors.primary : Colors.grey,
+                fontWeight: unread > 0 ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+        subtitle: Row(
+          children: [
+            Expanded(
+              child: Text(
+                lastMsg,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: unread > 0 ? AppColors.textPrimary : Colors.grey,
+                  fontWeight: unread > 0 ? FontWeight.w600 : FontWeight.normal,
+                ),
+              ),
+            ),
             if (unread > 0)
-              Positioned(
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(color: AppColors.error, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-                  child: Text('$unread', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+              Container(
+                margin: const EdgeInsets.only(left: 8),
+                padding: const EdgeInsets.all(6),
+                decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
+                child: Text(
+                  '$unread',
+                  style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
                 ),
               ),
           ],
         ),
-        title: Text(name, style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 16)),
-        subtitle: Text(lastMsg, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.outfit(fontSize: 13, color: AppColors.textSecondary)),
-        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.textLight),
-        onTap: () => context.push('/chat', extra: {
-          'receiverId': chat['other_user_id'],
-          'receiverName': name,
-          'receiverRole': chat['other_user_role'] ?? 'tech',
-        }),
+        onTap: () async {
+          await context.push('/chat', extra: {
+            'receiverId': chat['other_user_id'],
+            'receiverName': name,
+            'receiverRole': chat['other_user_role'] ?? 'tech',
+          });
+          _loadRecentChats();
+        },
       ),
     );
   }

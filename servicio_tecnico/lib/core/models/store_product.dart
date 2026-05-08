@@ -5,7 +5,6 @@ class StoreProduct {
   final String? description;
   final double price;
   final String? imageUrl;
-  final int? stock;
   final String? category;
   final String? brand;
   final String? sku;
@@ -19,7 +18,6 @@ class StoreProduct {
     this.description,
     required this.price,
     this.imageUrl,
-    this.stock,
     this.category,
     this.brand,
     this.sku,
@@ -35,7 +33,6 @@ class StoreProduct {
       description: json['description'],
       price: double.parse(json['price'].toString()),
       imageUrl: json['image_url'],
-      stock: json['stock'],
       category: json['category'],
       brand: json['brand'],
       sku: json['sku'],
@@ -54,7 +51,6 @@ class StoreProduct {
       'description': description,
       'price': price,
       'image_url': imageUrl,
-      'stock': stock,
       'category': category,
       'brand': brand,
       'sku': sku,

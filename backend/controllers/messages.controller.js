@@ -18,6 +18,10 @@ const getConversations = async (req, res) => {
         u.email, u.username, u.role as other_user_role,
         up.names, up.surnames, up.company_name, up.profile_image_url,
         MAX(cm.created_at) as last_message_time,
+        (SELECT message_text FROM chat_messages 
+         WHERE (sender_id = other_user_id AND receiver_id = ?) 
+            OR (sender_id = ? AND receiver_id = other_user_id)
+         ORDER BY created_at DESC LIMIT 1) as last_message_text,
         COUNT(CASE WHEN cm.receiver_id = ? AND cm.is_read = FALSE THEN 1 END) as unread_count
       FROM chat_messages cm
       INNER JOIN users u ON (
@@ -31,7 +35,7 @@ const getConversations = async (req, res) => {
       GROUP BY other_user_id, u.email, u.username, u.role, up.names, up.surnames, up.company_name, up.profile_image_url
       ORDER BY last_message_time DESC`,
             true,
-            [userId, userId, userId, userId, userId]
+            [userId, userId, userId, userId, userId, userId, userId]
         );
 
         respuesta.exito = true;
@@ -61,7 +65,7 @@ const getMessages = async (req, res) => {
             `SELECT 
                 cm.id, cm.sender_id, cm.receiver_id, cm.message_text,
                 cm.message_type, cm.offer_price, cm.offer_status, cm.cancelled_by,
-                cm.created_at, cm.is_read,
+                cm.created_at, cm.is_read, cm.deleted_at, cm.is_edited,
                 cm.appointment_id, cm.order_id,
                 a.status as appointment_status,
                 a.price as appointment_price,
@@ -366,7 +370,7 @@ const updateMessage = async (req, res) => {
         const { messageText } = req.body;
 
         const dbRes = await db.ejecutar(
-            'UPDATE chat_messages SET message_text = ? WHERE id = ? AND sender_id = ? AND message_type = "text"',
+            'UPDATE chat_messages SET message_text = ?, is_edited = TRUE WHERE id = ? AND sender_id = ? AND message_type = "text"',
             [messageText, id, userId]
         );
 
@@ -408,7 +412,10 @@ const deleteMessage = async (req, res) => {
                 return res.status(403).json({ mensaje: 'No puedes eliminar mensajes de otros para todos' });
             }
 
-            await db.ejecutar('UPDATE chat_messages SET message_text = "🚫 Este mensaje fue eliminado" WHERE id = ?', [id]);
+            await db.ejecutar(
+                'UPDATE chat_messages SET message_text = "🚫 Mensaje eliminado", deleted_at = NOW() WHERE id = ?',
+                [id]
+            );
         } else {
             // Delete for me
             await db.ejecutar('DELETE FROM chat_messages WHERE id = ? AND (sender_id = ? OR receiver_id = ?)', [id, userId, userId]);

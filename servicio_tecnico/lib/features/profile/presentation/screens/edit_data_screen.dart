@@ -188,15 +188,6 @@ class _EditDataScreenState extends State<EditDataScreen> {
                       letterSpacing: 2,
                     ),
                   ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    '¡QUE SOPORTE!',
-                    style: TextStyle(
-                      color: Color(0xFF3B28FF),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                 ],
               ),
 
@@ -214,7 +205,9 @@ class _EditDataScreenState extends State<EditDataScreen> {
                       isNatural ? 'Nombre Completo' : 'Nombre de Empresa',
                     ),
                     const SizedBox(height: 16),
-                    _buildField(_idController, isNatural ? 'DNI' : 'RUC'),
+                    _buildField(_idController, isNatural ? 'DNI' : 'RUC', readOnly: true),
+                    const SizedBox(height: 16),
+                    _buildField(TextEditingController(text: _profileData?['email']), 'Correo Electrónico', readOnly: true),
                     const SizedBox(height: 16),
                     _buildField(_phoneController, 'Teléfono'),
                     const SizedBox(height: 16),
@@ -272,24 +265,28 @@ class _EditDataScreenState extends State<EditDataScreen> {
     );
   }
 
-  Widget _buildField(TextEditingController controller, String hint) {
+  Widget _buildField(TextEditingController controller, String hint, {bool readOnly = false}) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFE8E8E8),
+        color: readOnly ? const Color(0xFFF0F0F0) : const Color(0xFFE8E8E8),
         borderRadius: BorderRadius.circular(12),
+        border: readOnly ? Border.all(color: Colors.grey.withOpacity(0.3)) : null,
       ),
       child: TextField(
         controller: controller,
+        readOnly: readOnly,
         decoration: InputDecoration(
           hintText: hint,
+          labelText: hint,
+          labelStyle: TextStyle(color: readOnly ? Colors.grey : const Color(0xFF3B28FF)),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
-            vertical: 16,
+            vertical: 10,
           ),
         ),
-        style: const TextStyle(
-          color: Color(0xFF3B28FF),
+        style: TextStyle(
+          color: readOnly ? Colors.grey : const Color(0xFF3B28FF),
           fontWeight: FontWeight.w500,
         ),
         textAlign: TextAlign.center,
