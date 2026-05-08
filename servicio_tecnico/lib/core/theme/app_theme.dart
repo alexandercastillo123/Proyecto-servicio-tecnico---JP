@@ -94,6 +94,78 @@ class AppTheme {
         thickness: 1,
         space: 24,
       ),
+      
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: Colors.white,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.textSecondary,
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+      ),
+    );
+  }
+
+  static ThemeData get darkTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.dark,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.primary,
+        brightness: Brightness.dark,
+        primary: AppColors.primary,
+        secondary: AppColors.primary,
+        surface: const Color(0xFF0F172A),
+        background: const Color(0xFF020617), // Deepest slate
+        onSurface: Colors.white,
+        onBackground: Colors.white,
+      ),
+      scaffoldBackgroundColor: const Color(0xFF020617),
+      textTheme: GoogleFonts.outfitTextTheme().apply(
+        bodyColor: Colors.white,
+        displayColor: Colors.white,
+      ),
+      
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF0F172A),
+        foregroundColor: Colors.white,
+        elevation: 0,
+        centerTitle: true,
+      ),
+
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: Color(0xFF0F172A),
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: Colors.white54,
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+      ),
+
+      cardTheme: CardThemeData(
+        color: const Color(0xFF1E293B),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFF1E293B),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide(color: Colors.white.withOpacity(0.1)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(16),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        labelStyle: const TextStyle(color: Colors.white70),
+        hintStyle: const TextStyle(color: Colors.white38),
+      ),
     );
   }
 }

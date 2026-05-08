@@ -3,6 +3,7 @@ const router = express.Router();
 const { body } = require('express-validator');
 const authController = require('../controllers/auth.controller');
 const validate = require('../middleware/validation');
+const { authenticate } = require('../middleware/auth');
 
 /**
  * @swagger
@@ -195,6 +196,38 @@ router.post(
 
 router.post('/validate-email', authController.validateEmail);
 router.post('/validate-username', authController.validateUsername);
+
+/**
+ * @swagger
+ * /auth/change-password:
+ *   post:
+ *     summary: Cambiar contraseña (usuario autenticado)
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [newPassword]
+ *             properties:
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Contraseña cambiada
+ */
+router.post(
+    '/change-password',
+    authenticate,
+    [
+        body('newPassword').isLength({ min: 6 }).withMessage('Password must be at least 6 characters')
+    ],
+    validate,
+    authController.changePassword
+);
 
 module.exports = router;
 

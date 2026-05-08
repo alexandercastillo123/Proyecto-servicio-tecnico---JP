@@ -4,6 +4,7 @@ import '../../../../core/services/technician_service.dart';
 import '../../domain/models/technician.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/widgets/custom_avatar.dart';
 
 class TechnicianListScreen extends StatefulWidget {
   const TechnicianListScreen({super.key});
@@ -177,26 +178,13 @@ class _TechnicianListScreenState extends State<TechnicianListScreen> {
         ),
         child: Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: AppColors.primary, width: 2),
-              ),
-              child: CircleAvatar(
-                radius: 24,
-                backgroundColor: Colors.white,
-                backgroundImage: tech.profileImageUrl.isNotEmpty
-                    ? NetworkImage(ApiConstants.getStorageUrl(tech.profileImageUrl))
-                    : null,
-                child: tech.profileImageUrl.isEmpty
-                    ? const Icon(
-                        Icons.person_outline,
-                        color: AppColors.primary,
-                        size: 32,
-                      )
-                    : null,
-              ),
+            CustomAvatar(
+              imageUrl: tech.profileImageUrl.isNotEmpty
+                  ? ApiConstants.getStorageUrl(tech.profileImageUrl)
+                  : null,
+              name: tech.name,
+              size: 48,
+              fontSize: 18,
             ),
             const SizedBox(width: 16),
             Expanded(

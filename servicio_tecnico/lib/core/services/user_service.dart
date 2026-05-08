@@ -79,4 +79,13 @@ class UserService {
       );
     }
   }
+
+  /// Change user password
+  Future<ApiResponse<dynamic>> changePassword(String newPassword) async {
+    return await _apiService.post<dynamic>(
+      '/auth/change-password',
+      {'newPassword': newPassword},
+      requiresAuth: true,
+    );
+  }
 }

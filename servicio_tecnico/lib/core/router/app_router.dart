@@ -22,6 +22,11 @@ import '../../features/home/presentation/screens/store_profile_screen.dart';
 import '../../features/store/presentation/screens/create_store_screen.dart';
 import '../../features/profile/presentation/screens/notification_settings_screen.dart';
 import '../../features/payments/presentation/screens/culqi_payment_screen.dart';
+import '../../features/profile/presentation/screens/settings_screen.dart';
+import '../../features/profile/presentation/screens/legal_content_screen.dart';
+import '../../features/profile/presentation/screens/change_password_screen.dart';
+
+import '../../../../features/profile/presentation/screens/notifications_screen.dart';
 
 import 'package:servicio_tecnico_app/core/services/api_service.dart';
 import 'package:servicio_tecnico_app/core/services/local_cache_service.dart';
@@ -142,6 +147,10 @@ final appRouter = GoRouter(
       builder: (context, state) => const NotificationSettingsScreen(),
     ),
     GoRoute(
+      path: '/notifications',
+      builder: (context, state) => const NotificationsScreen(),
+    ),
+    GoRoute(
       path: '/technician-profile',
       builder: (context, state) => const TechnicianProfileScreen(),
     ),
@@ -163,6 +172,24 @@ final appRouter = GoRouter(
         final id = int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
         return StoreProfileScreen(storeId: id);
       },
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/legal',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return LegalContentScreen(
+          title: extra['title'] ?? 'Legal',
+          content: extra['content'] ?? '',
+        );
+      },
+    ),
+    GoRoute(
+      path: '/change-password',
+      builder: (context, state) => const ChangePasswordScreen(),
     ),
     GoRoute(
       path: '/culqi-payment',

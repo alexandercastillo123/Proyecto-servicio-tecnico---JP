@@ -29,6 +29,37 @@ class AppColors {
   static const Color border = Color(0xFFE2E8F0); // Slate 200
   static const Color divider = Color(0xFFF1F5F9); // Slate 100
 
+  // Adaptive Colors (Methods)
+  static Color getBackgroundColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF020617)
+        : const Color(0xFFFFFFFF);
+  }
+
+  static Color getSurfaceColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF0F172A)
+        : const Color(0xFFF8FAFC);
+  }
+
+  static Color getTextPrimary(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? Colors.white
+        : const Color(0xFF0F172A);
+  }
+
+  static Color getTextSecondary(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? Colors.white70
+        : const Color(0xFF475569);
+  }
+
+  static Color getDividerColor(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? Colors.white.withOpacity(0.05)
+        : const Color(0xFFF1F5F9);
+  }
+
   // Premium Gradients
   static const Gradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,

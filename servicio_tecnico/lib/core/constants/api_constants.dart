@@ -18,6 +18,7 @@ class ApiConstants {
   static const String resetPassword = '$auth/reset-password';
   static const String validateEmail = '$auth/validate-email';
   static const String validateUsername = '$auth/validate-username';
+  static const String changePassword = '$auth/change-password';
 
   // User Endpoints
   static const String userProfile = '$baseUrl/users/profile';
@@ -102,6 +103,11 @@ class ApiConstants {
   static const String culqiPublicKey = '$baseUrl/culqi/public-key';
   static String culqiPayAppointment(int id) => '$baseUrl/culqi/pay-appointment/$id';
   static String culqiPayOrder(int id) => '$baseUrl/culqi/pay-order/$id';
+
+  // Notification Endpoints
+  static const String notificationSettings = '$baseUrl/notifications/settings';
+  static const String notifications = '$baseUrl/notifications';
+  static String markNotificationAsRead(int id) => '$baseUrl/notifications/$id/read';
 
   // Health Check
   static const String health = 'http://localhost:3000/health';

@@ -6,6 +6,7 @@
 
 const db = require('../config/database');
 const upload = require('../middleware/upload');
+const NotificationService = require('../services/notification.service');
 const Respuesta = require('../utils/Respuesta');
 
 /**
@@ -91,9 +92,9 @@ const getStoreById = async (req, res) => {
     try {
         const { id } = req.params;
         const dbRes = await db.listar(
-            'SELECT * FROM sucursales WHERE id = ?',
+            'SELECT * FROM sucursales WHERE id = ? OR user_id = ?',
             false,
-            [id]
+            [id, id]
         );
 
         if (!dbRes.resultado) {
@@ -927,8 +928,9 @@ const updateOrderStatus = async (req, res) => {
         // Notificar por chat sobre el cambio de estado si es relevante
         let msg = '';
         if (status === 'confirmed') msg = `📦 *Pedido Confirmado*: Tu pedido de "${order.product_name}" ha sido aceptado por la tienda.`;
-        if (status === 'shipped') msg = `🚚 *Pedido en Camino*: Tu pedido de "${order.product_name}" ya fue enviado.`;
-        if (status === 'delivered') msg = `✅ *Pedido Entregado*: El cliente ha marcado el pedido de "${order.product_name}" como entregado. El flujo de pedido ha finalizado.`;
+        if (status === 'shipped') msg = `🚚 *Pedido en Camino*: Tu pedido de "${order.product_name}" ya está en camino a tu dirección.`;
+        if (status === 'delivered') msg = `✅ *Pedido Entregado*: El pedido de "${order.product_name}" ha sido marcado como entregado. ¡Gracias por confiar en nosotros!`;
+        if (status === 'cancelled') msg = `❌ *Pedido Cancelado*: Tu pedido de "${order.product_name}" ha sido cancelado.`;
 
         if (msg) {
             const senderId = isOwner ? order.store_user_id : order.client_id;
@@ -938,6 +940,12 @@ const updateOrderStatus = async (req, res) => {
                 'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, order_id) VALUES (?, ?, ?, "order", ?)',
                 [senderId, receiverId, msg, id]
             );
+
+            // Crear notificación formal en el sistema
+            if (isOwner) {
+                // Si la tienda cambió el estado, notificar al cliente
+                await NotificationService.notifyOrderStatus(order.client_id, id, status, order.product_name);
+            }
         }
 
         await connection.commit();

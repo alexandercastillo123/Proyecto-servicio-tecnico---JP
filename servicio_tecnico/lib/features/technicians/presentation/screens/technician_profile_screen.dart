@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/technician_service.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/widgets/custom_avatar.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class TechnicianProfileScreen extends StatefulWidget {
   const TechnicianProfileScreen({super.key});
@@ -154,36 +157,13 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
           children: [
             const SizedBox(height: 3),
             Center(
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF3B28FF), width: 4),
-                ),
-                child: profileImg.isNotEmpty
-                    ? ClipOval(
-                        child: Image.network(
-                          ApiConstants.getStorageUrl(profileImg),
-                          fit: BoxFit.cover,
-                          width: 120,
-                          height: 120,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: const Color(0xFFF0F0F0),
-                              child: const Icon(
-                                Icons.person_outline,
-                                size: 80,
-                                color: Color(0xFF3B28FF),
-                              ),
-                            );
-                          },
-                        ),
-                      )
-                    : const Icon(
-                        Icons.person_outline,
-                        size: 80,
-                        color: Color(0xFF3B28FF),
-                      ),
+              child: CustomAvatar(
+                imageUrl: profileImg.isNotEmpty
+                    ? ApiConstants.getStorageUrl(profileImg)
+                    : null,
+                name: name,
+                size: 120,
+                fontSize: 48,
               ),
             ),
             const SizedBox(height: 16),
@@ -321,7 +301,14 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.push('/chat', extra: tech['id']),
+                  onPressed: () => context.push(
+                    '/chat',
+                    extra: {
+                      'receiverId': tech['id'],
+                      'receiverName': name,
+                      'receiverRole': 'tech',
+                    },
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFD9D9D9),
                     elevation: 0,
@@ -349,20 +336,8 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
   }
 
   void _showRatingDialog(BuildContext context, String techName) {
-    // Constraint removed as per user request
-    /* if (_validAppointmentId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Debes tener una cita registrada con este técnico para reseñar.',
-          ),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    } */
-
     int selectedStars = 5;
+    final commentController = TextEditingController();
 
     showDialog(
       context: context,
@@ -370,84 +345,87 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Container(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: Padding(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD9D9D9),
-                  borderRadius: BorderRadius.circular(20),
-                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.star_rounded, color: AppColors.primary, size: 40),
+                    ),
+                    const SizedBox(height: 16),
                     Text(
-                      'Valora tu experiencia con\n$techName',
+                      'Valorar a $techName',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFF3B28FF),
-                        fontSize: 18,
+                      style: GoogleFonts.outfit(
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Puntua tu satisfacción con el técnico de 1 a 5 estrellas',
+                    const SizedBox(height: 8),
+                    Text(
+                      '¿Cómo fue tu experiencia con el servicio?',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF3B28FF), fontSize: 14),
+                      style: GoogleFonts.outfit(color: AppColors.textSecondary),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(5, (index) {
                         return GestureDetector(
-                          onTap: () {
-                            setDialogState(() {
-                              selectedStars = index + 1;
-                            });
-                          },
-                          child: Icon(
-                            Icons.star,
-                            color: index < selectedStars
-                                ? const Color(0xFFFFD700)
-                                : const Color(0xFFBDBDBD),
-                            size: 40,
+                          onTap: () => setDialogState(() => selectedStars = index + 1),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Icon(
+                              Icons.star_rounded,
+                              color: index < selectedStars ? Colors.amber : Colors.grey[300],
+                              size: 44,
+                            ),
                           ),
                         );
                       }),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: commentController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Cuéntanos más detalles (opcional)...',
+                        hintStyle: GoogleFonts.outfit(fontSize: 14),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
                     Row(
                       children: [
                         Expanded(
                           child: TextButton(
                             onPressed: () => Navigator.pop(context),
-                            style: TextButton.styleFrom(
-                              backgroundColor: const Color(0xFFBDBDBD),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'Cancelar',
-                              style: TextStyle(
-                                color: Color(0xFF3B28FF),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: Text('Cancelar', style: GoogleFonts.outfit(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: TextButton(
+                          child: ElevatedButton(
                             onPressed: () async {
                               final techId = _technicianData!['id'];
                               final response = await _technicianService.addReview(
                                 technicianId: techId,
                                 rating: selectedStars,
-                                comment:
-                                    '', // User didn't ask for comment field yet
+                                comment: commentController.text,
                                 appointmentId: null,
                               );
 
@@ -455,37 +433,23 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                                 Navigator.pop(context);
                                 if (response.success) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Reseña enviada con éxito'),
-                                    ),
+                                    const SnackBar(content: Text('✅ Reseña enviada con éxito'), backgroundColor: Colors.green),
                                   );
-                                  _fetchDetails(techId); // Refresh profile
+                                  _fetchDetails(techId);
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        response.message ??
-                                            'Error al enviar reseña',
-                                      ),
-                                    ),
+                                    SnackBar(content: Text('❌ ${response.message ?? "Error al enviar reseña"}')),
                                   );
                                 }
                               }
                             },
-                            style: TextButton.styleFrom(
-                              backgroundColor: const Color(0xFFEEEEEE),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              side: const BorderSide(color: Color(0xFFBDBDBD)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),
-                            child: const Text(
-                              'Valorar',
-                              style: TextStyle(
-                                color: Color(0xFF3B28FF),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: Text('Enviar', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],

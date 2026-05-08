@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
@@ -104,36 +105,7 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                   'Precio unitario: S/ ${product.price.toStringAsFixed(2)}',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    IconButton(
-                      icon: const Icon(
-                        Icons.remove_circle_outline,
-                        color: Colors.red,
-                      ),
-                      onPressed: quantity > 1
-                          ? () => setDialogState(() => quantity--)
-                          : null,
-                    ),
-                    Text(
-                      '$quantity',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(
-                        Icons.add_circle_outline,
-                        color: Colors.green,
-                      ),
-                      onPressed: () => setDialogState(() => quantity++),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 10),
                 TextField(
                   controller: addressController,
                   onChanged: (val) => _selectedAddress = val,
@@ -492,6 +464,12 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
           SliverAppBar(
             expandedHeight: 200,
             pinned: true,
+            actions: [
+              IconButton(
+                onPressed: () => _showRatingDialog(context, _store?.name ?? 'la sucursal'),
+                icon: const Icon(Icons.star_outline_rounded, color: Colors.white),
+              ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 _store!.name,
@@ -827,5 +805,132 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
       debugPrint('Reverse geocoding error: $e');
     }
     return addr;
+  }
+
+  void _showRatingDialog(BuildContext context, String storeName) {
+    int selectedStars = 5;
+    final commentController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.star_rounded, color: AppColors.primary, size: 40),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Valorar a $storeName',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '¿Qué te pareció la atención y los productos?',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.outfit(color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return GestureDetector(
+                          onTap: () => setDialogState(() => selectedStars = index + 1),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Icon(
+                              Icons.star_rounded,
+                              color: index < selectedStars ? Colors.amber : Colors.grey[300],
+                              size: 44,
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: commentController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Escribe tu opinión (opcional)...',
+                        hintStyle: GoogleFonts.outfit(fontSize: 14),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: Text('Cancelar', style: GoogleFonts.outfit(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () async {
+                              final res = await _storeService.addStoreReview(
+                                widget.storeId,
+                                selectedStars,
+                                commentController.text,
+                              );
+
+                              if (context.mounted) {
+                                Navigator.pop(context);
+                                if (res.success) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('✅ ¡Gracias por tu valoración!'), backgroundColor: Colors.green),
+                                  );
+                                  _loadData(); // Refresh to see updated rating
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('❌ ${res.message ?? "Error al enviar reseña"}')),
+                                  );
+                                }
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            ),
+                            child: Text('Enviar', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }
