@@ -335,6 +335,17 @@ const addReview = async (req, res) => {
             return res.status(400).json(respuesta);
         }
 
+        // Verify if client has completed appointment with technician
+        const appCheck = await db.listar(
+            `SELECT id FROM appointments WHERE client_id = ? AND technician_id = ? AND status = 'completed' LIMIT 1`,
+            false, [clientId, technicianId]
+        );
+
+        if (!appCheck.resultado) {
+            respuesta.mensaje = 'Solo puedes reseñar después de haber completado un servicio con este técnico.';
+            return res.status(403).json(respuesta);
+        }
+
         // Verify if client already reviewed this technician
         const existingRes = await db.listar(
             'SELECT id FROM reviews WHERE client_id = ? AND technician_id = ?',

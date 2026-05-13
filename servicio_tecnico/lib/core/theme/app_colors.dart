@@ -10,9 +10,17 @@ class AppColors {
   static const Color secondary = Colors.white;
 
   // Backgrounds & Surfaces
-  static const Color background = Color(0xFFFFFFFF);
-  static const Color surface = Color(0xFFF8FAFC);
-  static const Color surfaceOverlay = Color(0xFFFFFFFF);
+  static const Color background = Color(0xFFF8FAFC);
+  static const Color surface = Color(0xFFFFFFFF);
+  static const Color surfaceOverlay = Color(0xFFF1F5F9); // Light slate for overlays
+  static const Color border = Color(0xFFCBD5E1);
+  static const Color divider = Color(0xFFE2E8F0);
+
+  // Chat Colors
+  static const Color chatBubbleMe = primary;
+  static const Color chatBubbleOther = Color(0xFFFFFFFF);
+  static const Color chatCheckRead = Color(0xFF34D399); // Green for read checks
+  static const Color chatCheckSent = Color(0xFF94A3B8); // Slate for sent checks
 
   // Text Hierarchy
   static const Color textPrimary = Color(0xFF0F172A); // Slate 900
@@ -24,10 +32,6 @@ class AppColors {
   static const Color error = Color(0xFFEF4444); // Red 500
   static const Color warning = Color(0xFFF59E0B); // Amber 500
   static const Color info = Color(0xFF3B82F6); // Blue 500
-
-  // Border & Dividers
-  static const Color border = Color(0xFFE2E8F0); // Slate 200
-  static const Color divider = Color(0xFFF1F5F9); // Slate 100
 
   // Adaptive Colors (Methods)
   static Color getBackgroundColor(BuildContext context) {

@@ -1,6 +1,6 @@
 const db = require('../config/database');
 const Respuesta = require('../utils/Respuesta');
-const NotificationService = require('../services/notification.service');
+const notificationService = require('../services/notification.service');
 
 /**
  * Create new appointment
@@ -20,7 +20,7 @@ const createAppointment = async (req, res) => {
 
         if (!destRes.exito || !destRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Destino (Técnico/Sucursal) no encontrado';
+            respuesta.mensaje = 'El técnico o sucursal seleccionada no está disponible en este momento.';
             return res.status(404).json(respuesta);
         }
 
@@ -38,7 +38,7 @@ const createAppointment = async (req, res) => {
 
         if (activeAppRes.resultado) {
             respuesta.estado = 400;
-            respuesta.mensaje = 'Ya tienes una cita vigente con este destino.';
+            respuesta.mensaje = 'Ya tienes una cita activa programada con este técnico o sucursal.';
             return res.status(400).json(respuesta);
         }
 
@@ -79,9 +79,18 @@ Descripción: ${description || 'Sin descripción'}`;
             }
         }
 
+        // Notificar al destino (Técnico o Sucursal)
+        await notificationService.createNotification(
+            technicianId,
+            'Nueva Cita Recibida',
+            `Tienes una nueva solicitud de servicio para el ${scheduledDate} a las ${scheduledTime}`,
+            'appointment',
+            { appointmentId: appointmentId.toString(), type: 'new_appointment' }
+        );
+
         respuesta.exito = true;
         respuesta.estado = 201;
-        respuesta.mensaje = 'Cita creada con éxito';
+        respuesta.mensaje = '¡Tu cita ha sido agendada con éxito!';
         respuesta.resultado = { appointmentId };
 
         res.status(201).json(respuesta);
@@ -187,7 +196,7 @@ const getAppointmentById = async (req, res) => {
 
         if (!dbRes.exito || !dbRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Cita no encontrada o no autorizada';
+            respuesta.mensaje = 'No pudimos encontrar los detalles de la cita solicitada.';
             return res.status(404).json(respuesta);
         }
 
@@ -225,7 +234,7 @@ const updateAppointmentStatus = async (req, res) => {
 
         if (!appRes.exito || !appRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Cita no encontrada';
+            respuesta.mensaje = 'La cita no existe o ha sido eliminada.';
             return res.status(404).json(respuesta);
         }
 
@@ -235,7 +244,7 @@ const updateAppointmentStatus = async (req, res) => {
         // Authorization: Participant or Admin
         if (appointment.client_id !== userId && appointment.technician_id !== userId && userRole !== 'admin') {
             respuesta.estado = 403;
-            respuesta.mensaje = 'No autorizado para actualizar esta cita';
+            respuesta.mensaje = 'No tienes permisos para realizar cambios en esta cita.';
             return res.status(403).json(respuesta);
         }
 
@@ -254,7 +263,7 @@ const updateAppointmentStatus = async (req, res) => {
 
         if (!validTransitions[currentStatus].includes(nextStatus)) {
             respuesta.estado = 400;
-            respuesta.mensaje = `Transición de estado inválida: de ${currentStatus} a ${nextStatus}`;
+            respuesta.mensaje = 'No es posible realizar este cambio de estado en el momento actual.';
             return res.status(400).json(respuesta);
         }
 
@@ -340,16 +349,19 @@ const updateAppointmentStatus = async (req, res) => {
                 [userId, receiverId, customMsg, id]
             );
 
-            // Also create a system notification
-            await db.ejecutar(
-                'INSERT INTO notifications (user_id, title, message, type, related_id) VALUES (?, ?, ?, "appointment", ?)',
-                [receiverId, 'Actualización de Cita', customMsg, id]
+            // Also create a system notification (Push + In-app)
+            await notificationService.createNotification(
+                receiverId,
+                'Actualización de Cita',
+                customMsg,
+                'appointment',
+                { appointmentId: id.toString(), nextStatus }
             );
         }
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = `Cita actualizada a ${nextStatus} con éxito`;
+        respuesta.mensaje = 'El estado de la cita ha sido actualizado correctamente.';
         res.json(respuesta);
 
     } catch (error) {
@@ -384,7 +396,7 @@ const cancelAppointment = async (req, res) => {
 
         if (appointment.payment_status === 'paid') {
             respuesta.estado = 400;
-            respuesta.mensaje = 'No se puede cancelar una cita que ya ha sido pagada.';
+            respuesta.mensaje = 'Lo sentimos, las citas que ya han sido pagadas no pueden ser canceladas.';
             return res.status(400).json(respuesta);
         }
 
@@ -408,7 +420,7 @@ const cancelAppointment = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = newStatus === 'cancelled' ? 'Cita cancelada con éxito' : 'Solicitud de cancelación enviada a la sucursal';
+        respuesta.mensaje = newStatus === 'cancelled' ? 'Tu cita ha sido cancelada correctamente.' : 'Tu solicitud de cancelación ha sido enviada para validación.';
         res.json(respuesta);
 
     } catch (error) {
@@ -461,12 +473,15 @@ const setAppointmentPrice = async (req, res) => {
         
         await db.ejecutar(
             'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id) VALUES (?, ?, ?, "appointment", ?)',
-            [userId, client_id, priceMsg, 'appointment', id]
+            [userId, client_id, priceMsg, id]
         );
 
-        await db.ejecutar(
-            'INSERT INTO notifications (user_id, title, message, type, related_id) VALUES (?, ?, ?, "appointment", ?)',
-            [client_id, 'Precio Establecido', `Se ha fijado un precio de S/ ${price} para tu cita.`, 'appointment', id]
+        await notificationService.createNotification(
+            client_id,
+            'Precio Establecido',
+            `Se ha fijado un precio de S/ ${price} para tu cita.`,
+            'appointment',
+            { appointmentId: id.toString(), price: price.toString() }
         );
 
         respuesta.exito = true;
@@ -517,8 +532,18 @@ const payAppointment = async (req, res) => {
             [paymentMethod, id]
         );
 
+        // Notificar al prestador sobre el pago
+        const app = appRes.resultado;
+        await notificationService.createNotification(
+            app.technician_id || (await db.listar('SELECT technician_id FROM appointments WHERE id = ?', false, [id])).resultado.technician_id,
+            'Pago de Cita Notificado',
+            `El cliente ha notificado el pago vía ${paymentMethod.toUpperCase()}.`,
+            'appointment',
+            { appointmentId: id.toString(), action: 'payment_notified' }
+        );
+
         respuesta.exito = true;
-        respuesta.mensaje = 'Pago registrado, esperando confirmación';
+        respuesta.mensaje = 'Tu pago ha sido registrado. El técnico validará la recepción en breve.';
         res.json(respuesta);
     } catch (error) {
         console.error('Pay error:', error);
@@ -564,14 +589,16 @@ const confirmCompletion = async (req, res) => {
             [id]
         );
 
-        // Notify tech
-        await db.ejecutar(
-            'INSERT INTO notifications (user_id, title, message, type, related_id) VALUES (?, ?, ?, "appointment", ?)',
-            [appRes.resultado.technician_id, 'Trabajo Confirmado', 'El cliente ha confirmado la finalización exitosa del trabajo.', id]
+        await notificationService.createNotification(
+            appRes.resultado.technician_id,
+            'Trabajo Confirmado',
+            'El cliente ha confirmado la finalización exitosa del trabajo.',
+            'appointment',
+            { appointmentId: id.toString(), action: 'completion_confirmed' }
         );
 
         respuesta.exito = true;
-        respuesta.mensaje = 'Finalización confirmada con éxito';
+        respuesta.mensaje = '¡Gracias por confirmar! El servicio ha concluido oficialmente.';
         res.json(respuesta);
     } catch (error) {
         console.error('Confirm completion error:', error);
@@ -617,16 +644,19 @@ const confirmPayment = async (req, res) => {
 
         await db.ejecutar(
             'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id) VALUES (?, ?, ?, "appointment", ?)',
-            [userId, client_id, confirmMsg, 'appointment', id]
+            [userId, client_id, confirmMsg, id]
         );
 
-        await db.ejecutar(
-            'INSERT INTO notifications (user_id, title, message, type, related_id) VALUES (?, ?, ?, "appointment", ?)',
-            [client_id, 'Pago Confirmado', 'Tu pago ha sido validado por el técnico.', 'appointment', id]
+        await notificationService.createNotification(
+            client_id,
+            'Pago Confirmado',
+            'Tu pago ha sido validado por el técnico.',
+            'appointment',
+            { appointmentId: id.toString(), action: 'payment_confirmed' }
         );
 
         respuesta.exito = true;
-        respuesta.mensaje = 'Pago confirmado con éxito. La cita ahora está confirmada.';
+        respuesta.mensaje = '¡Pago validado con éxito! La cita ahora está lista para el servicio.';
         res.json(respuesta);
     } catch (error) {
         console.error('Confirm payment error:', error);

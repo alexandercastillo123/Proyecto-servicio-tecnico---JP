@@ -248,12 +248,24 @@ CREATE TABLE IF NOT EXISTS notifications (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- 16. Tokens de Dispositivos (Push Notifications)
+CREATE TABLE IF NOT EXISTS user_device_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    fcm_token VARCHAR(255) NOT NULL,
+    platform VARCHAR(20),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_used TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_token (fcm_token),
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Índices para optimización
 CREATE INDEX idx_user_profiles_available ON user_profiles(is_available);
 CREATE INDEX idx_sucursales_status ON sucursales(status);
 CREATE INDEX idx_sucursales_location ON sucursales(latitude, longitude);
 
--- 16. Logs de Pagos (Auditoría)
+-- 17. Logs de Pagos (Auditoría)
 CREATE TABLE IF NOT EXISTS payment_logs (
     id INT AUTO_INCREMENT PRIMARY KEY,
     entity_type ENUM('appointment', 'order') NOT NULL,

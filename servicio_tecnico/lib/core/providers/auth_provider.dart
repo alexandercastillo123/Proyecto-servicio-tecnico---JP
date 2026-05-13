@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../constants/api_constants.dart';
 import '../models/user.dart';
+import '../services/firebase_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -25,6 +26,8 @@ class AuthProvider extends ChangeNotifier {
 
       if (response.success && response.data != null) {
         _user = response.data;
+        // Configurar token de notificaciones push
+        FirebaseService.setupToken();
       }
 
       _isLoading = false;

@@ -209,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _handleLogin() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      _showError('Por favor completa todos los campos');
+      _showError('Por favor, ingresa tu correo y contraseña para continuar.');
       return;
     }
 
@@ -241,10 +241,10 @@ class _LoginScreenState extends State<LoginScreen> {
           }
         }
       } else {
-        _showError(response.message ?? 'Crendeciales inválidas');
+        _showError(response.message ?? 'El correo o la contraseña son incorrectos. Inténtalo de nuevo.');
       }
     } catch (e) {
-      _showError('Error de conexión');
+      _showError('No pudimos conectar con el servidor. Verifica tu internet e intenta nuevamente.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

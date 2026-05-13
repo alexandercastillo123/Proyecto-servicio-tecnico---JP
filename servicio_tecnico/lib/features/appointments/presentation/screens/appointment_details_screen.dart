@@ -8,6 +8,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/mini_location_map.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 
 class AppointmentDetailsScreen extends StatefulWidget {
   final int appointmentId;
@@ -23,6 +25,8 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
   Map<String, dynamic>? _appointment;
   bool _isLoading = true;
   String? _errorMessage;
+  String? _reverseGeocodedAddress;
+  bool _isGeocoding = false;
 
   @override
   void initState() {
@@ -40,6 +44,12 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
           _appointment = response.data;
           _isLoading = false;
         });
+        if (_appointment?['service_lat'] != null && _appointment?['service_lng'] != null) {
+          _updateAddressFromCoords(
+            double.parse(_appointment!['service_lat'].toString()),
+            double.parse(_appointment!['service_lng'].toString()),
+          );
+        }
       } else {
         setState(() {
           _errorMessage = response.message;
@@ -48,11 +58,31 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
       }
     } catch (e) {
       setState(() {
-        _errorMessage = 'Error al cargar detalles de la cita';
+        _errorMessage = 'No logramos cargar la información de la cita en este momento.';
         _isLoading = false;
       });
     }
   }
+
+  Future<void> _updateAddressFromCoords(double lat, double lng) async {
+    if (mounted) setState(() => _isGeocoding = true);
+    try {
+      final url = Uri.parse('https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=18&addressdetails=1');
+      final response = await http.get(url, headers: {'Accept-Language': 'es'});
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (mounted) {
+          setState(() {
+            _reverseGeocodedAddress = data['display_name'];
+            _isGeocoding = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isGeocoding = false);
+    }
+  }
+
 
   String _getStatusTranslation(String? status) {
     switch (status) {
@@ -73,7 +103,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
       case 'confirmed':
         return 'Confirmada ✅';
       case 'expired':
-        return 'Expirado';
+        return 'Expirada';
       default:
         return status ?? 'Desconocido';
     }
@@ -235,8 +265,14 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
                       'Dirección',
                       'No se marcó punto en el mapa',
                     ),
-                  if (app['service_lat'] != null &&
-                      app['service_lng'] != null) ...[
+                  if (app['service_lat'] != null && app['service_lng'] != null) ...[
+                    _buildDetailRow(
+                      'Dirección Detectada',
+                      _isGeocoding 
+                        ? 'Buscando dirección...' 
+                        : (_reverseGeocodedAddress ?? 'Ubicación exacta en el mapa'),
+                    ),
+                    const SizedBox(height: 8),
                     _buildDetailRow(
                       'Coordenadas',
                       '${double.tryParse(app['service_lat'].toString())?.toStringAsFixed(5)}, ${double.tryParse(app['service_lng'].toString())?.toStringAsFixed(5)}',
@@ -350,7 +386,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Esta cita está pagada y asegurada. No se puede cancelar.',
+                        'Este servicio ya ha sido pagado y está asegurado. No es posible realizar cancelaciones.',
                         style: TextStyle(
                           color: Colors.green,
                           fontWeight: FontWeight.bold,
@@ -603,7 +639,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Confirmar Cambio'),
         content: Text(
-          '¿Deseas cambiar el estado a "${_getStatusTranslation(status)}"?',
+          '¿Confirmas que deseas cambiar el estado a "${_getStatusTranslation(status)}"?',
         ),
         actions: [
           TextButton(
@@ -717,7 +753,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmar Pago'),
-        content: const Text('¿Confirmas que has recibido el pago del cliente?'),
+        content: const Text('¿Has validado la recepción del pago en tu cuenta?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('No')),
           TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Sí, Confirmar')),
@@ -747,7 +783,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Confirmar Finalización'),
         content: const Text(
-          '¿Confirmas que el técnico ha terminado el trabajo satisfactoriamente?',
+          '¿Confirmas que el servicio ha concluido satisfactoriamente?',
         ),
         actions: [
           TextButton(

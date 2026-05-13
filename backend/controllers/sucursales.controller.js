@@ -6,7 +6,7 @@
 
 const db = require('../config/database');
 const upload = require('../middleware/upload');
-const NotificationService = require('../services/notification.service');
+const notificationService = require('../services/notification.service');
 const Respuesta = require('../utils/Respuesta');
 
 /**
@@ -22,7 +22,7 @@ const getStores = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = "Sucursales obtenidas";
+        respuesta.mensaje = "Listado de sucursales obtenido con éxito.";
         respuesta.resultado = dbRes.resultado || [];
         res.json(respuesta);
     } catch (error) {
@@ -74,7 +74,7 @@ const getNearbyStores = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Sucursales cercanas obtenidas';
+        respuesta.mensaje = 'Se han localizado las sucursales más cercanas a tu ubicación.';
         respuesta.resultado = dbRes.resultado || [];
         res.json(respuesta);
     } catch (error) {
@@ -99,7 +99,7 @@ const getStoreById = async (req, res) => {
 
         if (!dbRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Sucursal no encontrada';
+            respuesta.mensaje = 'No logramos encontrar la sucursal solicitada.';
             return res.status(404).json(respuesta);
         }
 
@@ -121,9 +121,12 @@ const getStoreProducts = async (req, res) => {
     try {
         const { id } = req.params;
         const dbRes = await db.listar(
-            'SELECT * FROM store_products WHERE sucursal_id = ? ORDER BY created_at DESC',
+            `SELECT sp.* FROM store_products sp
+             JOIN sucursales s ON sp.sucursal_id = s.id
+             WHERE s.id = ? OR s.user_id = ?
+             ORDER BY sp.created_at DESC`,
             true,
-            [id]
+            [id, id]
         );
 
         respuesta.exito = true;
@@ -146,7 +149,7 @@ const addStoreProduct = async (req, res) => {
         const userId = req.user.id;
 
         if (!sucursal_id || !name || !price) {
-            respuesta.mensaje = 'Faltan campos obligatorios';
+            respuesta.mensaje = 'Por favor, completa todos los campos obligatorios del producto.';
             return res.status(400).json(respuesta);
         }
 
@@ -154,7 +157,7 @@ const addStoreProduct = async (req, res) => {
         const store = await db.listar('SELECT id FROM sucursales WHERE id = ? AND user_id = ?', false, [sucursal_id, userId]);
         if (!store.resultado && req.user.role !== 'admin') {
             respuesta.estado = 403;
-            respuesta.mensaje = 'No autorizado para añadir productos a esta sucursal';
+            respuesta.mensaje = 'No tienes permisos para añadir productos a esta sucursal.';
             return res.status(403).json(respuesta);
         }
 
@@ -167,7 +170,7 @@ const addStoreProduct = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 201;
-        respuesta.mensaje = 'Producto añadido con éxito';
+        respuesta.mensaje = '¡Excelente! El producto ha sido añadido correctamente.';
         res.status(201).json(respuesta);
     } catch (error) {
         respuesta.mensaje = 'Error al añadir producto: ' + error.message;
@@ -190,7 +193,7 @@ const getMyStore = async (req, res) => {
 
         if (!dbRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'No tienes una sucursal registrada';
+            respuesta.mensaje = 'Aún no cuentas con una sucursal registrada en nuestra plataforma.';
             return res.status(404).json(respuesta);
         }
 
@@ -260,6 +263,33 @@ const addStoreReview = async (req, res) => {
         const clientId = req.user.id;
         const { rating, comment } = req.body;
 
+        // Verify if client has completed order or appointment
+        const orderCheck = await db.listar(
+            `SELECT id FROM store_orders WHERE client_id = ? AND sucursal_id = ? AND status = 'delivered' LIMIT 1`,
+            false, [clientId, id]
+        );
+        
+        const appCheck = await db.listar(
+            `SELECT id FROM appointments WHERE client_id = ? AND store_id = ? AND status = 'completed' LIMIT 1`,
+            false, [clientId, id]
+        );
+
+        if (!orderCheck.resultado && !appCheck.resultado) {
+            respuesta.mensaje = 'Solo puedes reseñar después de haber completado una compra o servicio con esta sucursal.';
+            return res.status(403).json(respuesta);
+        }
+
+        // Verify if client already reviewed this store
+        const existingCheck = await db.listar(
+            'SELECT id FROM store_reviews WHERE client_id = ? AND sucursal_id = ?',
+            false, [clientId, id]
+        );
+
+        if (existingCheck.resultado) {
+            respuesta.mensaje = 'Ya has calificado a esta sucursal.';
+            return res.status(400).json(respuesta);
+        }
+
         await db.ejecutar(
             'INSERT INTO store_reviews (sucursal_id, client_id, rating, comment) VALUES (?, ?, ?, ?)',
             [id, clientId, rating, comment]
@@ -275,7 +305,7 @@ const addStoreReview = async (req, res) => {
         );
 
         respuesta.exito = true;
-        respuesta.mensaje = 'Reseña añadida';
+        respuesta.mensaje = '¡Gracias por tu opinión! Tu reseña ha sido publicada con éxito.';
         res.status(201).json(respuesta);
     } catch (error) {
         respuesta.mensaje = 'Error al añadir reseña: ' + error.message;
@@ -296,12 +326,13 @@ const updateStoreStatus = async (req, res) => {
         const store = await db.listar('SELECT id FROM sucursales WHERE id = ? AND user_id = ?', false, [id, userId]);
         if (!store.resultado) {
             respuesta.estado = 403;
-            respuesta.mensaje = 'No autorizado';
+            respuesta.mensaje = 'No tienes permisos para realizar esta acción sobre la sucursal.';
             return res.status(403).json(respuesta);
         }
 
         await db.ejecutar('UPDATE sucursales SET status = ? WHERE id = ?', [status, id]);
         respuesta.exito = true;
+        respuesta.mensaje = 'El estado de la sucursal se ha actualizado correctamente.';
         res.json(respuesta);
     } catch (error) {
         respuesta.mensaje = 'Error al actualizar estado: ' + error.message;
@@ -316,7 +347,7 @@ const uploadStoreImage = async (req, res) => {
     let respuesta = new Respuesta();
     try {
         if (!req.file) {
-            respuesta.mensaje = 'No se subió ninguna imagen';
+            respuesta.mensaje = 'Por favor, selecciona una imagen válida para continuar.';
             return res.status(400).json(respuesta);
         }
         const userId = req.user.id;
@@ -341,7 +372,7 @@ const uploadProductImage = async (req, res) => {
     let respuesta = new Respuesta();
     try {
         if (!req.file) {
-            respuesta.mensaje = 'No se subió ninguna imagen';
+            respuesta.mensaje = 'Por favor, selecciona una imagen válida para continuar.';
             return res.status(400).json(respuesta);
         }
         const fileUrl = upload.getRelativePath(req.file);
@@ -390,11 +421,17 @@ const createStore = async (req, res) => {
             const bcrypt = require('bcryptjs');
             const passwordHash = await bcrypt.hash(admin_password, 10);
 
-            // 3. Create user
-            const username = name.toLowerCase().replace(/\s+/g, '_') + '_' + Math.floor(Math.random() * 1000);
+            // 3. Create user (Professional username)
+            const slug = name.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '_');
+            const username = slug;
+            
+            // Check if username already exists, add small random suffix only if collision
+            const [checkUser] = await connection.query('SELECT id FROM users WHERE username = ?', [username]);
+            const finalUsername = checkUser.length > 0 ? `${username}_${Math.floor(100 + Math.random() * 900)}` : username;
+
             const [userResult] = await connection.query(
                 'INSERT INTO users (email, username, password_hash, role) VALUES (?, ?, ?, ?)',
-                [admin_email, username, passwordHash, 'store']
+                [admin_email, finalUsername, passwordHash, 'store']
             );
             targetUserId = userResult.insertId;
 
@@ -432,7 +469,7 @@ const createStore = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 201;
-        respuesta.mensaje = 'Sucursal y cuenta de acceso creadas con éxito';
+        respuesta.mensaje = '¡Excelente! La sucursal y su cuenta de acceso han sido configuradas correctamente.';
         respuesta.resultado = { userId: targetUserId };
         res.status(201).json(respuesta);
     } catch (error) {
@@ -485,7 +522,7 @@ const updateStore = async (req, res) => {
         await db.ejecutar(query, params);
 
         respuesta.exito = true;
-        respuesta.mensaje = 'Sucursal actualizada';
+        respuesta.mensaje = 'Los datos de la sucursal han sido actualizados correctamente.';
         res.json(respuesta);
     } catch (error) {
         respuesta.mensaje = 'Error al actualizar: ' + error.message;
@@ -502,7 +539,8 @@ const deleteStore = async (req, res) => {
         const { id } = req.params;
         await db.ejecutar('DELETE FROM sucursales WHERE id = ?', [id]);
         respuesta.exito = true;
-        respuesta.mensaje = 'Sucursal eliminada';
+        respuesta.exito = true;
+        respuesta.mensaje = 'La sucursal ha sido retirada de nuestra plataforma correctamente.';
         res.json(respuesta);
     } catch (error) {
         respuesta.mensaje = 'Error al eliminar sucursal: ' + error.message;
@@ -598,7 +636,7 @@ const deleteStoreProduct = async (req, res) => {
 
         await db.ejecutar('DELETE FROM store_products WHERE id = ?', [id]);
         respuesta.exito = true;
-        respuesta.mensaje = 'Producto eliminado';
+        respuesta.mensaje = 'El producto ha sido retirado del catálogo correctamente.';
         res.json(respuesta);
     } catch (error) {
         respuesta.mensaje = 'Error al eliminar producto: ' + error.message;
@@ -632,7 +670,7 @@ const createOrder = async (req, res) => {
         if (!productRes || productRes.length === 0) {
             await connection.rollback();
             respuesta.estado = 404;
-            respuesta.mensaje = 'Producto no disponible o no encontrado';
+            respuesta.mensaje = 'Lo sentimos, el producto seleccionado ya no está disponible.';
             return res.status(404).json(respuesta);
         }
 
@@ -668,13 +706,22 @@ Total: S/ ${total_price.toFixed(2)}
                 'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, order_id) VALUES (?, ?, ?, "order", ?)',
                 [clientId, storeUserId, chatMsg, orderId]
             );
+
+            // Notificar a la tienda (Push + In-app)
+            await notificationService.createNotification(
+                storeUserId,
+                'Nuevo Pedido Recibido',
+                `Has recibido un pedido de "${product_name}" (x${quantity})`,
+                'order',
+                { orderId: orderId.toString(), productId: product_id.toString() }
+            );
         }
 
         await connection.commit();
 
         respuesta.exito = true;
         respuesta.estado = 201;
-        respuesta.mensaje = 'Pedido realizado con éxito';
+        respuesta.mensaje = '¡Tu pedido ha sido realizado con éxito! Puedes coordinar los detalles por el chat.';
         respuesta.resultado = { orderId };
         res.status(201).json(respuesta);
 
@@ -730,7 +777,7 @@ const payOrder = async (req, res) => {
 
         if (order.payment_status !== 'pending') {
             respuesta.estado = 400;
-            respuesta.mensaje = 'Este pedido ya tiene un pago en proceso o completado';
+            respuesta.mensaje = 'Este pedido ya cuenta con un registro de pago en curso o completado.';
             return res.status(400).json(respuesta);
         }
 
@@ -746,8 +793,18 @@ const payOrder = async (req, res) => {
             [userId, order.store_user_id, chatMsg, id]
         );
 
+        // Notificar a la tienda sobre el pago
+        await notificationService.createNotification(
+            order.store_user_id,
+            'Pago de Pedido Recibido',
+            `El cliente ha notificado el pago por "${order.product_name}"`,
+            'order',
+            { orderId: id.toString(), action: 'payment_received' }
+        );
+
         respuesta.exito = true;
-        respuesta.mensaje = 'Pago notificado. Esperando confirmación de la tienda.';
+        respuesta.exito = true;
+        respuesta.mensaje = 'Tu pago ha sido registrado. La tienda validará la transacción en breve para proceder con el servicio.';
         res.json(respuesta);
     } catch (error) {
         console.error('payOrder error:', error);
@@ -809,6 +866,15 @@ const confirmOrderPayment = async (req, res) => {
         await db.ejecutar(
             'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, order_id) VALUES (?, ?, ?, "order", ?)',
             [userId, order.client_id, chatMsg, id]
+        );
+
+        // Notificar al cliente sobre la confirmación del pago
+        await notificationService.createNotification(
+            order.client_id,
+            '¡Pago Confirmado!',
+            `La tienda ha confirmado tu pago por "${order.product_name}"`,
+            'order',
+            { orderId: id.toString(), action: 'payment_confirmed' }
         );
 
         respuesta.exito = true;
@@ -944,7 +1010,7 @@ const updateOrderStatus = async (req, res) => {
             // Crear notificación formal en el sistema
             if (isOwner) {
                 // Si la tienda cambió el estado, notificar al cliente
-                await NotificationService.notifyOrderStatus(order.client_id, id, status, order.product_name);
+                await notificationService.notifyOrderStatus(order.client_id, id, status, order.product_name);
             }
         }
 

@@ -35,12 +35,12 @@ class _CreateStoreScreenState extends State<CreateStoreScreen> {
         setState(() => _isLoading = false);
         if (res.success) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Sucursal creada exitosamente')),
+            const SnackBar(content: Text('¡Felicidades! Tu sucursal ha sido creada correctamente.')),
           );
           context.pop(true);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(res.message ?? 'Error al crear sucursal')),
+            SnackBar(content: Text(res.message ?? 'Hubo un error al registrar la sucursal. Inténtalo de nuevo.')),
           );
         }
       }
@@ -48,7 +48,7 @@ class _CreateStoreScreenState extends State<CreateStoreScreen> {
       if (mounted) {
         setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error inesperado')),
+          const SnackBar(content: Text('Lo sentimos, ocurrió un problema inesperado.')),
         );
       }
     }

@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const Respuesta = require('../utils/Respuesta');
+const notificationService = require('../services/notification.service');
 
 /**
  * Get user conversations list
@@ -132,7 +133,7 @@ const sendMessage = async (req, res) => {
 
         if (!recRes.exito || !recRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Destinatario no encontrado';
+            respuesta.mensaje = 'No logramos encontrar al destinatario del mensaje.';
             return res.status(404).json(respuesta);
         }
 
@@ -148,10 +149,25 @@ const sendMessage = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 201;
-        respuesta.mensaje = 'Mensaje enviado con éxito';
+        respuesta.mensaje = 'Mensaje enviado correctamente.';
         respuesta.resultado = {
             messageId: dbRes.resultado.insertId
         };
+
+        // Enviar notificación al destinatario
+        const [senderProfile] = await db.pool.query(
+            'SELECT names, company_name FROM user_profiles WHERE user_id = ?',
+            [senderId]
+        );
+        const senderName = senderProfile[0]?.company_name || senderProfile[0]?.names || 'Un usuario';
+        
+        await notificationService.createNotification(
+            receiverId,
+            `Mensaje de ${senderName}`,
+            messageText,
+            'chat',
+            { senderId: senderId.toString(), messageType: 'text' }
+        );
 
         res.status(201).json(respuesta);
 
@@ -180,7 +196,7 @@ const sendOffer = async (req, res) => {
 
         if (!userRes.exito || !userRes.resultado || userRes.resultado.role !== 'tech') {
             respuesta.estado = 403;
-            respuesta.mensaje = 'Solo los técnicos pueden enviar ofertas';
+            respuesta.mensaje = 'Solo los prestadores de servicio autorizados pueden enviar propuestas.';
             return res.status(403).json(respuesta);
         }
 
@@ -198,10 +214,29 @@ const sendOffer = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 201;
-        respuesta.mensaje = 'Oferta enviada con éxito';
+        respuesta.mensaje = '¡Tu propuesta ha sido enviada al cliente!';
         respuesta.resultado = {
             offerId: dbRes.resultado.insertId
         };
+
+        // Enviar notificación de oferta
+        const [techProfile] = await db.pool.query(
+            'SELECT names, company_name FROM user_profiles WHERE user_id = ?',
+            [senderId]
+        );
+        const techName = techProfile[0]?.company_name || techProfile[0]?.names || 'Un técnico';
+
+        await notificationService.createNotification(
+            receiverId,
+            'Propuesta de Servicio Recibida',
+            `${techName} te ha enviado una oferta por S/.${offerPrice}`,
+            'offer',
+            { 
+                senderId: senderId.toString(), 
+                offerId: dbRes.resultado.insertId.toString(),
+                price: offerPrice.toString()
+            }
+        );
 
         res.status(201).json(respuesta);
 
@@ -230,7 +265,7 @@ const acceptOffer = async (req, res) => {
 
         if (!offerRes.exito || !offerRes.resultado) {
             respuesta.estado = 404;
-            respuesta.mensaje = 'Oferta no encontrada';
+            respuesta.mensaje = 'No se pudo localizar la propuesta solicitada.';
             return res.status(404).json(respuesta);
         }
 
@@ -242,7 +277,7 @@ const acceptOffer = async (req, res) => {
 
         if (offerRes.resultado.offer_status !== 'pending') {
             respuesta.estado = 400;
-            respuesta.mensaje = 'La oferta ya no está pendiente';
+            respuesta.mensaje = 'Esta propuesta ya ha sido procesada o ha expirado.';
             return res.status(400).json(respuesta);
         }
 
@@ -253,7 +288,7 @@ const acceptOffer = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Oferta aceptada con éxito';
+        respuesta.mensaje = '¡Has aceptado la propuesta correctamente!';
         res.json(respuesta);
 
     } catch (error) {
@@ -285,7 +320,7 @@ const rejectOffer = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Oferta rechazada con éxito';
+        respuesta.mensaje = 'Propuesta rechazada.';
         res.json(respuesta);
 
     } catch (error) {
@@ -317,7 +352,7 @@ const cancelOffer = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Oferta cancelada con éxito';
+        respuesta.mensaje = 'Propuesta cancelada correctamente.';
         res.json(respuesta);
 
     } catch (error) {
@@ -381,7 +416,7 @@ const updateMessage = async (req, res) => {
         }
 
         respuesta.exito = true;
-        respuesta.mensaje = 'Mensaje actualizado';
+        respuesta.mensaje = 'Mensaje editado con éxito.';
         res.json(respuesta);
     } catch (error) {
         res.status(500).json({ mensaje: error.message });
@@ -422,7 +457,7 @@ const deleteMessage = async (req, res) => {
         }
 
         respuesta.exito = true;
-        respuesta.mensaje = 'Mensaje eliminado';
+        respuesta.mensaje = 'El mensaje ha sido eliminado.';
         res.json(respuesta);
     } catch (error) {
         res.status(500).json({ mensaje: error.message });

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/services/notification_service.dart';
+import '../../../../core/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
 
 class NotificationSettingsScreen extends StatefulWidget {
   const NotificationSettingsScreen({super.key});
@@ -66,6 +68,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final auth = Provider.of<AuthProvider>(context);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -90,20 +93,20 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               const SizedBox(height: 24),
               _buildSectionHeader('ALERTAS DE SERVICIO'),
               _buildSwitchTile(
-                title: 'Recordatorios de Citas',
-                subtitle: 'Avisos antes de tus servicios agendados',
+                title: auth.user?.role == 'tech' ? 'Nuevos Servicios y Citas' : 'Recordatorios de Citas',
+                subtitle: auth.user?.role == 'tech' ? 'Recibe avisos de nuevos clientes y citas programadas' : 'Avisos antes de tus servicios agendados',
                 value: _appointmentsReminders,
                 onChanged: (val) => setState(() => _appointmentsReminders = val),
               ),
               _buildSwitchTile(
-                title: 'Mensajes de Chat',
-                subtitle: 'Notificar cuando alguien te escriba',
+                title: auth.user?.role == 'store' ? 'Mensajes de Clientes' : 'Mensajes de Chat',
+                subtitle: 'Notificar cuando alguien te escriba un mensaje',
                 value: _chatNotifications,
                 onChanged: (val) => setState(() => _chatNotifications = val),
               ),
               _buildSwitchTile(
-                title: 'Estado de Pedidos',
-                subtitle: 'Cambios en tus compras o ventas',
+                title: auth.user?.role == 'store' ? 'Nuevos Pedidos y Ventas' : 'Estado de Pedidos',
+                subtitle: auth.user?.role == 'store' ? 'Alertas sobre compras realizadas en tu tienda' : 'Cambios en el estado de tus compras',
                 value: _orderUpdates,
                 onChanged: (val) => setState(() => _orderUpdates = val),
               ),

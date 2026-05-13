@@ -285,46 +285,64 @@ class _ChatScreenState extends State<ChatScreen> {
               } else if (_otherUserRole == 'store' ||
                   _otherUserRole == 'provider' ||
                   _otherUserRole == 'sucursal') {
-                // Usar store_id si lo tenemos, si no, intentar con userId (aunque idealmente es store_id)
+                // Priorizar _otherStoreId para ir al perfil de la sucursal
                 final idToUse = _otherStoreId ?? _otherUserId;
                 context.push('/store-profile/$idToUse');
               } else {
                 // Perfil de cliente
-                if (_userRole == 'tech' || _userRole == 'technician' || _userRole == 'store' || _userRole == 'provider') {
+                if (_userRole != 'client') {
                   _showClientProfileDialog();
                 }
               }
             }
           },
-          child: Row(
-            children: [
-              _buildAppBarAvatar(),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _otherUserName ?? 'Cargando...',
-                      style: GoogleFonts.outfit(
-                        color: AppColors.textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+            child: Row(
+              children: [
+                _buildAppBarAvatar(),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _otherUserName ?? 'Usuario',
+                        style: GoogleFonts.outfit(
+                          color: AppColors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      _getSubtitleRole(),
-                      style: GoogleFonts.outfit(
-                        color: AppColors.textSecondary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
+                      Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: _otherUserAvailable ? Colors.green : Colors.grey,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _otherUserAvailable ? 'En línea' : 'Fuera de línea',
+                            style: GoogleFonts.outfit(
+                              color: AppColors.textSecondary,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
@@ -1607,11 +1625,11 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Widget _buildStatusChecks(Map<String, dynamic> msg) {
     if (msg['is_read'] == true) {
-      return const Icon(Icons.done_all, color: Colors.blue, size: 14);
+      return const Icon(Icons.done_all, color: AppColors.chatCheckRead, size: 16);
     } else if (msg['delivered_at'] != null) {
-      return const Icon(Icons.done_all, color: Colors.grey, size: 14);
+      return const Icon(Icons.done_all, color: AppColors.chatCheckSent, size: 16);
     } else {
-      return const Icon(Icons.done, color: Colors.grey, size: 14);
+      return const Icon(Icons.done, color: AppColors.chatCheckSent, size: 16);
     }
   }
 
@@ -1672,63 +1690,71 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Container(
               margin: const EdgeInsets.symmetric(vertical: 4),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              constraints: const BoxConstraints(maxWidth: 280),
-              decoration: BoxDecoration(
-                color: isMe ? const Color(0xFF3B28FF) : const Color(0xFFEBEBEB),
-                borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(12),
-                  topRight: const Radius.circular(12),
-                  bottomLeft: isMe ? const Radius.circular(12) : Radius.zero,
-                  bottomRight: isMe ? Radius.zero : const Radius.circular(12),
-                ),
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 6),
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.75,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              decoration: BoxDecoration(
+                color: isMe ? AppColors.primary : Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(16),
+                  topRight: const Radius.circular(16),
+                  bottomLeft: isMe ? const Radius.circular(16) : Radius.zero,
+                  bottomRight: isMe ? Radius.zero : const Radius.circular(16),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Stack(
                 children: [
-                      Text(
-                        isDeleted ? 'Mensaje eliminado' : message,
-                        style: TextStyle(
-                          color: isMe 
-                              ? (isDeleted ? Colors.white70 : Colors.white) 
-                              : (isDeleted ? AppColors.textSecondary : AppColors.textPrimary),
-                          fontSize: 14,
-                          fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
-                          decoration: isDeleted ? TextDecoration.none : TextDecoration.none,
-                        ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12, right: 10),
+                    child: Text(
+                      isDeleted ? 'Mensaje eliminado' : message,
+                      style: GoogleFonts.outfit(
+                        color: isMe 
+                            ? (isDeleted ? Colors.white70 : Colors.white) 
+                            : (isDeleted ? AppColors.textSecondary : AppColors.textPrimary),
+                        fontSize: 15,
+                        fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
                       ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (isEdited && !isDeleted)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 4),
-                          child: Text(
-                            'editado',
-                            style: TextStyle(
-                              color:
-                                  (isMe
-                                          ? Colors.white
-                                          : AppColors.textSecondary)
-                                      .withOpacity(0.6),
-                              fontSize: 9,
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isEdited && !isDeleted)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: Text(
+                              'editado',
+                              style: TextStyle(
+                                color: (isMe ? Colors.white70 : AppColors.textLight),
+                                fontSize: 9,
+                              ),
                             ),
                           ),
+                        Text(
+                          time,
+                          style: TextStyle(
+                            color: (isMe ? Colors.white70 : AppColors.textLight),
+                            fontSize: 10,
+                          ),
                         ),
-                      Text(
-                        time,
-                        style: TextStyle(
-                          color: (isMe ? Colors.white : AppColors.textSecondary)
-                              .withOpacity(0.6),
-                          fontSize: 10,
-                        ),
-                      ),
-                      if (isMe && !isDeleted) ...[
-                        const SizedBox(width: 4),
-                        _buildStatusChecks(msg),
+                        if (isMe && !isDeleted) ...[
+                          const SizedBox(width: 4),
+                          _buildStatusChecks(msg),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ],
               ),

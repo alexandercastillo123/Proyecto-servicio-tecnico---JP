@@ -230,7 +230,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             );
             if (!res.success) {
               if (mounted)
-                _showError(res.message ?? 'Email inválido o ya registrado');
+                _showError(res.message ?? 'El correo ingresado no es válido o ya se encuentra registrado.');
               return;
             }
           } else if (_currentStep == 1) {
@@ -238,13 +238,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               _userController.text.trim(),
             );
             if (!res.success) {
-              if (mounted) _showError(res.message ?? 'Usuario no disponible');
+              if (mounted) _showError(res.message ?? 'Este nombre de usuario ya está en uso. Por favor, elige otro.');
               return;
             }
             // Validar password minimo 6 caracteres
             if (_passwordController.text.length < 6) {
               if (mounted)
-                _showError('La contraseña debe tener al menos 6 caracteres');
+                _showError('Tu contraseña es muy corta. Asegúrate de que tenga al menos 6 caracteres.');
               return;
             }
           }
@@ -255,7 +255,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             });
           }
         } catch (e) {
-          if (mounted) _showError('Error de conexión al validar');
+          if (mounted) _showError('No logramos validar tus datos. Verifica tu conexión.');
         } finally {
           if (mounted) setState(() => _isGeocoding = false);
         }
@@ -383,7 +383,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             _surnamesController.text.trim().isEmpty ||
             _dniController.text.trim().isEmpty ||
             _emailController.text.trim().isEmpty) {
-          _showError('Por favor rellene todos los campos personales');
+          _showError('Por favor, completa todos los campos de información personal.');
           return false;
         }
 
@@ -395,7 +395,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (_namesController.text.trim().isEmpty ||
             _rucController.text.trim().isEmpty ||
             _emailController.text.trim().isEmpty) {
-          _showError('Por favor rellene los datos de la empresa');
+          _showError('Por favor, ingresa los datos correspondientes a la empresa.');
           return false;
         }
 
@@ -428,11 +428,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       if (_userController.text.trim().isEmpty ||
           _passwordController.text.isEmpty ||
           _confirmPasswordController.text.isEmpty) {
-        _showError('Por favor complete los datos de acceso');
+        _showError('Por favor, completa los datos de acceso para tu cuenta.');
         return false;
       }
       if (_passwordController.text != _confirmPasswordController.text) {
-        _showError('Las contraseñas no coinciden');
+        _showError('Las contraseñas ingresadas no coinciden.');
         return false;
       }
     }
@@ -667,7 +667,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_validateLocalFields()) return;
 
     if (!_policiesAccepted) {
-      _showError('Debes aceptar los términos y condiciones');
+      _showError('Es necesario aceptar los términos y condiciones para continuar.');
       return;
     }
 
@@ -742,7 +742,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           }
         } else {
           if (context.mounted)
-            _showError(response.message ?? 'Error al registrarse');
+            _showError(response.message ?? 'Hubo un inconveniente al crear tu cuenta. Por favor, intenta de nuevo.');
         }
       }
     } catch (e) {

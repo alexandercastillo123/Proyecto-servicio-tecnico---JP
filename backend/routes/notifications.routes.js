@@ -7,5 +7,6 @@ router.get('/settings', authenticate, notificationsController.getSettings);
 router.put('/settings', authenticate, notificationsController.updateSettings);
 router.get('/', authenticate, notificationsController.getNotifications);
 router.put('/:id/read', authenticate, notificationsController.markAsRead);
+router.post('/token', authenticate, notificationsController.saveToken);
 
 module.exports = router;
