@@ -14,6 +14,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import '../../../../core/widgets/custom_avatar.dart';
 import '../../../../core/utils/date_formatter.dart';
+import 'dart:async';
 
 class StoreHomeScreen extends StatefulWidget {
   const StoreHomeScreen({super.key});
@@ -34,6 +35,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
   bool _loadingOrders = false; // Estado de carga de pedidos
   Store? _myStore;
   bool _isPickerActive = false; // Bloqueo para evitar múltiples aperturas de cámara/galería
+  Timer? _pollingTimer;
 
   @override
   void initState() {
@@ -41,6 +43,22 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
     _loadStoreData();
     _loadRecentChats();
     _loadOrders(); // Cargar pedidos al iniciar
+    _startPolling();
+  }
+
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_selectedIndex == 2) {
+        _loadRecentChats(silent: true);
+      }
+    });
   }
 
   /// Cargar pedidos de la sucursal
@@ -62,18 +80,18 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
     }
   }
 
-  Future<void> _loadRecentChats() async {
-    if (mounted) setState(() => _loadingRecent = true);
+  Future<void> _loadRecentChats({bool silent = false}) async {
+    if (mounted && !silent) setState(() => _loadingRecent = true);
     try {
       final res = await _messageService.getConversations();
       if (res.success && mounted) {
         setState(() {
           _recentChats = res.data ?? [];
-          _loadingRecent = false;
+          if (!silent) _loadingRecent = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _loadingRecent = false);
+      if (mounted && !silent) setState(() => _loadingRecent = false);
     }
   }
 
@@ -138,24 +156,67 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
               child: const Icon(Icons.add, color: Colors.white),
             )
           : null,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (i) {
-          setState(() => _selectedIndex = i);
-          if (i == 2) _loadOrders();
-          if (i == 3) _loadRecentChats();
-        },
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : Colors.grey,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.dashboard), label: 'Panel'),
-          BottomNavigationBarItem(icon: Icon(Icons.inventory_2), label: 'Catálogo'),
-          BottomNavigationBarItem(icon: Icon(Icons.shopping_cart), label: 'Pedidos'),
-          BottomNavigationBarItem(icon: Icon(Icons.chat_bubble), label: 'Mensajes'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
-        ],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.3 : 0.05),
+              blurRadius: 15,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: BottomNavigationBar(
+              currentIndex: _selectedIndex,
+              onTap: (i) {
+                setState(() => _selectedIndex = i);
+                if (i == 2) _loadOrders();
+                if (i == 3) _loadRecentChats();
+              },
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              type: BottomNavigationBarType.fixed,
+              selectedItemColor: AppColors.primary,
+              unselectedItemColor: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : AppColors.textSecondary,
+              selectedLabelStyle: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600),
+              unselectedLabelStyle: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w400),
+              items: [
+                _buildNavBarItem(Icons.dashboard_rounded, Icons.dashboard_outlined, 'Panel'),
+                _buildNavBarItem(Icons.inventory_2_rounded, Icons.inventory_2_outlined, 'Catálogo'),
+                _buildNavBarItem(Icons.shopping_cart_rounded, Icons.shopping_cart_outlined, 'Pedidos'),
+                _buildNavBarItem(Icons.chat_bubble_rounded, Icons.chat_bubble_outline_rounded, 'Mensajes'),
+                _buildNavBarItem(Icons.person_rounded, Icons.person_outline_rounded, 'Perfil'),
+              ],
+            ),
+          ),
+        ),
       ),
+    );
+  }
+
+  BottomNavigationBarItem _buildNavBarItem(IconData activeIcon, IconData icon, String label) {
+    return BottomNavigationBarItem(
+      icon: Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Icon(icon, size: 24),
+      ),
+      activeIcon: Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(activeIcon, size: 24),
+        ),
+      ),
+      label: label,
     );
   }
 

@@ -44,4 +44,15 @@ class NotificationService {
       requiresAuth: true,
     );
   }
+
+  Future<ApiResponse<dynamic>> registerToken(String token, String platform) async {
+    return await _apiService.post<dynamic>(
+      ApiConstants.registerFcmToken,
+      {
+        'token': token,
+        'platform': platform,
+      },
+      requiresAuth: true,
+    );
+  }
 }

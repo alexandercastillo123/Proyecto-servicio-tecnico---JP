@@ -401,12 +401,13 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                         hintText: 'Cuéntanos más detalles (opcional)...',
                         hintStyle: GoogleFonts.outfit(fontSize: 14),
                         filled: true,
-                        fillColor: Colors.grey[50],
+                        fillColor: AppColors.getSurfaceColor(context),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none,
                         ),
                       ),
+                      style: TextStyle(color: AppColors.getTextPrimary(context)),
                     ),
                     const SizedBox(height: 32),
                     Row(

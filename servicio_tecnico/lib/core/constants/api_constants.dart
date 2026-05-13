@@ -108,6 +108,7 @@ class ApiConstants {
   static const String notificationSettings = '$baseUrl/notifications/settings';
   static const String notifications = '$baseUrl/notifications';
   static String markNotificationAsRead(int id) => '$baseUrl/notifications/$id/read';
+  static const String registerFcmToken = '$baseUrl/notifications/token';
 
   // Health Check
   static const String health = 'http://localhost:3000/health';

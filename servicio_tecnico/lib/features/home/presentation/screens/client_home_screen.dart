@@ -10,6 +10,7 @@ import '../widgets/service_location_map.dart';
 import '../widgets/store_map_widget.dart';
 import '../../../../core/widgets/custom_avatar.dart';
 import '../../../../core/utils/date_formatter.dart';
+import 'dart:async';
 
 class ClientHomeScreen extends StatefulWidget {
   const ClientHomeScreen({super.key});
@@ -24,25 +25,42 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   final MessageService _messageService = MessageService();
   List<dynamic> _recentChats = [];
   bool _isLoadingRecent = false;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
     _loadRecentChats();
+    _startPolling();
   }
 
-  Future<void> _loadRecentChats() async {
-    if (mounted) setState(() => _isLoadingRecent = true);
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_currentIndex == 2) {
+        _loadRecentChats(silent: true);
+      }
+    });
+  }
+
+  Future<void> _loadRecentChats({bool silent = false}) async {
+    if (mounted && !silent) setState(() => _isLoadingRecent = true);
     try {
       final res = await _messageService.getConversations();
       if (res.success && mounted) {
         setState(() {
           _recentChats = res.data ?? [];
-          _isLoadingRecent = false;
+          if (!silent) _isLoadingRecent = false;
         });
       }
     } catch (_) {
-      if (mounted) setState(() => _isLoadingRecent = false);
+      if (mounted && !silent) setState(() => _isLoadingRecent = false);
     }
   }
 
@@ -67,54 +85,68 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
 
   Widget _buildBottomNavBar() {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final hasUnread = _recentChats.any((c) => (c['unread_count'] ?? 0) > 0);
+
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.getSurfaceColor(context),
-        boxShadow: isDark ? [] : AppColors.softShadow,
-      ),
-      child: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() => _currentIndex = index);
-          if (index == 2) _loadRecentChats();
-        },
-        backgroundColor: Theme.of(context).brightness == Brightness.dark ? AppColors.surfaceOverlay : Colors.white,
-        elevation: 8,
-        selectedItemColor: AppColors.primary,
-        unselectedItemColor: Theme.of(context).brightness == Brightness.dark ? Colors.white54 : AppColors.textSecondary,
-        type: BottomNavigationBarType.fixed,
-        selectedLabelStyle: GoogleFonts.outfit(
-          fontWeight: FontWeight.w700,
-          fontSize: 12,
-        ),
-        unselectedLabelStyle: GoogleFonts.outfit(
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
-        ),
-        items: [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.explore_outlined),
-            activeIcon: Icon(Icons.explore),
-            label: 'Explorar',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.storefront_outlined),
-            activeIcon: Icon(Icons.storefront),
-            label: 'Tiendas',
-          ),
-          BottomNavigationBarItem(
-            icon: _buildBadgeIcon(Icons.chat_bubble_outline, hasUnread),
-            activeIcon: _buildBadgeIcon(Icons.chat_bubble, hasUnread),
-            label: 'Mensajes',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            activeIcon: Icon(Icons.person_rounded),
-            label: 'Perfil',
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: (index) => setState(() => _currentIndex = index),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: AppColors.primary,
+            unselectedItemColor: isDark ? Colors.white54 : AppColors.textSecondary,
+            selectedLabelStyle: GoogleFonts.outfit(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+            unselectedLabelStyle: GoogleFonts.outfit(
+              fontSize: 12,
+              fontWeight: FontWeight.w400,
+            ),
+            items: [
+              _buildNavBarItem(Icons.explore_rounded, Icons.explore_outlined, 'Explorar'),
+              _buildNavBarItem(Icons.storefront_rounded, Icons.storefront_outlined, 'Tiendas'),
+              _buildNavBarItem(Icons.chat_bubble_rounded, Icons.chat_bubble_outline_rounded, 'Mensajes'),
+              _buildNavBarItem(Icons.person_rounded, Icons.person_outline_rounded, 'Perfil'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  BottomNavigationBarItem _buildNavBarItem(IconData activeIcon, IconData icon, String label) {
+    return BottomNavigationBarItem(
+      icon: Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Icon(icon, size: 24),
+      ),
+      activeIcon: Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Icon(activeIcon, size: 24),
+        ),
+      ),
+      label: label,
     );
   }
 

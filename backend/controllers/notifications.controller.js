@@ -87,9 +87,40 @@ const markAsRead = async (req, res) => {
     }
 };
 
+/**
+ * Save/Update FCM token for user
+ */
+const saveToken = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const userId = req.user.id;
+        const { token, platform } = req.body;
+
+        if (!token) {
+            respuesta.mensaje = 'Token es requerido';
+            return res.status(400).json(respuesta);
+        }
+
+        await db.ejecutar(
+            `INSERT INTO user_device_tokens (user_id, fcm_token, platform) 
+             VALUES (?, ?, ?) 
+             ON DUPLICATE KEY UPDATE user_id = ?, platform = ?, last_used = CURRENT_TIMESTAMP`,
+            [userId, token, platform || null, userId, platform || null]
+        );
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Token registrado correctamente';
+        res.json(respuesta);
+    } catch (error) {
+        console.error('Save token error:', error);
+        res.status(500).json({ mensaje: error.message });
+    }
+};
+
 module.exports = {
     getSettings,
     updateSettings,
     getNotifications,
-    markAsRead
+    markAsRead,
+    saveToken
 };

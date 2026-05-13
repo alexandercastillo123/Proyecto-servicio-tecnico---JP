@@ -169,7 +169,7 @@ const register = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 201;
-        respuesta.mensaje = 'Usuario registrado con éxito';
+        respuesta.mensaje = '¡Bienvenido! Tu cuenta ha sido creada exitosamente.';
         respuesta.resultado = {
             userId,
             email,
@@ -183,7 +183,7 @@ const register = async (req, res) => {
     } catch (error) {
         await connection.rollback();
         console.error('Registration error:', error);
-        respuesta.mensaje = 'Error en el registro: ' + error.message;
+        respuesta.mensaje = 'No pudimos completar el registro. Por favor, verifica tus datos e inténtalo de nuevo.';
         res.status(500).json(respuesta);
     } finally {
         connection.release();
@@ -227,7 +227,7 @@ const login = async (req, res) => {
 
         respuesta.exito = true;
         respuesta.estado = 200;
-        respuesta.mensaje = 'Inicio de sesión exitoso';
+        respuesta.mensaje = 'Bienvenido de nuevo. Has iniciado sesión correctamente.';
         respuesta.resultado = {
             userId: user.id,
             email: user.email,
@@ -240,7 +240,7 @@ const login = async (req, res) => {
 
     } catch (error) {
         console.error('Login error:', error);
-        respuesta.mensaje = 'Error al iniciar sesión: ' + error.message;
+        respuesta.mensaje = 'Hubo un problema al intentar ingresar. Revisa tus credenciales o inténtalo más tarde.';
         res.status(500).json(respuesta);
     }
 };
@@ -301,7 +301,7 @@ const forgotPassword = async (req, res) => {
         res.json({
             exito: true,
             estado: 200,
-            mensaje: 'Código de verificación enviado al correo'
+            mensaje: 'Hemos enviado un código de seguridad a tu correo electrónico.'
         });
 
     } catch (error) {
@@ -343,7 +343,7 @@ const verifyCode = async (req, res) => {
         }
 
         respuesta.exito = true;
-        respuesta.mensaje = 'Código verificado con éxito';
+        respuesta.mensaje = 'Código validado correctamente.';
         res.json(respuesta);
 
     } catch (error) {
@@ -400,7 +400,7 @@ const resetPassword = async (req, res) => {
         res.json({
             exito: true,
             estado: 200,
-            mensaje: 'Contraseña restablecida con éxito'
+            mensaje: 'Tu contraseña ha sido actualizada. Ahora puedes iniciar sesión con tus nuevas credenciales.'
         });
 
     } catch (error) {
@@ -437,7 +437,7 @@ const validateEmailEndpoint = async (req, res) => {
         }
 
         respuesta.exito = true;
-        respuesta.mensaje = 'Correo válido y disponible';
+        respuesta.mensaje = 'El correo ingresado es válido y está disponible.';
         res.json(respuesta);
     } catch (error) {
         respuesta.mensaje = 'Error al validar correo';
@@ -464,7 +464,7 @@ const validateUsernameEndpoint = async (req, res) => {
         }
 
         respuesta.exito = true;
-        respuesta.mensaje = 'Usuario disponible';
+        respuesta.mensaje = 'El nombre de usuario está disponible.';
         res.json(respuesta);
     } catch (error) {
         respuesta.mensaje = 'Error al validar usuario';
@@ -499,7 +499,7 @@ const changePassword = async (req, res) => {
         }
 
         respuesta.exito = true;
-        respuesta.mensaje = 'Contraseña actualizada con éxito';
+        respuesta.mensaje = 'Tu contraseña se ha actualizado correctamente.';
         res.json(respuesta);
 
     } catch (error) {
