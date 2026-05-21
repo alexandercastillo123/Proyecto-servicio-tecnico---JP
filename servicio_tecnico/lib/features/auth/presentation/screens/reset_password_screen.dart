@@ -34,7 +34,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         child: Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: const Color(0xFFD9D9D9),
+            color: Theme.of(context).brightness == Brightness.dark
+                ? const Color(0xFF1E293B)
+                : const Color(0xFFD9D9D9),
             borderRadius: BorderRadius.circular(24),
           ),
           child: Column(
@@ -42,15 +44,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             children: [
               const Icon(
                 Icons.check_circle_outline,
-                color: AppColors.primary,
+                color: AppColors.success,
                 size: 80,
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 'Tu contraseña ha sido\nactualizada con éxito',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: AppColors.primary,
+                  color: AppColors.getTextPrimary(context),
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -60,8 +62,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                 width: 150,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFC4C4C4),
-                    foregroundColor: AppColors.primary,
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFC4C4C4),
+                    foregroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : AppColors.primary,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -134,7 +140,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.getBackgroundColor(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

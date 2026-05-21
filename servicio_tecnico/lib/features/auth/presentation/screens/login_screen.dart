@@ -27,17 +27,16 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Fondo con gradiente premium
+          // Fondo con gradiente premium adaptativo
           Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFEBE9FF), // Primary Light
-                  Colors.white,
-                ],
-                stops: [0.0, 0.4],
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? [const Color(0xFF1E293B), const Color(0xFF020617)]
+                    : [const Color(0xFFEBE9FF), Colors.white],
+                stops: const [0.0, 0.4],
               ),
             ),
           ),
@@ -57,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: AppColors.getBackgroundColor(context),
                           shape: BoxShape.circle,
                           boxShadow: AppColors.softShadow,
                         ),
@@ -83,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: GoogleFonts.outfit(
                             fontSize: 32,
                             fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
+                            color: AppColors.getTextPrimary(context),
                             letterSpacing: -0.5,
                           ),
                         ),
@@ -92,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           'Ingresa tus credenciales para continuar',
                           style: GoogleFonts.outfit(
                             fontSize: 16,
-                            color: AppColors.textSecondary,
+                            color: AppColors.getTextSecondary(context),
                             fontWeight: FontWeight.w400,
                           ),
                         ),

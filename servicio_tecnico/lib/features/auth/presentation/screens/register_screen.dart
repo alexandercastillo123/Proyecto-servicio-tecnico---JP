@@ -279,7 +279,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool isProvider = widget.role == 'tech';
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.getBackgroundColor(context),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -760,7 +760,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFFE0E0E0),
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? const Color(0xFF1E293B)
+                  : const Color(0xFFE0E0E0),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Column(

@@ -821,6 +821,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
 
   Widget _buildServiceJourney(Map<String, dynamic> app) {
     final status = app['status']?.toString().toLowerCase() ?? '';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     // Solo mostrar si no está cancelado o expirado
     if (['cancelled', 'expired', 'pending'].contains(status)) return const SizedBox.shrink();
@@ -838,9 +839,9 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.getCardBackground(context),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        boxShadow: isDark ? [] : [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
             blurRadius: 10,
@@ -851,14 +852,14 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 8, bottom: 16),
+          Padding(
+            padding: const EdgeInsets.only(left: 8, bottom: 16),
             child: Text(
               'Recorrido del Servicio',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
-                color: Color(0xFF2D3142),
+                color: AppColors.getTextPrimary(context),
               ),
             ),
           ),
@@ -873,7 +874,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
               Color color;
               if (isPast) color = const Color(0xFF4CAF50);
               else if (isCurrent) color = AppColors.primary;
-              else color = Colors.grey.shade300;
+              else color = Colors.grey.shade500;
 
               return Expanded(
                 child: Column(
@@ -890,7 +891,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
                               height: 2,
                               color: index < currentIndex 
                                   ? const Color(0xFF4CAF50) 
-                                  : Colors.grey.shade200,
+                                  : (isDark ? Colors.grey.shade800 : Colors.grey.shade200),
                             ),
                           ),
                         // Circle Icon
@@ -898,7 +899,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
                           width: 38,
                           height: 38,
                           decoration: BoxDecoration(
-                            color: isCurrent ? color : Colors.white,
+                            color: isCurrent ? color : AppColors.getCardBackground(context),
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: color,
@@ -927,7 +928,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
-                        color: isCurrent ? AppColors.primary : Colors.grey.shade600,
+                        color: isCurrent ? AppColors.primary : AppColors.getTextSecondary(context),
                       ),
                     ),
                   ],
@@ -949,9 +950,9 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F9FA),
+        color: AppColors.getSurfaceColor(context),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEEEEEE)),
+        border: Border.all(color: AppColors.getDividerColor(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -970,7 +971,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
               ),
             ],
           ),
-          const Divider(height: 32),
+          Divider(height: 32, color: AppColors.getDividerColor(context)),
           content,
         ],
       ),
@@ -996,8 +997,8 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                color: Color(0xFF333333),
+              style: TextStyle(
+                color: AppColors.getTextPrimary(context),
                 fontWeight: FontWeight.bold,
               ),
             ),

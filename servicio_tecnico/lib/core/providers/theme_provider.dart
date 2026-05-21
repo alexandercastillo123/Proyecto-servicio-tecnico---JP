@@ -21,10 +21,7 @@ class ThemeProvider with ChangeNotifier {
   Future<void> toggleTheme(bool isDark) async {
     try {
       _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
-      
-      // Notificar en el siguiente frame para evitar bloqueos del hilo principal
-      Future.microtask(() => notifyListeners());
-      
+      notifyListeners();
       await _cacheService.saveData('isDarkMode', isDark);
     } catch (e) {
       debugPrint('Error saving theme: $e');

@@ -46,6 +46,12 @@ class AppColors {
         : const Color(0xFFF8FAFC);
   }
 
+  static Color getCardBackground(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF1E293B)
+        : Colors.white;
+  }
+
   static Color getTextPrimary(BuildContext context) {
     return Theme.of(context).brightness == Brightness.dark
         ? Colors.white

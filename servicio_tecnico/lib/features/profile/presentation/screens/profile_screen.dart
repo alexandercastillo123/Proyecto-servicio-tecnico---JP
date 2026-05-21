@@ -261,8 +261,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final email = user['email'] ?? 'N/A';
     final profileImg = user['profile_image_url'] ?? '';
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.getBackgroundColor(context),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -304,34 +306,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 24),
                 Text(
                   name,
-                  style: const TextStyle(
-                    color: AppColors.primary,
+                  style: TextStyle(
+                    color: AppColors.getTextPrimary(context),
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   dniRuc,
-                  style: const TextStyle(
-                    color: AppColors.primary,
+                  style: TextStyle(
+                    color: AppColors.getTextSecondary(context),
                     fontSize: 18,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 Text(
                   email,
-                  style: const TextStyle(
-                    color: AppColors.primary,
+                  style: TextStyle(
+                    color: AppColors.getTextSecondary(context),
                     fontSize: 18,
                     decoration: TextDecoration.underline,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(height: 48),
-                const Text(
-                  'Ultimos servicios:',
+                Text(
+                  'Últimos servicios:',
                   style: TextStyle(
-                    color: AppColors.primary,
+                    color: AppColors.getTextPrimary(context),
                     fontSize: 20,
                     fontWeight: FontWeight.w500,
                   ),
@@ -340,7 +342,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8E8E8),
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE8E8E8),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: _isLoadingRecent
@@ -373,8 +375,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         // Redirigir a vista de chats o similar
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFFCDCDCD),
-                                        foregroundColor: AppColors.primary,
+                                        backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFCDCDCD),
+                                        foregroundColor: isDark ? Colors.white : AppColors.primary,
                                         padding: const EdgeInsets.symmetric(vertical: 12),
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(12),
@@ -400,10 +402,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: ElevatedButton(
                     onPressed: () => context.push('/settings'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppColors.primary,
-                      side: const BorderSide(
-                        color: AppColors.primary,
+                      backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      foregroundColor: isDark ? Colors.white : AppColors.primary,
+                      side: BorderSide(
+                        color: isDark ? Colors.transparent : AppColors.primary,
                         width: 1.5,
                       ),
                       shape: RoundedRectangleBorder(
@@ -417,7 +419,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Icon(Icons.settings_outlined, size: 20),
                         SizedBox(width: 10),
                         Text(
-                          'Configuración General',
+                           'Configuración General',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -470,10 +472,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildServiceItem(String name, String? imageUrl, double rating) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -491,8 +494,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               children: [
                 Text(
                   name,
-                  style: const TextStyle(
-                    color: AppColors.primary,
+                  style: TextStyle(
+                    color: AppColors.getTextPrimary(context),
                     fontWeight: FontWeight.bold,
                     fontSize: 15,
                   ),
@@ -510,7 +513,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right, color: AppColors.primary, size: 18),
+          Icon(Icons.chevron_right, color: AppColors.getTextSecondary(context), size: 18),
         ],
       ),
     );

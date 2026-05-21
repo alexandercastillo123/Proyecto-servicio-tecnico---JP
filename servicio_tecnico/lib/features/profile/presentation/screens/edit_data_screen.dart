@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/user_service.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class EditDataScreen extends StatefulWidget {
   const EditDataScreen({super.key});
@@ -131,9 +132,10 @@ class _EditDataScreenState extends State<EditDataScreen> {
     }
 
     final isNatural = _profileData?['person_type'] == 'natural';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+      backgroundColor: AppColors.getBackgroundColor(context),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -148,12 +150,12 @@ class _EditDataScreenState extends State<EditDataScreen> {
                     onPressed: () => context.pop(),
                     icon: const Icon(
                       Icons.arrow_left,
-                      color: Color(0xFF3B28FF),
+                      color: AppColors.primary,
                     ),
                     label: const Text(
                       'Regresar',
                       style: TextStyle(
-                        color: Color(0xFF3B28FF),
+                        color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
                       ),
@@ -174,17 +176,17 @@ class _EditDataScreenState extends State<EditDataScreen> {
                       fontFamily: 'Inter',
                       fontSize: 80,
                       fontWeight: FontWeight.w900,
-                      color: Color(0xFF3B28FF),
+                      color: AppColors.primary,
                       height: 0.9,
                     ),
                   ),
-                  const Text(
+                  Text(
                     'PERIFÉRICOS  S.A.C',
                     style: TextStyle(
                       fontFamily: 'Inter',
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF3B28FF),
+                      color: isDark ? Colors.white70 : AppColors.primary,
                       letterSpacing: 2,
                     ),
                   ),
@@ -233,8 +235,8 @@ class _EditDataScreenState extends State<EditDataScreen> {
                 width: 200,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE8E8E8),
-                    foregroundColor: const Color(0xFF3B28FF),
+                    backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFE8E8E8),
+                    foregroundColor: AppColors.primary,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
@@ -266,9 +268,12 @@ class _EditDataScreenState extends State<EditDataScreen> {
   }
 
   Widget _buildField(TextEditingController controller, String hint, {bool readOnly = false}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       decoration: BoxDecoration(
-        color: readOnly ? const Color(0xFFF0F0F0) : const Color(0xFFE8E8E8),
+        color: readOnly 
+            ? (isDark ? Colors.black54 : const Color(0xFFF0F0F0))
+            : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE8E8E8)),
         borderRadius: BorderRadius.circular(12),
         border: readOnly ? Border.all(color: Colors.grey.withOpacity(0.3)) : null,
       ),
@@ -278,7 +283,11 @@ class _EditDataScreenState extends State<EditDataScreen> {
         decoration: InputDecoration(
           hintText: hint,
           labelText: hint,
-          labelStyle: TextStyle(color: readOnly ? Colors.grey : const Color(0xFF3B28FF)),
+          labelStyle: TextStyle(
+            color: readOnly 
+                ? Colors.grey 
+                : (isDark ? Colors.white70 : AppColors.primary),
+          ),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
@@ -286,7 +295,9 @@ class _EditDataScreenState extends State<EditDataScreen> {
           ),
         ),
         style: TextStyle(
-          color: readOnly ? Colors.grey : const Color(0xFF3B28FF),
+          color: readOnly 
+              ? Colors.grey 
+              : (isDark ? Colors.white : AppColors.primary),
           fontWeight: FontWeight.w500,
         ),
         textAlign: TextAlign.center,
@@ -294,3 +305,4 @@ class _EditDataScreenState extends State<EditDataScreen> {
     );
   }
 }
+

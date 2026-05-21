@@ -178,6 +178,25 @@ class StoreService {
     );
   }
 
+  /// Create a new multi-product store order
+  Future<ApiResponse<dynamic>> createMultiProductOrder({
+    required List<Map<String, dynamic>> products,
+    required String address,
+    double? lat,
+    double? lng,
+  }) async {
+    return await _apiService.post(
+      ApiConstants.createStoreOrder,
+      {
+        'products': products,
+        'delivery_address': address,
+        'latitude': lat,
+        'longitude': lng,
+      },
+      requiresAuth: true,
+    );
+  }
+
   /// Obtener pedidos pendientes de un cliente (para el cliente)
   Future<ApiResponse<List<Map<String, dynamic>>>> getMyOrders() async {
     return await _apiService.get<List<Map<String, dynamic>>>(
