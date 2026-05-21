@@ -35,7 +35,7 @@ class CustomTextField extends StatelessWidget {
               style: GoogleFonts.outfit(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: AppColors.getTextPrimary(context),
               ),
             ),
           ),
@@ -45,7 +45,7 @@ class CustomTextField extends StatelessWidget {
           obscureText: isPassword,
           keyboardType: keyboardType,
           style: GoogleFonts.outfit(
-            color: AppColors.textPrimary,
+            color: AppColors.getTextPrimary(context),
             fontWeight: FontWeight.w500,
           ),
           decoration: InputDecoration(

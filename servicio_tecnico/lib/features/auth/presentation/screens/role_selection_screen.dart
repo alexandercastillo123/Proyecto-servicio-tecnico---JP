@@ -8,7 +8,7 @@ class RoleSelectionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.getBackgroundColor(context),
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -16,7 +16,7 @@ class RoleSelectionScreen extends StatelessWidget {
         leading: Container(
           margin: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppColors.getBackgroundColor(context),
             borderRadius: BorderRadius.circular(12),
             boxShadow: AppColors.softShadow,
           ),
@@ -132,7 +132,7 @@ class RoleSelectionScreen extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.getCardBackground(context),
           borderRadius: BorderRadius.circular(32),
           border: Border.all(
             color: isSecondary ? AppColors.border : AppColors.primary.withOpacity(0.1),

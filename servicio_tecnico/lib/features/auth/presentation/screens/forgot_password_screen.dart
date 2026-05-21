@@ -58,7 +58,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.getBackgroundColor(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -102,26 +102,30 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               // Email Input
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8E8E8), // Light grey background
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFE8E8E8),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: TextField(
                   controller: _emailController,
                   textAlign: TextAlign.center,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     hintText: 'Usuario o Correo Electrónico',
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 16,
                     ),
                     hintStyle: TextStyle(
-                      color: Color(0xFF9CA3AF), // Lighter grey for hint
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? Colors.white38
+                          : const Color(0xFF9CA3AF),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  style: const TextStyle(
-                    color: AppColors.primary,
+                  style: TextStyle(
+                    color: AppColors.getTextPrimary(context),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -134,8 +138,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE8E8E8),
-                    foregroundColor: AppColors.primary,
+                    backgroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? const Color(0xFF1E293B)
+                        : const Color(0xFFE8E8E8),
+                    foregroundColor: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : AppColors.primary,
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(

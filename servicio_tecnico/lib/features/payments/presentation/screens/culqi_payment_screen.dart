@@ -8,6 +8,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/services/store_service.dart';
 import '../../../../core/services/appointment_service.dart';
+import 'order_details_screen.dart';
 
 /// Pantalla de Pago con Culqi (MODO TEST)
 /// Simula un formulario de tarjeta de crédito real con la API de Culqi test
@@ -61,7 +62,10 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _scaleAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
+    _scaleAnim = CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOut,
+    );
     _animController.forward();
   }
 
@@ -102,7 +106,10 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
       if (data['object'] == 'token') {
         return data['id'] as String;
       } else {
-        setState(() => _errorMsg = data['user_message'] ?? 'Error al tokenizar tarjeta');
+        setState(
+          () =>
+              _errorMsg = data['user_message'] ?? 'Error al tokenizar tarjeta',
+        );
         return null;
       }
     } catch (e) {
@@ -139,15 +146,16 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
       if (!mounted) return;
 
       if (response.success) {
-        setState(() => _paymentSuccess = true);
-        _showSuccess();
-        // Respaldo: cerrar después de 4 segundos si la animación falla o no carga
-        Future.delayed(const Duration(seconds: 4), () {
-          if (mounted) {
-            // Usar popUntil o verificar si aún estamos en esta pantalla
-            Navigator.of(context).pop(true);
-          }
-        });
+        // Navegar a pantalla de detalles del pedido en lugar de volver al chat
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => OrderDetailsScreen(
+              orderId: widget.entityId,
+              amount: widget.amount,
+              description: widget.description,
+            ),
+          ),
+        );
       } else {
         setState(() => _errorMsg = response.message ?? 'Pago rechazado');
       }
@@ -167,7 +175,10 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
           children: [
             const Icon(Icons.check_circle, color: Colors.white),
             const SizedBox(width: 8),
-            const Text('¡Pago procesado con éxito! ✅', style: TextStyle(color: Colors.white)),
+            const Text(
+              '¡Pago procesado con éxito! ✅',
+              style: TextStyle(color: Colors.white),
+            ),
           ],
         ),
         duration: const Duration(seconds: 3),
@@ -182,8 +193,13 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
         ScaleTransition(
           scale: _scaleAnim,
           child: Dialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-            insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+            ),
+            insetPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 32,
+            ),
             child: SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -204,7 +220,11 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
                               ),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: const Icon(Icons.credit_card, color: Colors.white, size: 24),
+                            child: const Icon(
+                              Icons.credit_card,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -236,9 +256,9 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
                           ),
                         ],
                       ),
-    
+
                       const SizedBox(height: 16),
-    
+
                       // Monto
                       Container(
                         width: double.infinity,
@@ -253,7 +273,10 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
                           children: [
                             Text(
                               'Total a pagar',
-                              style: GoogleFonts.outfit(color: Colors.white70, fontSize: 13),
+                              style: GoogleFonts.outfit(
+                                color: Colors.white70,
+                                fontSize: 13,
+                              ),
                             ),
                             Text(
                               'S/ ${widget.amount.toStringAsFixed(2)}',
@@ -265,14 +288,17 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
                             ),
                             Text(
                               widget.description,
-                              style: GoogleFonts.outfit(color: Colors.white60, fontSize: 11),
+                              style: GoogleFonts.outfit(
+                                color: Colors.white60,
+                                fontSize: 11,
+                              ),
                             ),
                           ],
                         ),
                       ),
-    
+
                       const SizedBox(height: 20),
-    
+
                       // Tarjetas de prueba hint
                       ExpansionTile(
                         tilePadding: EdgeInsets.zero,
@@ -284,36 +310,56 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        children: _testCards.map((c) => ListTile(
-                          dense: true,
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(c['label']!, style: const TextStyle(fontSize: 12)),
-                          subtitle: Text(c['number']!, style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.copy, size: 16),
-                            onPressed: () {
-                              _cardNumberController.text = c['number']!;
-                              _cvvController.text = '123';
-                              _expiryController.text = '12/26';
-                              _emailController.text = 'test@culqi.com';
-                              _nameController.text = 'Prueba Culqi';
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Datos de prueba cargados'), duration: Duration(seconds: 1)),
-                              );
-                            },
-                          ),
-                        )).toList(),
+                        children: _testCards
+                            .map(
+                              (c) => ListTile(
+                                dense: true,
+                                contentPadding: EdgeInsets.zero,
+                                title: Text(
+                                  c['label']!,
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                                subtitle: Text(
+                                  c['number']!,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.copy, size: 16),
+                                  onPressed: () {
+                                    _cardNumberController.text = c['number']!;
+                                    _cvvController.text = '123';
+                                    _expiryController.text = '12/26';
+                                    _emailController.text = 'test@culqi.com';
+                                    _nameController.text = 'Prueba Culqi';
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Datos de prueba cargados',
+                                        ),
+                                        duration: Duration(seconds: 1),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            )
+                            .toList(),
                       ),
-    
+
                       const Divider(),
                       const SizedBox(height: 8),
-    
+
                       // Campos del formulario
                       _buildField(
                         controller: _nameController,
                         label: 'Nombre en la tarjeta',
                         icon: Icons.person_outline,
-                        validator: (v) => (v == null || v.isEmpty) ? 'Ingresa el nombre' : null,
+                        validator: (v) => (v == null || v.isEmpty)
+                            ? 'Ingresa el nombre'
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       _buildField(
@@ -321,7 +367,9 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
                         label: 'Correo electrónico',
                         icon: Icons.email_outlined,
                         keyboardType: TextInputType.emailAddress,
-                        validator: (v) => (v == null || !v.contains('@')) ? 'Correo inválido' : null,
+                        validator: (v) => (v == null || !v.contains('@'))
+                            ? 'Correo inválido'
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       _buildField(
@@ -353,7 +401,9 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
                                 _ExpiryFormatter(),
                               ],
                               maxLength: 5,
-                              validator: (v) => (v == null || v.length < 5) ? 'Fecha inválida' : null,
+                              validator: (v) => (v == null || v.length < 5)
+                                  ? 'Fecha inválida'
+                                  : null,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -363,15 +413,19 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
                               label: 'CVV',
                               icon: Icons.lock_outline,
                               keyboardType: TextInputType.number,
-                              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                               maxLength: 4,
                               obscureText: true,
-                              validator: (v) => (v == null || v.length < 3) ? 'CVV inválido' : null,
+                              validator: (v) => (v == null || v.length < 3)
+                                  ? 'CVV inválido'
+                                  : null,
                             ),
                           ),
                         ],
                       ),
-    
+
                       if (_errorMsg != null) ...[
                         const SizedBox(height: 12),
                         Container(
@@ -383,16 +437,28 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.error_outline, color: Colors.red, size: 18),
+                              const Icon(
+                                Icons.error_outline,
+                                color: Colors.red,
+                                size: 18,
+                              ),
                               const SizedBox(width: 8),
-                              Expanded(child: Text(_errorMsg!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                              Expanded(
+                                child: Text(
+                                  _errorMsg!,
+                                  style: const TextStyle(
+                                    color: Colors.red,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
                             ],
                           ),
                         ),
                       ],
-    
+
                       const SizedBox(height: 24),
-    
+
                       // Botón de pago
                       SizedBox(
                         width: double.infinity,
@@ -403,14 +469,19 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
                             backgroundColor: const Color(0xFF6366F1),
                             foregroundColor: Colors.white,
                             disabledBackgroundColor: Colors.grey.shade300,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                             elevation: 0,
                           ),
                           child: _isProcessing
                               ? const SizedBox(
                                   width: 22,
                                   height: 22,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
                                 )
                               : Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
@@ -419,18 +490,24 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
                                     const SizedBox(width: 8),
                                     Text(
                                       'Pagar S/ ${widget.amount.toStringAsFixed(2)}',
-                                      style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.bold),
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ],
                                 ),
                         ),
                       ),
-    
+
                       const SizedBox(height: 12),
                       Center(
                         child: Text(
                           '🔒 Procesado de forma segura por Culqi (TEST)',
-                          style: GoogleFonts.outfit(fontSize: 10, color: Colors.grey),
+                          style: GoogleFonts.outfit(
+                            fontSize: 10,
+                            color: Colors.grey,
+                          ),
                         ),
                       ),
                     ],
@@ -455,7 +532,11 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
                     height: 200,
                     repeat: false,
                     errorBuilder: (context, error, stackTrace) {
-                      return const Icon(Icons.check_circle, size: 100, color: Colors.green);
+                      return const Icon(
+                        Icons.check_circle,
+                        size: 100,
+                        color: Colors.green,
+                      );
                     },
                     onLoaded: (composition) {
                       Future.delayed(const Duration(seconds: 3), () {
@@ -506,7 +587,10 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -518,7 +602,10 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
 
 class _CardNumberFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final digits = newValue.text.replaceAll(' ', '');
     final buffer = StringBuffer();
     for (int i = 0; i < digits.length; i++) {
@@ -535,7 +622,10 @@ class _CardNumberFormatter extends TextInputFormatter {
 
 class _ExpiryFormatter extends TextInputFormatter {
   @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
     final digits = newValue.text.replaceAll('/', '');
     if (digits.length > 4) return oldValue;
     final buffer = StringBuffer();

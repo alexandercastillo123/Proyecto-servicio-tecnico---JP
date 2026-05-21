@@ -654,41 +654,91 @@ const createOrder = async (req, res) => {
         await connection.beginTransaction();
 
         const clientId = req.user.id;
-        const { product_id, quantity, delivery_address, latitude, longitude } = req.body;
+        const { product_id, quantity, products, delivery_address, latitude, longitude } = req.body;
 
-        if (!product_id || !quantity) {
-            respuesta.mensaje = 'Faltan campos obligatorios (product_id, cantidad)';
+        // Normalizar entrada a un array de productos
+        let items = [];
+        if (products && Array.isArray(products) && products.length > 0) {
+            items = products;
+        } else if (product_id && quantity) {
+            items = [{ product_id, quantity }];
+        }
+
+        if (items.length === 0) {
+            respuesta.mensaje = 'Faltan campos obligatorios (debes seleccionar al menos un producto con cantidad)';
             return res.status(400).json(respuesta);
         }
 
-        // Obtener detalles del producto para el precio y sucursal_id
-        const [productRes] = await connection.query(
-            'SELECT sucursal_id, name, price FROM store_products WHERE id = ? AND is_available = TRUE',
-            [product_id]
-        );
+        let total_price = 0;
+        let sucursal_id = null;
+        const productsDetail = [];
 
-        if (!productRes || productRes.length === 0) {
-            await connection.rollback();
-            respuesta.estado = 404;
-            respuesta.mensaje = 'Lo sentimos, el producto seleccionado ya no está disponible.';
-            return res.status(404).json(respuesta);
+        // Validar y obtener detalles de todos los productos
+        for (const item of items) {
+            const [productRes] = await connection.query(
+                'SELECT sucursal_id, name, price FROM store_products WHERE id = ? AND is_available = TRUE',
+                [item.product_id]
+            );
+
+            if (!productRes || productRes.length === 0) {
+                await connection.rollback();
+                respuesta.estado = 404;
+                respuesta.mensaje = `Lo sentimos, uno de los productos seleccionados ya no está disponible.`;
+                return res.status(404).json(respuesta);
+            }
+
+            const prod = productRes[0];
+            if (sucursal_id === null) {
+                sucursal_id = prod.sucursal_id;
+            } else if (sucursal_id !== prod.sucursal_id) {
+                await connection.rollback();
+                respuesta.estado = 400;
+                respuesta.mensaje = 'Todos los productos deben pertenecer a la misma sucursal.';
+                return res.status(400).json(respuesta);
+            }
+
+            const itemQty = parseInt(item.quantity) || 1;
+            const itemPrice = parseFloat(prod.price);
+            total_price += itemPrice * itemQty;
+
+            productsDetail.push({
+                product_id: item.product_id,
+                name: prod.name,
+                price: itemPrice,
+                quantity: itemQty
+            });
         }
 
-        const product = productRes[0];
-        const { sucursal_id, name: product_name, price: unit_price } = product;
-        const total_price = unit_price * quantity;
+        // Para mantener compatibilidad con esquemas viejos, guardamos el primer producto en store_orders
+        const firstItem = productsDetail[0];
 
-        // Insertar el pedido
+        // Insertar el pedido en store_orders
         const queryOrder = `
             INSERT INTO store_orders (client_id, sucursal_id, product_id, quantity, unit_price, total_price, status, delivery_address, latitude, longitude)
             VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)
         `;
 
         const [orderResult] = await connection.query(queryOrder, [
-            clientId, sucursal_id, product_id, quantity, unit_price, total_price, delivery_address, latitude, longitude
+            clientId, 
+            sucursal_id, 
+            firstItem.product_id, 
+            firstItem.quantity, 
+            firstItem.price, 
+            total_price, 
+            delivery_address, 
+            latitude, 
+            longitude
         ]);
 
         const orderId = orderResult.insertId;
+
+        // Insertar la relación de muchos a muchos en store_order_products
+        for (const detail of productsDetail) {
+            await connection.query(
+                'INSERT INTO store_order_products (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)',
+                [orderId, detail.product_id, detail.quantity, detail.price]
+            );
+        }
 
         // Obtener el user_id de la sucursal para el mensaje de chat
         const [storeRes] = await connection.query('SELECT user_id FROM sucursales WHERE id = ?', [sucursal_id]);
@@ -696,11 +746,13 @@ const createOrder = async (req, res) => {
         if (storeRes && storeRes.length > 0) {
             const storeUserId = storeRes[0].user_id;
 
-            const chatMsg = `🛒 *Nuevo Pedido Recibido*
-Producto: ${product_name}
-Cantidad: ${quantity}
-Total: S/ ${total_price.toFixed(2)}
-💳 Por favor, selecciona tu método de pago en la card del pedido.`;
+            // Formatear mensaje de chat detallado
+            let chatMsg = `🛒 *Nuevo Pedido Recibido*\n`;
+            productsDetail.forEach(p => {
+                chatMsg += `• ${p.name} (x${p.quantity}): S/ ${(p.price * p.quantity).toFixed(2)}\n`;
+            });
+            chatMsg += `Total: S/ ${total_price.toFixed(2)}\n`;
+            chatMsg += `💳 Por favor, selecciona tu método de pago en la card del pedido.`;
 
             await connection.query(
                 'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, order_id) VALUES (?, ?, ?, "order", ?)',
@@ -708,12 +760,16 @@ Total: S/ ${total_price.toFixed(2)}
             );
 
             // Notificar a la tienda (Push + In-app)
+            const summaryText = productsDetail.length === 1 
+                ? `Has recibido un pedido de "${firstItem.name}" (x${firstItem.quantity})`
+                : `Has recibido un pedido de ${productsDetail.length} productos`;
+
             await notificationService.createNotification(
                 storeUserId,
                 'Nuevo Pedido Recibido',
-                `Has recibido un pedido de "${product_name}" (x${quantity})`,
+                summaryText,
                 'order',
-                { orderId: orderId.toString(), productId: product_id.toString() }
+                { orderId: orderId.toString(), productId: firstItem.product_id.toString() }
             );
         }
 

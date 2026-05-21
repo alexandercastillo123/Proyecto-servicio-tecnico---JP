@@ -19,6 +19,9 @@ import '../../features/profile/presentation/screens/edit_data_screen.dart';
 import '../../features/appointments/presentation/screens/appointment_details_screen.dart';
 import '../../features/home/presentation/screens/store_home_screen.dart';
 import '../../features/home/presentation/screens/store_profile_screen.dart';
+import '../../features/home/presentation/screens/order_flow_wizard.dart';
+import '../models/store.dart';
+import '../models/store_product.dart';
 import '../../features/store/presentation/screens/create_store_screen.dart';
 import '../../features/profile/presentation/screens/notification_settings_screen.dart';
 import '../../features/payments/presentation/screens/culqi_payment_screen.dart';
@@ -171,6 +174,20 @@ final appRouter = GoRouter(
       builder: (context, state) {
         final id = int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
         return StoreProfileScreen(storeId: id);
+      },
+    ),
+    GoRoute(
+      path: '/order-flow-wizard',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        final storeId = extra['storeId'] as int? ?? 0;
+        final store = extra['store'] as Store;
+        final products = extra['products'] as List<StoreProduct>? ?? [];
+        return OrderFlowWizard(
+          storeId: storeId,
+          store: store,
+          products: products,
+        );
       },
     ),
     GoRoute(

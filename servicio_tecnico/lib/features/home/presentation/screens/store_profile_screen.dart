@@ -26,10 +26,8 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
   final StoreService _storeService = StoreService();
   Store? _store;
   List<StoreProduct> _products = [];
+  String? _selectedAddress;
   bool _isLoading = true;
-  LatLng? _selectedOrderLocation; // Nueva ubicación de entrega seleccionada
-  String _selectedAddress = '';
-  DateTime? _lastOrderTapTime; // Para detectar doble clic en el mapa de pedidos
 
   @override
   void initState() {
@@ -54,403 +52,6 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
     }
   }
 
-  void _showOrderDialog(StoreProduct product) {
-    int quantity = 1;
-    final addressController = TextEditingController(
-      text: _selectedAddress.isNotEmpty
-          ? _selectedAddress
-          : 'Cargando ubicación...',
-    );
-
-    // Si ya tenemos una ubicación guardada en el estado, la usamos para rellenar el texto
-    if (_selectedAddress.isNotEmpty) {
-      addressController.text = _selectedAddress;
-    }
-
-    // Si no hay ubicación aún, intentamos obtenerla de forma asíncrona
-    if (_selectedOrderLocation == null) {
-      Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high)
-          .then((pos) {
-            if (mounted) {
-              final latLng = LatLng(pos.latitude, pos.longitude);
-              setState(() => _selectedOrderLocation = latLng);
-              // Actualizar dirección automáticamente
-              _updateAddressFromCoords(latLng, addressController);
-            }
-          })
-          .catchError((e) {
-            debugPrint("Error obteniendo GPS para pedido: $e");
-          });
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Row(
-            children: [
-              const Icon(Icons.shopping_cart, color: AppColors.primary),
-              const SizedBox(width: 10),
-              Expanded(child: Text('Pedir ${product.name}')),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Precio unitario: S/ ${product.price.toStringAsFixed(2)}',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: addressController,
-                  onChanged: (val) => _selectedAddress = val,
-                  decoration: const InputDecoration(
-                    labelText: 'Dirección de entrega',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.map_outlined),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () =>
-                      _openLocationPicker((LatLng loc, String addr) {
-                        setDialogState(() {
-                          _selectedOrderLocation = loc;
-                          _selectedAddress = addr;
-                          addressController.text = addr;
-                        });
-                      }),
-                  icon: const Icon(Icons.location_on),
-                  label: const Text('Confirmar en el Mapa'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.primary),
-                  ),
-                ),
-                if (_selectedOrderLocation != null)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      '📌 Ubicación confirmada',
-                      style: TextStyle(
-                        color: Colors.green[700],
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total:',
-                        style: TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        'S/ ${(product.price * quantity).toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (_selectedOrderLocation == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Por favor confirma tu ubicación en el mapa',
-                      ),
-                    ),
-                  );
-                  return;
-                }
-
-                final res = await _storeService.createOrder(
-                  productId: product.id,
-                  quantity: quantity,
-                  address: addressController.text,
-                  lat: _selectedOrderLocation?.latitude,
-                  lng: _selectedOrderLocation?.longitude,
-                );
-                if (mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        res.success
-                            ? '¡Pedido realizado con éxito!'
-                            : 'Error: ${res.message}',
-                      ),
-                      backgroundColor: res.success ? Colors.green : Colors.red,
-                    ),
-                  );
-                  if (res.success && _store != null && res.data != null) {
-                    final int orderId = res.data['orderId'] ?? 0;
-                    if (orderId > 0) {
-                      _showPaymentDialog(orderId, product.price * quantity);
-                    } else {
-                      _goToChat();
-                    }
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-              ),
-              child: const Text('Confirmar Pedido'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _goToChat() {
-    if (_store == null || !mounted) return;
-    context.push(
-      '/chat',
-      extra: {
-        'receiverId': _store!.userId,
-        'receiverName': _store!.name,
-        'receiverRole': 'store',
-      },
-    );
-  }
-
-  void _showPaymentDialog(int orderId, double price) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.check_circle, color: Colors.green, size: 40),
-              const SizedBox(height: 8),
-              const Text(
-                'Paso 2: Realizar Pago',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Total a pagar: S/ ${price.toStringAsFixed(2)}',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              _paymentOption(Icons.qr_code, 'Yape', 'yape', orderId),
-              _paymentOption(Icons.qr_code_scanner, 'Plin', 'plin', orderId),
-              _paymentOption(Icons.account_balance, 'Transferencia', 'transfer', orderId),
-              _paymentOption(Icons.payments, 'Efectivo', 'cash', orderId),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.credit_card, color: Colors.blueAccent),
-                title: const Text('Culqi (Modo Prueba)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
-                onTap: () {
-                  Navigator.pop(context); // Cierra diálogo
-                  context.push('/culqi-payment', extra: {
-                    'entityId': orderId,
-                    'paymentType': 'order',
-                    'amount': price,
-                    'description': 'Pago de Pedido #$orderId',
-                  }).then((_) {
-                    // Después del pago Culqi, vamos al chat
-                    _goToChat();
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _goToChat();
-                },
-                child: const Text('Pagar después en el Chat'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _paymentOption(IconData icon, String label, String value, int id) {
-    return ListTile(
-      leading: Icon(icon, color: AppColors.primary),
-      title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
-      onTap: () async {
-        Navigator.pop(context);
-        final response = await _storeService.payOrder(id, value);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.success 
-                  ? 'Pago registrado. Espera confirmación.' 
-                  : 'Error al registrar pago.'),
-              backgroundColor: response.success ? Colors.green : Colors.red,
-            ),
-          );
-          _goToChat();
-        }
-      },
-    );
-  }
-
-  void _openLocationPicker(Function(LatLng, String) onPicked) {
-    // Si aún no tenemos ubicación, usamos la de la tienda o la de Lima como último recurso
-    LatLng pickingLoc =
-        _selectedOrderLocation ??
-        (_store?.latitude != null && _store?.longitude != null
-            ? LatLng(_store!.latitude!, _store!.longitude!)
-            : const LatLng(-12.0453, -77.0428));
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setPickerState) => Container(
-          height: MediaQuery.of(context).size.height * 0.7,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-          ),
-          child: Column(
-            children: [
-              const SizedBox(height: 12),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.all(16.0),
-                child: Text(
-                  'Mueve el marcador a tu ubicación de entrega',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-              ),
-              Expanded(
-                child: FlutterMap(
-                  options: MapOptions(
-                    initialCenter: pickingLoc,
-                    initialZoom: 15,
-                    onTap: (tapPos, p) {
-                      final now = DateTime.now();
-                      if (_lastOrderTapTime != null &&
-                          now.difference(_lastOrderTapTime!) <
-                              const Duration(milliseconds: 400)) {
-                        setPickerState(() => pickingLoc = p);
-                        // Update main state immediately
-                        setState(() {
-                          _selectedOrderLocation = p;
-                          _selectedAddress = 'Cargando dirección...';
-                        });
-                      }
-                      _lastOrderTapTime = now;
-                    },
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate:
-                          'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                    ),
-                    MarkerLayer(
-                      markers: [
-                        Marker(
-                          point: pickingLoc,
-                          width: 80,
-                          height: 80,
-                          child: const Icon(
-                            Icons.location_on,
-                            color: Colors.red,
-                            size: 45,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      // Mostrar indicador de carga breve
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Obteniendo dirección...'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
-                      final newAddr = await _updateAddressFromCoords(
-                        pickingLoc,
-                        null,
-                      );
-                      onPicked(pickingLoc, newAddr);
-                      if (context.mounted) Navigator.pop(context);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.all(16),
-                    ),
-                    child: const Text('CONFIRMAR ESTA UBICACIÓN'),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading)
@@ -466,8 +67,12 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
             pinned: true,
             actions: [
               IconButton(
-                onPressed: () => _showRatingDialog(context, _store?.name ?? 'la sucursal'),
-                icon: const Icon(Icons.star_outline_rounded, color: Colors.white),
+                onPressed: () =>
+                    _showRatingDialog(context, _store?.name ?? 'la sucursal'),
+                icon: const Icon(
+                  Icons.star_outline_rounded,
+                  color: Colors.white,
+                ),
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
@@ -676,7 +281,16 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                                           ),
                                         ),
                                         ElevatedButton(
-                                          onPressed: () => _showOrderDialog(p),
+                                          onPressed: () {
+                                            context.push(
+                                              '/order-flow-wizard',
+                                              extra: {
+                                                'storeId': widget.storeId,
+                                                'store': _store,
+                                                'products': _products,
+                                              },
+                                            );
+                                          },
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: AppColors.primary,
                                             foregroundColor: Colors.white,
@@ -817,7 +431,9 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return Dialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -829,7 +445,11 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                         color: AppColors.primary.withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.star_rounded, color: AppColors.primary, size: 40),
+                      child: const Icon(
+                        Icons.star_rounded,
+                        color: AppColors.primary,
+                        size: 40,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -852,13 +472,16 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(5, (index) {
                         return GestureDetector(
-                          onTap: () => setDialogState(() => selectedStars = index + 1),
+                          onTap: () =>
+                              setDialogState(() => selectedStars = index + 1),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
                             padding: const EdgeInsets.symmetric(horizontal: 4),
                             child: Icon(
                               Icons.star_rounded,
-                              color: index < selectedStars ? Colors.amber : Colors.grey[300],
+                              color: index < selectedStars
+                                  ? Colors.amber
+                                  : Colors.grey[300],
                               size: 44,
                             ),
                           ),
@@ -879,7 +502,9 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                           borderSide: BorderSide.none,
                         ),
                       ),
-                      style: TextStyle(color: AppColors.getTextPrimary(context)),
+                      style: TextStyle(
+                        color: AppColors.getTextPrimary(context),
+                      ),
                     ),
                     const SizedBox(height: 32),
                     Row(
@@ -887,7 +512,13 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                         Expanded(
                           child: TextButton(
                             onPressed: () => Navigator.pop(context),
-                            child: Text('Cancelar', style: GoogleFonts.outfit(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                            child: Text(
+                              'Cancelar',
+                              style: GoogleFonts.outfit(
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -904,12 +535,21 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                                 Navigator.pop(context);
                                 if (res.success) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('✅ ¡Gracias por tu valoración!'), backgroundColor: Colors.green),
+                                    const SnackBar(
+                                      content: Text(
+                                        '✅ ¡Gracias por tu valoración!',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
                                   );
                                   _loadData(); // Refresh to see updated rating
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('❌ ${res.message ?? "Error al enviar reseña"}')),
+                                    SnackBar(
+                                      content: Text(
+                                        '❌ ${res.message ?? "Error al enviar reseña"}',
+                                      ),
+                                    ),
                                   );
                                 }
                               }
@@ -918,9 +558,16 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                               backgroundColor: AppColors.primary,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
-                            child: Text('Enviar', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+                            child: Text(
+                              'Enviar',
+                              style: GoogleFonts.outfit(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
                       ],

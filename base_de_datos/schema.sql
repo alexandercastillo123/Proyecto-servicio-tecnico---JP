@@ -87,9 +87,9 @@ CREATE TABLE IF NOT EXISTS store_orders (
     id INT AUTO_INCREMENT PRIMARY KEY,
     client_id INT NOT NULL,
     sucursal_id INT NOT NULL,
-    product_id INT NOT NULL,
-    quantity INT DEFAULT 1,
-    unit_price DECIMAL(10, 2) NOT NULL,
+    product_id INT NULL,
+    quantity INT NULL DEFAULT NULL,
+    unit_price DECIMAL(10, 2) NULL DEFAULT NULL,
     total_price DECIMAL(10, 2) NOT NULL,
     status ENUM('pending', 'paid', 'confirmed', 'shipped', 'delivered', 'completed', 'cancelled') DEFAULT 'pending',
     payment_status ENUM('pending', 'waiting_confirmation', 'paid') DEFAULT 'pending',
@@ -102,8 +102,20 @@ CREATE TABLE IF NOT EXISTS store_orders (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (client_id) REFERENCES users(id),
     FOREIGN KEY (sucursal_id) REFERENCES sucursales(id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES store_products(id) ON DELETE SET NULL
+);
+
+-- 5b. Relación de Pedidos y Productos (Multi-producto)
+CREATE TABLE IF NOT EXISTS store_order_products (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    product_id INT NOT NULL,
+    quantity INT NOT NULL DEFAULT 1,
+    unit_price DECIMAL(10, 2) NOT NULL,
+    FOREIGN KEY (order_id) REFERENCES store_orders(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES store_products(id) ON DELETE CASCADE
 );
+
 
 -- 6. Horarios de Técnicos
 CREATE TABLE IF NOT EXISTS technician_schedules (
