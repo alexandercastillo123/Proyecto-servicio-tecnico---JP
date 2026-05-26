@@ -8,7 +8,9 @@ import 'core/router/app_router.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/theme_provider.dart';
 import 'core/services/firebase_service.dart';
+import 'core/services/socket_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 
 @pragma('vm:entry-point')
