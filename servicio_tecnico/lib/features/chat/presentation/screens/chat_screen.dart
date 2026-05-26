@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,6 +10,7 @@ import '../../../../core/services/user_service.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/services/technician_service.dart';
 import '../../../../core/services/store_service.dart';
+import '../../../../core/services/socket_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/widgets/custom_avatar.dart';
@@ -25,9 +27,11 @@ class _ChatScreenState extends State<ChatScreen> {
   final UserService _userService = UserService();
   final AppointmentService _appointmentService = AppointmentService();
   final TechnicianService _technicianService = TechnicianService();
-  final StoreService _storeService = StoreService(); // Añadido StoreService
+  final StoreService _storeService = StoreService();
+  final SocketService _socketService = SocketService();
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  StreamSubscription? _messageSubscription;
   List<dynamic> _messages = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -35,10 +39,10 @@ class _ChatScreenState extends State<ChatScreen> {
   String? _otherUserName;
   String? _otherUserRole;
   String? _userRole;
-  Timer? _pollingTimer; // Para "tiempo real"
   bool _isDisposed = false;
   bool _otherUserAvailable = true;
-  int? _otherStoreId; // ID de la sucursal (si aplica)
+  int? _otherStoreId;
+  int? _currentUserId;
 
   String _formatTime(String? timestamp) {
     if (timestamp == null) return '';
@@ -115,25 +119,36 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _isDisposed = true;
-    _pollingTimer?.cancel();
+    _messageSubscription?.cancel();
     super.dispose();
   }
 
-  void _startPolling() {
-    _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (!_isDisposed && _otherUserId != null) {
-        _loadMessages(_otherUserId!, isPolling: true);
+  void _initSocketListener() {
+    _messageSubscription = _socketService.onMessageReceived.listen((data) {
+      if (_isDisposed) return;
+      if (data['sender_id'] == _otherUserId || data['receiver_id'] == _currentUserId) {
+        setState(() {
+          _messages.add({
+            ...data,
+            'is_me': data['sender_id'] == _currentUserId,
+          });
+        });
+        _scrollToBottom();
       }
     });
+  }
+
+  void _startSocketListener() {
+    // Already handled in _initSocketListener
   }
 
   Future<void> _loadInitialData(int userId) async {
     try {
       final profileRes = await _userService.getProfile();
-      if (profileRes.success) {
-        _userRole = profileRes.data?['role'];
-      }
+if (profileRes.success) {
+         _userRole = profileRes.data?['role'];
+         _currentUserId = profileRes.data?['id'] ?? profileRes.data?['user_id'];
+       }
 
       // Obtener disponibilidad del otro usuario (si es técnico)
       final otherRes = await _userService.getUserById(userId);
@@ -145,10 +160,10 @@ class _ChatScreenState extends State<ChatScreen> {
       }
 
       await _loadMessages(userId);
-      _startPolling();
+      _initSocketListener();
     } catch (e) {
       await _loadMessages(userId);
-      _startPolling();
+      _initSocketListener();
     }
   }
 

@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const Respuesta = require('../utils/Respuesta');
 const notificationService = require('../services/notification.service');
+const { io } = require('../server');
 
 /**
  * Create new appointment
@@ -315,49 +316,65 @@ const updateAppointmentStatus = async (req, res) => {
 
         const dbRes = await db.ejecutar(updateQuery, updateParams);
 
-        // --- Notificar por chat sobre el cambio de estado ---
-        const statusMsg = {
-            confirmed: '✅ Tu cita ha sido confirmada.',
-            on_the_way: '🚚 En camino.',
-            arrived: '📍 Ha llegado.',
-            in_progress: '🛠 El servicio está en progreso.',
-            completed: '🎉 ¡Servicio completado! Por favor, confirma la finalización.',
-            cancelled: '❌ La cita ha sido cancelada.'
-        };
+// --- Notificar por chat sobre el cambio de estado ---
+         const statusMsg = {
+             confirmed: '✅ Tu cita ha sido confirmada.',
+             on_the_way: '🚚 En camino.',
+             arrived: '📍 Ha llegado.',
+             in_progress: '🛠 El servicio está en progreso.',
+             completed: '🎉 ¡Servicio completado! Por favor, confirma la finalización.',
+             cancelled: '❌ La cita ha sido cancelada.'
+         };
 
-        if (statusMsg[nextStatus]) {
-            const receiverId = userId === appointment.client_id ? appointment.technician_id : appointment.client_id;
-            
-            // Custom messages for dynamic journey
-            let customMsg = statusMsg[nextStatus];
-            if (nextStatus === 'on_the_way') {
-                customMsg = appointment.service_type === 'domicilio' 
-                    ? '🚚 *¡Voy en camino!* El técnico está dirigiéndose a tu domicilio.'
-                    : '🚶 *¡Voy para allá!* El cliente está en camino al local.';
-            } else if (nextStatus === 'arrived') {
-                customMsg = appointment.service_type === 'domicilio'
-                    ? '📍 *¡He llegado!* El técnico ya está en tu ubicación.'
-                    : '🏬 *¡He llegado!* El cliente ya está en el local.';
-            } else if (nextStatus === 'in_progress') {
-                customMsg = '🛠 *Servicio en curso:* Estamos trabajando en tu equipo ahora mismo.';
-            } else if (nextStatus === 'completed') {
-                customMsg = '🎉 *¡Trabajo terminado!* El servicio ha sido completado con éxito.';
-            }
+         if (statusMsg[nextStatus]) {
+             const receiverId = userId === appointment.client_id ? appointment.technician_id : appointment.client_id;
+             
+             // Custom messages for dynamic journey
+             let customMsg = statusMsg[nextStatus];
+             if (nextStatus === 'on_the_way') {
+                 customMsg = appointment.service_type === 'domicilio' 
+                     ? '🚚 *¡Voy en camino!* El técnico está dirigiéndose a tu domicilio.'
+                     : '🚶 *¡Voy para allá!* El cliente está en camino al local.';
+             } else if (nextStatus === 'arrived') {
+                 customMsg = appointment.service_type === 'domicilio'
+                     ? '📍 *¡He llegado!* El técnico ya está en tu ubicación.'
+                     : '🏬 *¡He llegado!* El cliente ya está en el local.';
+             } else if (nextStatus === 'in_progress') {
+                 customMsg = '🛠 *Servicio en curso:* Estamos trabajando en tu equipo ahora mismo.';
+             } else if (nextStatus === 'completed') {
+                 customMsg = '🎉 *¡Trabajo terminado!* El servicio ha sido completado con éxito.';
+             }
 
-            await db.ejecutar(
-                'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id) VALUES (?, ?, ?, "appointment_progress", ?)',
-                [userId, receiverId, customMsg, id]
-            );
+             await db.ejecutar(
+                 'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id) VALUES (?, ?, ?, "appointment_progress", ?)',
+                 [userId, receiverId, customMsg, id]
+             );
 
-            // Also create a system notification (Push + In-app)
-            await notificationService.createNotification(
-                receiverId,
-                'Actualización de Cita',
-                customMsg,
-                'appointment',
-                { appointmentId: id.toString(), nextStatus }
-            );
-        }
+             // Emit Socket.IO event for real-time updates
+             io.to(`user_${receiverId}`).emit('appointment_progress', {
+                 appointment_id: id,
+                 message: customMsg,
+                 status: nextStatus,
+                 service_type: appointment.service_type
+             });
+
+             // Also emit to sender's room for consistency
+             io.to(`user_${userId}`).emit('appointment_progress', {
+                 appointment_id: id,
+                 message: customMsg,
+                 status: nextStatus,
+                 service_type: appointment.service_type
+             });
+
+             // Also create a system notification (Push + In-app)
+             await notificationService.createNotification(
+                 receiverId,
+                 'Actualización de Cita',
+                 customMsg,
+                 'appointment',
+                 { appointmentId: id.toString(), nextStatus }
+             );
+         }
 
         respuesta.exito = true;
         respuesta.estado = 200;

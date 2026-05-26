@@ -3,6 +3,7 @@ import '../services/api_service.dart';
 import '../constants/api_constants.dart';
 import '../models/user.dart';
 import '../services/firebase_service.dart';
+import '../services/socket_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -28,6 +29,11 @@ class AuthProvider extends ChangeNotifier {
         _user = response.data;
         // Configurar token de notificaciones push
         FirebaseService.setupToken();
+        // Inicializar Socket.IO
+        final token = _apiService.getToken();
+        if (token != null) {
+          SocketService().init(userId: _user!.id, authToken: token);
+        }
       }
 
       _isLoading = false;
@@ -68,6 +74,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    SocketService().dispose();
     await _apiService.logout();
     _user = null;
     notifyListeners();

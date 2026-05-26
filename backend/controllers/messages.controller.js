@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const Respuesta = require('../utils/Respuesta');
 const notificationService = require('../services/notification.service');
+const { io } = require('../server');
 
 /**
  * Get user conversations list
@@ -137,21 +138,35 @@ const sendMessage = async (req, res) => {
             return res.status(404).json(respuesta);
         }
 
-        const dbRes = await db.ejecutar(
-            `INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id)
-       VALUES (?, ?, ?, ?, ?)`,
-            [senderId, receiverId, messageText, messageType, appointmentId || null]
-        );
+const dbRes = await db.ejecutar(
+             `INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id)
+        VALUES (?, ?, ?, ?, ?)`,
+             [senderId, receiverId, messageText, messageType, appointmentId || null]
+         );
 
         if (!dbRes.exito) {
             return res.status(500).json(dbRes);
         }
 
+        const messageId = dbRes.resultado.insertId;
+
+        // Emit Socket.IO event to receiver
+        io.to(`user_${receiverId}`).emit('receive_message', {
+            id: messageId,
+            sender_id: senderId,
+            receiver_id: receiverId,
+            message_text: messageText,
+            message_type: messageType,
+            appointment_id: appointmentId,
+            created_at: new Date().toISOString(),
+            is_read: false
+        });
+
         respuesta.exito = true;
         respuesta.estado = 201;
         respuesta.mensaje = 'Mensaje enviado correctamente.';
         respuesta.resultado = {
-            messageId: dbRes.resultado.insertId
+            messageId: messageId
         };
 
         // Enviar notificación al destinatario
