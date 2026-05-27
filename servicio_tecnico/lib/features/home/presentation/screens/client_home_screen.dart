@@ -89,13 +89,11 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF0F172A) : Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
-            blurRadius: 15,
-            offset: const Offset(0, -4),
+        border: Border(
+          top: BorderSide(
+            color: isDark ? Colors.white.withOpacity(0.06) : AppColors.border,
           ),
-        ],
+        ),
       ),
       child: SafeArea(
         top: false,
@@ -108,13 +106,13 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             elevation: 0,
             type: BottomNavigationBarType.fixed,
             selectedItemColor: AppColors.primary,
-            unselectedItemColor: isDark ? Colors.white54 : AppColors.textSecondary,
+            unselectedItemColor: isDark ? Colors.white38 : AppColors.textSecondary,
             selectedLabelStyle: GoogleFonts.outfit(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
             ),
             unselectedLabelStyle: GoogleFonts.outfit(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w400,
             ),
             items: [
@@ -132,15 +130,15 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   BottomNavigationBarItem _buildNavBarItem(IconData activeIcon, IconData icon, String label) {
     return BottomNavigationBarItem(
       icon: Padding(
-        padding: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.only(bottom: 2),
         child: Icon(icon, size: 24),
       ),
       activeIcon: Padding(
-        padding: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.only(bottom: 2),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withOpacity(0.12),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(activeIcon, size: 24),

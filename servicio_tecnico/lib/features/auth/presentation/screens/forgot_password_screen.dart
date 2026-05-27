@@ -1,174 +1,144 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:animate_do/animate_do.dart';
 import 'package:servicio_tecnico_app/core/services/auth_service.dart';
 import '../../../../core/constants/assets.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/custom_text_field.dart';
+import '../../../../shared/widgets/custom_button.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
-
   @override
   State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  final _emailController = TextEditingController();
+  final _emailCtrl = TextEditingController();
   bool _isLoading = false;
 
-  Future<void> _handleSendEmail() async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor ingrese su correo')),
-      );
-      return;
-    }
+  @override
+  void dispose() { _emailCtrl.dispose(); super.dispose(); }
 
+  Future<void> _send() async {
+    final email = _emailCtrl.text.trim();
+    if (email.isEmpty) { _snack('Por favor ingresa tu correo'); return; }
     setState(() => _isLoading = true);
-
     try {
-      final authService = AuthService();
-      final response = await authService.forgotPassword(email: email);
-
+      final res = await AuthService().forgotPassword(email: email);
       if (mounted) {
-        if (response.success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Código enviado con éxito')),
-          );
+        if (res.success) {
+          _snack('Código enviado con éxito', isError: false);
           context.push('/forgot-password/verify?email=$email');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(response.message ?? 'Error al enviar el correo'),
-            ),
-          );
+          _snack(res.message ?? 'Error al enviar el correo');
         }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
-      }
+      if (mounted) _snack('Error de conexión');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
+  void _snack(String msg, {bool isError = true}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg, style: GoogleFonts.outfit()),
+      backgroundColor: isError ? AppColors.error : AppColors.success,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      margin: const EdgeInsets.all(16),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       backgroundColor: AppColors.getBackgroundColor(context),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leadingWidth: 120, // Give more space for "Regresar" text
-        leading: TextButton.icon(
-          onPressed: () => context.pop(),
-          icon: const Icon(Icons.arrow_left, color: AppColors.primary),
-          // Icon might differ slightly from design, using standard for now
-          // Design shows "< Regresar"
-          label: const Text(
-            'Regresar',
-            style: TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.bold,
+        leading: Padding(
+          padding: const EdgeInsets.all(8),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark ? Colors.white.withOpacity(0.08) : AppColors.primaryLight,
+              borderRadius: BorderRadius.circular(12),
             ),
-          ),
-          style: TextButton.styleFrom(
-            padding: const EdgeInsets.only(left: 8),
-            alignment: Alignment.centerLeft,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.primary, size: 18),
+              onPressed: () => context.pop(),
+            ),
           ),
         ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 28),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 32),
-              // Logo (Same as Login)
-              Center(
-                child: Image.asset(
-                  AppAssets.logo,
-                  height: 120,
-                  fit: BoxFit.contain,
-                ),
-              ),
-
-              const SizedBox(height: 100),
-
-              // Email Input
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).brightness == Brightness.dark
-                      ? const Color(0xFF1E293B)
-                      : const Color(0xFFE8E8E8),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: TextField(
-                  controller: _emailController,
-                  textAlign: TextAlign.center,
-                  decoration: InputDecoration(
-                    hintText: 'Usuario o Correo Electrónico',
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
+              FadeInDown(
+                duration: const Duration(milliseconds: 700),
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withOpacity(0.06) : Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: AppColors.cardShadow,
+                      border: Border.all(color: isDark ? Colors.white.withOpacity(0.08) : AppColors.border),
                     ),
-                    hintStyle: TextStyle(
-                      color: Theme.of(context).brightness == Brightness.dark
-                          ? Colors.white38
-                          : const Color(0xFF9CA3AF),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  style: TextStyle(
-                    color: AppColors.getTextPrimary(context),
-                    fontWeight: FontWeight.bold,
+                    child: Image.asset(AppAssets.logo, height: 60, fit: BoxFit.contain),
                   ),
                 ),
               ),
-
-              const SizedBox(height: 24),
-
-              // Send Button
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(context).brightness == Brightness.dark
-                        ? const Color(0xFF1E293B)
-                        : const Color(0xFFE8E8E8),
-                    foregroundColor: Theme.of(context).brightness == Brightness.dark
-                        ? Colors.white
-                        : AppColors.primary,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  onPressed: _isLoading ? null : _handleSendEmail,
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: AppColors.primary,
-                          ),
-                        )
-                      : const Text(
-                          'Enviar Correo',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+              const SizedBox(height: 40),
+              FadeInLeft(
+                duration: const Duration(milliseconds: 600),
+                delay: const Duration(milliseconds: 150),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('¿Olvidaste tu', style: GoogleFonts.outfit(
+                      fontSize: 34, fontWeight: FontWeight.w900,
+                      color: AppColors.getTextPrimary(context), letterSpacing: -1, height: 1.1)),
+                    Text('contraseña?', style: GoogleFonts.outfit(
+                      fontSize: 34, fontWeight: FontWeight.w900,
+                      color: AppColors.primary, letterSpacing: -1, height: 1.1)),
+                    const SizedBox(height: 10),
+                    Text('Ingresa tu correo y te enviaremos un código de verificación.',
+                      style: GoogleFonts.outfit(fontSize: 14, color: AppColors.getTextSecondary(context), height: 1.5)),
+                  ],
                 ),
               ),
+              const SizedBox(height: 36),
+              FadeInUp(
+                duration: const Duration(milliseconds: 600),
+                delay: const Duration(milliseconds: 300),
+                child: CustomTextField(
+                  label: 'Correo Electrónico',
+                  hint: 'ejemplo@correo.com',
+                  controller: _emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary, size: 20),
+                ),
+              ),
+              const SizedBox(height: 32),
+              FadeInUp(
+                duration: const Duration(milliseconds: 600),
+                delay: const Duration(milliseconds: 420),
+                child: CustomButton(
+                  text: 'Enviar Código',
+                  isLoading: _isLoading,
+                  onPressed: _send,
+                  icon: Icons.send_rounded,
+                ),
+              ),
+              const SizedBox(height: 40),
             ],
           ),
         ),
