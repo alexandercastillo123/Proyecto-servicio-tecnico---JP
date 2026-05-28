@@ -27,9 +27,9 @@ class AuthProvider extends ChangeNotifier {
 
       if (response.success && response.data != null) {
         _user = response.data;
-        // Configurar token de notificaciones push
+        // Configurar token de notificaciones push (funciona aunque la app esté cerrada)
         FirebaseService.setupToken();
-        // Inicializar Socket.IO
+        // Inicializar Socket.IO para tiempo real en chat
         final token = _apiService.getToken();
         if (token != null) {
           SocketService().init(userId: _user!.id, authToken: token);
@@ -75,8 +75,17 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> logout() async {
     SocketService().dispose();
+    await FirebaseService.deleteToken();
     await _apiService.logout();
     _user = null;
     notifyListeners();
+  }
+
+  // Llamado al iniciar la app si ya hay token guardado (app en background/cerrada)
+  Future<void> initializeFromToken() async {
+    final token = _apiService.getToken();
+    if (token != null) {
+      FirebaseService.setupToken();
+    }
   }
 }

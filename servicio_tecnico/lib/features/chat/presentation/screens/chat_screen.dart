@@ -1,10 +1,10 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../../../../core/services/api_service.dart';
 import '../../../../core/services/message_service.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/services/appointment_service.dart';
@@ -126,7 +126,8 @@ class _ChatScreenState extends State<ChatScreen> {
   void _initSocketListener() {
     _messageSubscription = _socketService.onMessageReceived.listen((data) {
       if (_isDisposed) return;
-      if (data['sender_id'] == _otherUserId || data['receiver_id'] == _currentUserId) {
+      if (data['sender_id'] == _otherUserId ||
+          data['receiver_id'] == _currentUserId) {
         setState(() {
           _messages.add({
             ...data,
@@ -145,10 +146,16 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _loadInitialData(int userId) async {
     try {
       final profileRes = await _userService.getProfile();
-if (profileRes.success) {
-         _userRole = profileRes.data?['role'];
-         _currentUserId = profileRes.data?['id'] ?? profileRes.data?['user_id'];
-       }
+      if (profileRes.success) {
+        _userRole = profileRes.data?['role'];
+        _currentUserId = profileRes.data?['id'] ?? profileRes.data?['user_id'];
+        final token = ApiService().getToken();
+if (!_socketService.isConnected &&
+                             token != null &&
+                             _currentUserId != null) {
+          _socketService.init(userId: _currentUserId!, authToken: token);
+        }
+      }
 
       // Obtener disponibilidad del otro usuario (si es técnico)
       final otherRes = await _userService.getUserById(userId);
@@ -273,7 +280,9 @@ if (profileRes.success) {
     } catch (_) {}
 
     return CustomAvatar(
-      imageUrl: profileUrl != null ? ApiConstants.getStorageUrl(profileUrl) : null,
+      imageUrl: profileUrl != null
+          ? ApiConstants.getStorageUrl(profileUrl)
+          : null,
       name: _otherUserName ?? '?',
       size: 36,
       fontSize: 14,
@@ -282,10 +291,11 @@ if (profileRes.success) {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F1F1),
+      backgroundColor: isDark ? const Color(0xFF020617) : const Color(0xFFF1F1F1),
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
         elevation: 0.5,
         leadingWidth: 40,
         leading: IconButton(
@@ -296,7 +306,10 @@ if (profileRes.success) {
           onTap: () {
             if (_otherUserId != null) {
               if (_otherUserRole == 'tech' || _otherUserRole == 'technician') {
-                context.push('/technician-profile', extra: {'techId': _otherUserId});
+                context.push(
+                  '/technician-profile',
+                  extra: {'techId': _otherUserId},
+                );
               } else if (_otherUserRole == 'store' ||
                   _otherUserRole == 'provider' ||
                   _otherUserRole == 'sucursal') {
@@ -338,7 +351,9 @@ if (profileRes.success) {
                             width: 8,
                             height: 8,
                             decoration: BoxDecoration(
-                              color: _otherUserAvailable ? Colors.green : Colors.grey,
+                              color: _otherUserAvailable
+                                  ? Colors.green
+                                  : Colors.grey,
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -362,12 +377,21 @@ if (profileRes.success) {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.info_outline_rounded, color: AppColors.primary),
+            icon: const Icon(
+              Icons.info_outline_rounded,
+              color: AppColors.primary,
+            ),
             onPressed: () {
-               if (_otherUserId != null) {
-                if (_otherUserRole == 'tech' || _otherUserRole == 'technician') {
-                  context.push('/technician-profile', extra: {'techId': _otherUserId});
-                } else if (_otherUserRole == 'store' || _otherUserRole == 'provider' || _otherUserRole == 'sucursal') {
+              if (_otherUserId != null) {
+                if (_otherUserRole == 'tech' ||
+                    _otherUserRole == 'technician') {
+                  context.push(
+                    '/technician-profile',
+                    extra: {'techId': _otherUserId},
+                  );
+                } else if (_otherUserRole == 'store' ||
+                    _otherUserRole == 'provider' ||
+                    _otherUserRole == 'sucursal') {
                   final idToUse = _otherStoreId ?? _otherUserId;
                   context.push('/store-profile/$idToUse');
                 } else {
@@ -510,7 +534,8 @@ if (profileRes.success) {
                           time: time,
                           isMe: isMe,
                         );
-                      } else if (msg['message_type'] == 'appointment_progress') {
+                      } else if (msg['message_type'] ==
+                          'appointment_progress') {
                         bubble = _buildAppointmentProgressBubble(
                           message: msg['message_text'] ?? '',
                           status: msg['appointment_status'] ?? 'pending',
@@ -545,7 +570,9 @@ if (profileRes.success) {
                           isMe: isMe,
                           paymentStatus: msg['order_payment_status'],
                           paymentMethod: msg['order_payment_method'],
-                          price: double.tryParse(msg['order_price']?.toString() ?? ''),
+                          price: double.tryParse(
+                            msg['order_price']?.toString() ?? '',
+                          ),
                         );
                       } else {
                         bubble = _buildMessageBubble(msg: msg, isMe: isMe);
@@ -560,28 +587,36 @@ if (profileRes.success) {
                     },
                   ),
                 ),
-                if (!_otherUserAvailable && (_otherUserRole == 'tech' || _otherUserRole == 'store'))
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                    color: Colors.orange.shade50,
-                    child: Row(
-                      children: [
-                        Icon(Icons.info_outline, color: Colors.orange.shade900, size: 18),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            '⚠️ El técnico se encuentra fuera de servicio o de vacaciones. Las respuestas pueden tardar.',
-                            style: TextStyle(
-                              color: Colors.orange.shade900,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+if (!_otherUserAvailable &&
+                     (_otherUserRole == 'tech' || _otherUserRole == 'store'))
+                   Container(
+                     width: double.infinity,
+                     padding: const EdgeInsets.symmetric(
+                       vertical: 10,
+                       horizontal: 16,
+                     ),
+                     color: isDark ? Colors.orange.shade900.withOpacity(0.3) : Colors.orange.shade50,
+                     child: Row(
+                       children: [
+                         Icon(
+                           Icons.info_outline,
+                           color: isDark ? Colors.orange.shade200 : Colors.orange.shade900,
+                           size: 18,
+                         ),
+                         const SizedBox(width: 10),
+                         Expanded(
+                           child: Text(
+                             '⚠️ El técnico se encuentra fuera de servicio o de vacaciones. Las respuestas pueden tardar.',
+                             style: TextStyle(
+                               color: isDark ? Colors.orange.shade200 : Colors.orange.shade900,
+                               fontSize: 12,
+                               fontWeight: FontWeight.w500,
+                             ),
+                           ),
+                         ),
+                       ],
+                     ),
+                   ),
                 _buildInputArea(),
               ],
             ),
@@ -640,6 +675,7 @@ if (profileRes.success) {
         _userRole == 'technician' ||
         _userRole == 'provider' ||
         _userRole == 'store';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Align(
       alignment: !isMe ? Alignment.centerLeft : Alignment.centerRight,
@@ -653,7 +689,11 @@ if (profileRes.success) {
             padding: const EdgeInsets.all(16),
             width: 280,
             decoration: BoxDecoration(
-              color: isMe ? AppColors.primary : const Color(0xFFEBEBEB),
+              color: isMe 
+                  ? AppColors.primary 
+                  : isDark 
+                      ? const Color(0xFF1E293B) 
+                      : const Color(0xFFEBEBEB),
               borderRadius: BorderRadius.circular(16),
               border: isPaid ? Border.all(color: Colors.green, width: 2) : null,
             ),
@@ -739,7 +779,8 @@ if (profileRes.success) {
                   if (!isTech && price != null && paymentStatus == 'pending')
                     _buildActionButton(
                       label: '💳 Pagar S/. ${price.toStringAsFixed(2)}',
-                      onPressed: () => _showPaymentMethodDialog(appointmentId, price),
+                      onPressed: () =>
+                          _showPaymentMethodDialog(appointmentId, price),
                       bgColor: const Color(0xFF00C853),
                       fgColor: Colors.white,
                     ),
@@ -789,7 +830,9 @@ if (profileRes.success) {
 
                     // Confirm button (tech only while waiting)
                     // HIDE if payment method is Culqi (since it's automated)
-                    if (isTech && isWaiting && (paymentMethod ?? '').toLowerCase() != 'culqi') ...[
+                    if (isTech &&
+                        isWaiting &&
+                        (paymentMethod ?? '').toLowerCase() != 'culqi') ...[
                       const SizedBox(height: 6),
                       _buildActionButton(
                         label: '✔ Confirmar Pago Recibido',
@@ -1017,7 +1060,8 @@ if (profileRes.success) {
                                     .addReview(
                                       technicianId: _otherUserId!,
                                       rating: selectedStars,
-                                      comment: 'Calificación de servicio finalizado',
+                                      comment:
+                                          'Calificación de servicio finalizado',
                                       appointmentId: appointmentId,
                                     );
 
@@ -1233,16 +1277,28 @@ if (profileRes.success) {
               _paymentOption(Icons.payments, 'Efectivo', 'cash', appointmentId),
               const Divider(),
               ListTile(
-                leading: const Icon(Icons.credit_card, color: Colors.blueAccent),
-                title: const Text('Culqi (Modo Prueba)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                leading: const Icon(
+                  Icons.credit_card,
+                  color: Colors.blueAccent,
+                ),
+                title: const Text(
+                  'Culqi (Modo Prueba)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueAccent,
+                  ),
+                ),
                 onTap: () {
                   Navigator.pop(context);
-                  context.push('/culqi-payment', extra: {
-                    'entityId': appointmentId,
-                    'paymentType': 'appointment',
-                    'amount': price,
-                    'description': 'Pago de Cita #$appointmentId',
-                  });
+                  context.push(
+                    '/culqi-payment',
+                    extra: {
+                      'entityId': appointmentId,
+                      'paymentType': 'appointment',
+                      'amount': price,
+                      'description': 'Pago de Cita #$appointmentId',
+                    },
+                  );
                 },
               ),
             ],
@@ -1311,21 +1367,43 @@ if (profileRes.success) {
               ),
               const SizedBox(height: 16),
               _orderPaymentOption(Icons.qr_code, 'Yape', 'yape', orderId),
-              _orderPaymentOption(Icons.qr_code_scanner, 'Plin', 'plin', orderId),
-              _orderPaymentOption(Icons.account_balance, 'Transferencia', 'transfer', orderId),
+              _orderPaymentOption(
+                Icons.qr_code_scanner,
+                'Plin',
+                'plin',
+                orderId,
+              ),
+              _orderPaymentOption(
+                Icons.account_balance,
+                'Transferencia',
+                'transfer',
+                orderId,
+              ),
               _orderPaymentOption(Icons.payments, 'Efectivo', 'cash', orderId),
               const Divider(),
               ListTile(
-                leading: const Icon(Icons.credit_card, color: Colors.blueAccent),
-                title: const Text('Culqi (Modo Prueba)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                leading: const Icon(
+                  Icons.credit_card,
+                  color: Colors.blueAccent,
+                ),
+                title: const Text(
+                  'Culqi (Modo Prueba)',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueAccent,
+                  ),
+                ),
                 onTap: () {
                   Navigator.pop(context);
-                  context.push('/culqi-payment', extra: {
-                    'entityId': orderId,
-                    'paymentType': 'order',
-                    'amount': price,
-                    'description': 'Pago de Pedido #$orderId',
-                  });
+                  context.push(
+                    '/culqi-payment',
+                    extra: {
+                      'entityId': orderId,
+                      'paymentType': 'order',
+                      'amount': price,
+                      'description': 'Pago de Pedido #$orderId',
+                    },
+                  );
                 },
               ),
             ],
@@ -1335,7 +1413,12 @@ if (profileRes.success) {
     );
   }
 
-  Widget _orderPaymentOption(IconData icon, String label, String value, int id) {
+  Widget _orderPaymentOption(
+    IconData icon,
+    String label,
+    String value,
+    int id,
+  ) {
     return ListTile(
       leading: Icon(icon, color: AppColors.primary),
       title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
@@ -1346,7 +1429,9 @@ if (profileRes.success) {
           _loadMessages(_otherUserId!);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Pago de pedido registrado. Espera confirmación de la tienda.'),
+              content: Text(
+                'Pago de pedido registrado. Espera confirmación de la tienda.',
+              ),
               backgroundColor: Colors.green,
             ),
           );
@@ -1579,10 +1664,11 @@ if (profileRes.success) {
   }
 
   Widget _buildInputArea() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Row(
@@ -1640,9 +1726,17 @@ if (profileRes.success) {
 
   Widget _buildStatusChecks(Map<String, dynamic> msg) {
     if (msg['is_read'] == true) {
-      return const Icon(Icons.done_all, color: AppColors.chatCheckRead, size: 16);
+      return const Icon(
+        Icons.done_all,
+        color: AppColors.chatCheckRead,
+        size: 16,
+      );
     } else if (msg['delivered_at'] != null) {
-      return const Icon(Icons.done_all, color: AppColors.chatCheckSent, size: 16);
+      return const Icon(
+        Icons.done_all,
+        color: AppColors.chatCheckSent,
+        size: 16,
+      );
     } else {
       return const Icon(Icons.done, color: AppColors.chatCheckSent, size: 16);
     }
@@ -1656,11 +1750,18 @@ if (profileRes.success) {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CustomAvatar(name: _otherUserName ?? 'Cliente', size: 80, fontSize: 32),
+            CustomAvatar(
+              name: _otherUserName ?? 'Cliente',
+              size: 80,
+              fontSize: 32,
+            ),
             const SizedBox(height: 16),
             Text(
               _otherUserName ?? 'Cliente',
-              style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.bold),
+              style: GoogleFonts.outfit(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const Text('Cliente verificado J&P'),
             const SizedBox(height: 16),
@@ -1688,10 +1789,12 @@ if (profileRes.success) {
   }) {
     final message = msg['message_text'] ?? '';
     final time = _formatTime(msg['created_at']);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     // Detección mejorada de mensaje eliminado
-    final isDeleted = msg['deleted_at'] != null || 
-                     message.contains('🚫') ||
-                     message.toLowerCase().contains('mensaje eliminado');
+    final isDeleted =
+        msg['deleted_at'] != null ||
+        message.contains('🚫') ||
+        message.toLowerCase().contains('mensaje eliminado');
     final isEdited = msg['is_edited'] == true || msg['is_edited'] == 1;
 
     return Align(
@@ -1710,7 +1813,7 @@ if (profileRes.success) {
                 maxWidth: MediaQuery.of(context).size.width * 0.75,
               ),
               decoration: BoxDecoration(
-                color: isMe ? AppColors.primary : Colors.white,
+                color: isMe ? AppColors.primary : (isDark ? const Color(0xFF1E293B) : Colors.white),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -1732,11 +1835,15 @@ if (profileRes.success) {
                     child: Text(
                       isDeleted ? 'Mensaje eliminado' : message,
                       style: GoogleFonts.outfit(
-                        color: isMe 
-                            ? (isDeleted ? Colors.white70 : Colors.white) 
-                            : (isDeleted ? AppColors.textSecondary : AppColors.textPrimary),
+                        color: isMe
+                            ? (isDeleted ? Colors.white70 : Colors.white)
+                            : (isDeleted
+                                  ? AppColors.textSecondary
+                                  : AppColors.textPrimary),
                         fontSize: 15,
-                        fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
+                        fontStyle: isDeleted
+                            ? FontStyle.italic
+                            : FontStyle.normal,
                       ),
                     ),
                   ),
@@ -1752,7 +1859,9 @@ if (profileRes.success) {
                             child: Text(
                               'editado',
                               style: TextStyle(
-                                color: (isMe ? Colors.white70 : AppColors.textLight),
+                                color: (isMe
+                                    ? Colors.white70
+                                    : AppColors.textLight),
                                 fontSize: 9,
                               ),
                             ),
@@ -1760,7 +1869,9 @@ if (profileRes.success) {
                         Text(
                           time,
                           style: TextStyle(
-                            color: (isMe ? Colors.white70 : AppColors.textLight),
+                            color: (isMe
+                                ? Colors.white70
+                                : AppColors.textLight),
                             fontSize: 10,
                           ),
                         ),
@@ -1782,9 +1893,10 @@ if (profileRes.success) {
 
   void _showMessageOptions(Map<String, dynamic> msg, bool isMe) {
     final message = msg['message_text'] ?? '';
-    final bool isDeleted = msg['deleted_at'] != null || 
-                         message.contains('🚫') ||
-                         message.toLowerCase().contains('mensaje eliminado');
+    final bool isDeleted =
+        msg['deleted_at'] != null ||
+        message.contains('🚫') ||
+        message.toLowerCase().contains('mensaje eliminado');
     if (isDeleted) return; // No options for deleted messages
 
     showModalBottomSheet(
@@ -1891,6 +2003,7 @@ if (profileRes.success) {
     required String time,
     required bool isMe,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
@@ -1903,7 +2016,11 @@ if (profileRes.success) {
             padding: const EdgeInsets.all(16),
             width: 200,
             decoration: BoxDecoration(
-              color: isMe ? const Color(0xFF3B28FF) : const Color(0xFFEBEBEB),
+              color: isMe 
+                  ? const Color(0xFF3B28FF) 
+                  : isDark 
+                      ? const Color(0xFF1E293B) 
+                      : const Color(0xFFEBEBEB),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(
@@ -2170,11 +2287,12 @@ if (profileRes.success) {
     final bool canMarkAsDelivered = status == 'shipped' && !isTechOrStore;
 
     final String? deliveryAddress = latestOrderMsg['order_address'];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
@@ -2269,9 +2387,9 @@ if (profileRes.success) {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: isDark ? const Color(0xFF334155) : Colors.grey[50],
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey[200]!),
+                border: Border.all(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]!),
               ),
               child: Row(
                 children: [
@@ -2284,10 +2402,10 @@ if (profileRes.success) {
                   Expanded(
                     child: Text(
                       'Enviar a: $deliveryAddress',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: Colors.black87,
+                        color: isDark ? Colors.white70 : Colors.black87,
                       ),
                     ),
                   ),
@@ -2362,6 +2480,7 @@ if (profileRes.success) {
     final List<dynamic> statusInfo = _getOrderStatusInfo(status);
     final Color statusColor = statusInfo[0];
     final String statusText = statusInfo[1];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final double? lat = double.tryParse(orderLat?.toString() ?? '');
     final double? lng = double.tryParse(orderLng?.toString() ?? '');
@@ -2389,7 +2508,11 @@ if (profileRes.success) {
             padding: const EdgeInsets.all(12),
             width: 250,
             decoration: BoxDecoration(
-              color: isMe ? AppColors.primary : const Color(0xFFF5F5F5),
+              color: isMe 
+                  ? AppColors.primary 
+                  : isDark 
+                      ? const Color(0xFF1E293B) 
+                      : const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(15),
               boxShadow: AppColors.softShadow,
             ),
@@ -2495,7 +2618,7 @@ if (profileRes.success) {
                       ),
                   ],
                 ),
-                
+
                 // Price and Payment Status
                 if (price != null) ...[
                   const SizedBox(height: 12),
@@ -2514,7 +2637,9 @@ if (profileRes.success) {
                         Text(
                           'PAGADO',
                           style: TextStyle(
-                            color: isMe ? Colors.greenAccent : Colors.green[700],
+                            color: isMe
+                                ? Colors.greenAccent
+                                : Colors.green[700],
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -2526,12 +2651,15 @@ if (profileRes.success) {
                 const SizedBox(height: 12),
 
                 // Payment Action Buttons
-                if (status != 'cancelled' && orderId != null && price != null) ...[
+                if (status != 'cancelled' &&
+                    orderId != null &&
+                    price != null) ...[
                   // Client Pays
                   if (!isTechOrStore && paymentStatus == 'pending')
                     _buildActionButton(
                       label: '💳 Pagar S/. ${price.toStringAsFixed(2)}',
-                      onPressed: () => _showOrderPaymentMethodDialog(orderId, price),
+                      onPressed: () =>
+                          _showOrderPaymentMethodDialog(orderId, price),
                       bgColor: const Color(0xFF00C853),
                       fgColor: Colors.white,
                     ),
@@ -2569,7 +2697,9 @@ if (profileRes.success) {
                               style: TextStyle(
                                 color: isPaid
                                     ? (isMe ? Colors.white : Colors.green[800])
-                                    : (isMe ? Colors.white : Colors.orange[900]),
+                                    : (isMe
+                                          ? Colors.white
+                                          : Colors.orange[900]),
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -2580,7 +2710,9 @@ if (profileRes.success) {
                     ),
 
                     // Confirm button (Store only while waiting)
-                    if (isTechOrStore && isWaiting && (paymentMethod ?? '').toLowerCase() != 'culqi') ...[
+                    if (isTechOrStore &&
+                        isWaiting &&
+                        (paymentMethod ?? '').toLowerCase() != 'culqi') ...[
                       _buildActionButton(
                         label: '✔ Confirmar Pago Recibido',
                         onPressed: () => _handleConfirmOrderPayment(orderId),
@@ -2590,7 +2722,7 @@ if (profileRes.success) {
                     ],
                   ],
                 ],
-                
+
                 if (canMarkAsDelivered) ...[
                   const SizedBox(height: 12),
                   SizedBox(
@@ -2731,12 +2863,13 @@ if (profileRes.success) {
     ];
 
     int currentIndex = steps.indexWhere((s) => s['id'] == status);
-    
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.primary.withOpacity(0.2)),
         boxShadow: [
@@ -2758,7 +2891,11 @@ if (profileRes.success) {
                   color: AppColors.primary.withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.info_outline, color: AppColors.primary, size: 20),
+                child: const Icon(
+                  Icons.info_outline,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
               ),
               const SizedBox(width: 12),
               const Text(
@@ -2774,7 +2911,7 @@ if (profileRes.success) {
           const SizedBox(height: 16),
           Text(
             message,
-            style: const TextStyle(fontSize: 14, color: Colors.black87),
+            style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87),
           ),
           const SizedBox(height: 20),
           Row(
@@ -2783,11 +2920,14 @@ if (profileRes.success) {
               final step = steps[index];
               final bool isPast = index < currentIndex;
               final bool isCurrent = index == currentIndex;
-              
+
               Color color;
-              if (isPast) color = const Color(0xFF4CAF50);
-              else if (isCurrent) color = AppColors.primary;
-              else color = Colors.grey.shade300;
+              if (isPast)
+                color = const Color(0xFF4CAF50);
+              else if (isCurrent)
+                color = AppColors.primary;
+              else
+                color = Colors.grey.shade300;
 
               return Expanded(
                 child: Column(
@@ -2801,8 +2941,8 @@ if (profileRes.success) {
                             right: -15,
                             child: Container(
                               height: 2,
-                              color: index < currentIndex 
-                                  ? const Color(0xFF4CAF50) 
+                              color: index < currentIndex
+                                  ? const Color(0xFF4CAF50)
                                   : Colors.grey.shade200,
                             ),
                           ),
@@ -2828,7 +2968,9 @@ if (profileRes.success) {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 8,
-                        fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isCurrent
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                         color: isCurrent ? AppColors.primary : Colors.grey,
                       ),
                     ),
