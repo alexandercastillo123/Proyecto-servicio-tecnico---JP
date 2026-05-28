@@ -31,13 +31,16 @@ const updateSettings = async (req, res) => {
     let respuesta = new Respuesta();
     try {
         const userId = req.user.id;
-        const { appointmentsReminders, chatNotifications, orderUpdates } = req.body;
+        const { push_enabled, appointments_reminders, chat_notifications, order_updates } = req.body;
 
         await db.ejecutar(
             `UPDATE notification_settings 
-             SET appointments_reminders = ?, chat_notifications = ?, order_updates = ? 
+             SET push_enabled = COALESCE(?, push_enabled),
+                 appointments_reminders = COALESCE(?, appointments_reminders), 
+                 chat_notifications = COALESCE(?, chat_notifications), 
+                 order_updates = COALESCE(?, order_updates)
              WHERE user_id = ?`,
-            [appointmentsReminders, chatNotifications, orderUpdates, userId]
+            [push_enabled, appointments_reminders, chat_notifications, order_updates, userId]
         );
 
         respuesta.exito = true;
@@ -117,10 +120,34 @@ const saveToken = async (req, res) => {
     }
 };
 
+/**
+ * Remove FCM token for user
+ */
+const removeToken = async (req, res) => {
+    let respuesta = new Respuesta();
+    try {
+        const userId = req.user.id;
+        const { token } = req.params;
+
+        await db.ejecutar(
+            'DELETE FROM user_device_tokens WHERE user_id = ? AND fcm_token = ?',
+            [userId, token]
+        );
+
+        respuesta.exito = true;
+        respuesta.mensaje = 'Token eliminado correctamente';
+        res.json(respuesta);
+    } catch (error) {
+        console.error('Remove token error:', error);
+        res.status(500).json({ mensaje: error.message });
+    }
+};
+
 module.exports = {
     getSettings,
     updateSettings,
     getNotifications,
     markAsRead,
-    saveToken
+    saveToken,
+    removeToken
 };

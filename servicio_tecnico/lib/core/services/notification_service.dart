@@ -13,6 +13,7 @@ class NotificationService {
   }
 
   Future<ApiResponse<Map<String, dynamic>>> updateSettings({
+    bool? pushEnabled,
     required bool appointmentsReminders,
     required bool chatNotifications,
     required bool orderUpdates,
@@ -20,9 +21,10 @@ class NotificationService {
     return await _apiService.put<Map<String, dynamic>>(
       ApiConstants.notificationSettings,
       {
-        'appointmentsReminders': appointmentsReminders,
-        'chatNotifications': chatNotifications,
-        'orderUpdates': orderUpdates,
+        if (pushEnabled != null) 'push_enabled': pushEnabled,
+        'appointments_reminders': appointmentsReminders,
+        'chat_notifications': chatNotifications,
+        'order_updates': orderUpdates,
       },
       requiresAuth: true,
       fromJson: (data) => data as Map<String, dynamic>,
@@ -52,6 +54,13 @@ class NotificationService {
         'token': token,
         'platform': platform,
       },
+      requiresAuth: true,
+    );
+  }
+
+  Future<ApiResponse<dynamic>> removeToken(String token) async {
+    return await _apiService.delete<dynamic>(
+      '${ApiConstants.registerFcmToken}/$token',
       requiresAuth: true,
     );
   }

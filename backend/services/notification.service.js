@@ -3,11 +3,7 @@ const { sendPushNotification } = require('../config/firebase');
 
 /**
  * Creates an in-app notification and attempts to send a push notification
- * @param {number} userId ID of the user receiving the notification
- * @param {string} title Notification title
- * @param {string} message Notification body/message
- * @param {string} type Type of notification (chat, appointment, offer, etc)
- * @param {object} data Extra data for the notification
+ * Respeta la configuración push_enabled + tipos específicos
  */
 const createNotification = async (userId, title, message, type, data = {}) => {
     try {
@@ -17,11 +13,16 @@ const createNotification = async (userId, title, message, type, data = {}) => {
             [userId, title, message, type, JSON.stringify(data)]
         );
 
-        // 2. Check if user has push notifications enabled (optional, could be added to notification_settings)
+        // 2. Check all notification settings
         const [settings] = await db.pool.query(
-            'SELECT chat_notifications, appointment_reminders, order_updates FROM notification_settings WHERE user_id = ?',
+            'SELECT push_enabled, chat_notifications, appointment_reminders, order_updates FROM notification_settings WHERE user_id = ?',
             [userId]
         );
+
+        // Check if push is enabled globally
+        if (settings.length > 0 && !settings[0].push_enabled) {
+            return true; // In-app notification saved but no push
+        }
 
         let shouldSendPush = true;
         if (settings.length > 0) {

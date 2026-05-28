@@ -14,6 +14,7 @@ class NotificationSettingsScreen extends StatefulWidget {
 
 class _NotificationSettingsScreenState extends State<NotificationSettingsScreen> {
   final NotificationService _notificationService = NotificationService();
+  bool _pushEnabled = true;
   bool _appointmentsReminders = true;
   bool _chatNotifications = true;
   bool _orderUpdates = true;
@@ -30,6 +31,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
       final res = await _notificationService.getSettings();
       if (res.success && res.data != null) {
         setState(() {
+          _pushEnabled = res.data!['push_enabled'] == 1 || res.data!['push_enabled'] == true;
           _appointmentsReminders = res.data!['appointment_reminders'] == 1 || res.data!['appointment_reminders'] == true;
           _chatNotifications = res.data!['chat_notifications'] == 1 || res.data!['chat_notifications'] == true;
           _orderUpdates = res.data!['order_updates'] == 1 || res.data!['order_updates'] == true;
@@ -47,6 +49,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     setState(() => _isLoading = true);
     try {
       final res = await _notificationService.updateSettings(
+        pushEnabled: _pushEnabled,
         appointmentsReminders: _appointmentsReminders,
         chatNotifications: _chatNotifications,
         orderUpdates: _orderUpdates,
@@ -86,8 +89,8 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
               _buildSwitchTile(
                 title: 'Notificaciones Push',
                 subtitle: 'Recibe alertas instantáneas en tu dispositivo',
-                value: true, // Siempre activo por ahora
-                onChanged: null,
+                value: _pushEnabled,
+                onChanged: (val) => setState(() => _pushEnabled = val),
               ),
               
               const SizedBox(height: 24),
@@ -110,7 +113,6 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                 value: _orderUpdates,
                 onChanged: (val) => setState(() => _orderUpdates = val),
               ),
-
 
               const SizedBox(height: 40),
               ElevatedButton(
@@ -149,7 +151,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
     required String title,
     required String subtitle,
     required bool value,
-    ValueChanged<bool>? onChanged,
+    required ValueChanged<bool> onChanged,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),

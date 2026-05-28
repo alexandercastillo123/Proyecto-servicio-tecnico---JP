@@ -9,7 +9,6 @@ class SocketService {
   SocketService._internal();
 
   IO.Socket? _socket;
-  int? _userId;
   final StreamController<Map<String, dynamic>> _messageController = 
       StreamController<Map<String, dynamic>>.broadcast();
   final StreamController<Map<String, dynamic>> _appointmentController = 
@@ -17,10 +16,17 @@ class SocketService {
 
   Stream<Map<String, dynamic>> get onMessageReceived => _messageController.stream;
   Stream<Map<String, dynamic>> get onAppointmentUpdate => _appointmentController.stream;
+  bool get isConnected => _socket?.connected ?? false;
 
   Future<void> init({required int userId, required String authToken}) async {
-    _userId = userId;
     final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:3000';
+    
+    if (_socket != null) {
+      if (_socket!.connected) {
+        return;
+      }
+      _socket!.dispose();
+    }
     
     _socket = IO.io(baseUrl, IO.OptionBuilder()
         .setTransports(['websocket'])
@@ -50,7 +56,6 @@ class SocketService {
     _socket?.disconnect();
     _socket?.dispose();
     _socket = null;
-    _userId = null;
   }
 
   void sendMessage(Map<String, dynamic> message) {
