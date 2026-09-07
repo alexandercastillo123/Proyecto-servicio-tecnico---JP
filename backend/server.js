@@ -86,7 +86,13 @@ io.on('connection', (socket) => {
 
     socket.on('join_room', (userId) => {
         socket.join(`user_${userId}`);
+        socket.userId = userId;
         console.log(`👤 Usuario ${userId} se unió a su sala privada`);
+    });
+
+    socket.on('leave_room', (userId) => {
+        socket.leave(`user_${userId}`);
+        console.log(`👋 Usuario ${userId} salió de su sala`);
     });
 
     socket.on('send_message', (data) => {
@@ -95,8 +101,17 @@ io.on('connection', (socket) => {
         console.log(`✉️ Mensaje enviado de ${data.senderId} a ${data.receiverId}`);
     });
 
+    socket.on('typing', (data) => {
+        if (data && data.receiverId) {
+            io.to(`user_${data.receiverId}`).emit('user_typing', {
+                senderId: data.senderId,
+                isTyping: !!data.isTyping
+            });
+        }
+    });
+
     socket.on('disconnect', () => {
-        console.log('🔌 Cliente desconectado');
+        console.log(`🔌 Cliente desconectado (${socket.id})`);
     });
 });
 

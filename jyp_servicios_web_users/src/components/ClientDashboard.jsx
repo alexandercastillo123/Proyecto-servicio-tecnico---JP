@@ -5,9 +5,11 @@ import { clientService, messageService } from '../services/api';
 import LocationPicker from './LocationPicker';
 import { Link, useNavigate } from 'react-router-dom';
 import TechnicianList from './TechnicianList';
+import { useSocket } from '../context/SocketContext';
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
+  const { socketService } = useSocket();
   const [conversations, setConversations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showLocationModal, setShowLocationModal] = useState(false);
@@ -30,6 +32,31 @@ const ClientDashboard = () => {
        detectLocation();
     }
   }, []);
+
+  // Listen to socket events for real-time dashboard refresh
+  useEffect(() => {
+    if (!socketService) return;
+
+    const unsubApptProgress = socketService.on('appointment_progress', () => {
+      fetchData();
+    });
+
+    const unsubApptCreated = socketService.on('appointment_created', () => {
+      fetchData();
+    });
+
+    const unsubMsg = socketService.on('receive_message', () => {
+      messageService.getConversations().then(r => {
+        if (r.data.exito) setConversations(r.data.resultado || []);
+      }).catch(() => {});
+    });
+
+    return () => {
+      unsubApptProgress();
+      unsubApptCreated();
+      unsubMsg();
+    };
+  }, [socketService]);
 
   const detectLocation = () => {
     if (navigator.geolocation) {

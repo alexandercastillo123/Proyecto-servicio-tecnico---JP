@@ -68,6 +68,34 @@ const createAppointment = async ({ clientId, technicianId, scheduledDate, schedu
 
         await conn.commit();
 
+        try {
+            const io = getIO();
+            const apptPayload = {
+                appointment_id: appointmentId,
+                client_id: clientId,
+                technician_id: technicianId,
+                scheduled_date: scheduledDate,
+                scheduled_time: scheduledTime,
+                description,
+                service_type: serviceType,
+                status: 'pending'
+            };
+            io.to(`user_${technicianId}`).emit('appointment_created', apptPayload);
+            io.to(`user_${clientId}`).emit('appointment_created', apptPayload);
+
+            // Real-time chat message
+            const msgPayload = {
+                sender_id: clientId,
+                receiver_id: technicianId,
+                message_text: chatMsg,
+                message_type: 'appointment',
+                appointment_id: appointmentId,
+                created_at: new Date().toISOString()
+            };
+            io.to(`user_${technicianId}`).emit('receive_message', msgPayload);
+            io.to(`user_${clientId}`).emit('receive_message', msgPayload);
+        } catch (_) { /* Socket.IO not yet initialized */ }
+
         await notificationService.createNotification(
             technicianId, 'Nueva Cita Recibida',
             `Tienes una nueva solicitud de servicio para el ${scheduledDate} a las ${scheduledTime}`,
@@ -181,6 +209,24 @@ const setAppointmentPrice = async (appointmentId, userId, price) => {
     const priceMsg = `💰 *Precio Establecido*\nEl prestador ha fijado el precio del servicio en: *S/ ${price}*.\nYa puedes proceder con el pago.`;
     await appointmentRepo.insertChatMessage(userId, row.client_id, priceMsg, 'appointment', appointmentId);
 
+    try {
+        const io = getIO();
+        const pricePayload = { appointment_id: appointmentId, price: parseFloat(price) };
+        io.to(`user_${row.client_id}`).emit('appointment_price_updated', pricePayload);
+        io.to(`user_${userId}`).emit('appointment_price_updated', pricePayload);
+
+        const chatPayload = {
+            sender_id: userId,
+            receiver_id: row.client_id,
+            message_text: priceMsg,
+            message_type: 'appointment',
+            appointment_id: appointmentId,
+            created_at: new Date().toISOString()
+        };
+        io.to(`user_${row.client_id}`).emit('receive_message', chatPayload);
+        io.to(`user_${userId}`).emit('receive_message', chatPayload);
+    } catch (_) {}
+
     await notificationService.createNotification(
         row.client_id, 'Precio Establecido',
         `Se ha fijado un precio de S/ ${price} para tu cita.`,
@@ -201,6 +247,13 @@ const payAppointment = async (appointmentId, userId, paymentMethod) => {
 
     await appointmentRepo.setPaymentWaiting(appointmentId, paymentMethod);
 
+    try {
+        const io = getIO();
+        const paymentPayload = { appointment_id: appointmentId, payment_status: 'waiting_confirmation', payment_method: paymentMethod };
+        io.to(`user_${row.technician_id}`).emit('appointment_payment_waiting', paymentPayload);
+        io.to(`user_${userId}`).emit('appointment_payment_waiting', paymentPayload);
+    } catch (_) {}
+
     await notificationService.createNotification(
         row.technician_id, 'Pago de Cita Notificado',
         `El cliente ha notificado el pago vía ${paymentMethod.toUpperCase()}.`,
@@ -217,6 +270,26 @@ const confirmPayment = async (appointmentId, userId) => {
 
     const confirmMsg = '✅ *Pago Confirmado*\nEl técnico ha confirmado la recepción de tu pago. La cita ahora está confirmada y el servicio puede iniciar.';
     await appointmentRepo.insertChatMessage(userId, row.client_id, confirmMsg, 'appointment', appointmentId);
+
+    try {
+        const io = getIO();
+        const confirmPayload = { appointment_id: appointmentId, payment_status: 'paid', status: 'confirmed' };
+        io.to(`user_${row.client_id}`).emit('appointment_payment_confirmed', confirmPayload);
+        io.to(`user_${userId}`).emit('appointment_payment_confirmed', confirmPayload);
+        io.to(`user_${row.client_id}`).emit('appointment_progress', { appointment_id: appointmentId, status: 'confirmed' });
+        io.to(`user_${userId}`).emit('appointment_progress', { appointment_id: appointmentId, status: 'confirmed' });
+
+        const chatPayload = {
+            sender_id: userId,
+            receiver_id: row.client_id,
+            message_text: confirmMsg,
+            message_type: 'appointment',
+            appointment_id: appointmentId,
+            created_at: new Date().toISOString()
+        };
+        io.to(`user_${row.client_id}`).emit('receive_message', chatPayload);
+        io.to(`user_${userId}`).emit('receive_message', chatPayload);
+    } catch (_) {}
 
     await notificationService.createNotification(
         row.client_id, 'Pago Confirmado', 'Tu pago ha sido validado por el técnico.',

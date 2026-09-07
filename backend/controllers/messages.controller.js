@@ -138,16 +138,36 @@ const sendOffer = asyncHandler(async (req, res) => {
         [senderId, receiverId, messageText || `Oferta de servicio: S/.${offerPrice}`, offerPrice, appointmentId || null]
     );
 
+    const offerId = result.insertId;
+
+    // Real-time emit to receiver and sender
+    try {
+        const offerPayload = {
+            id: offerId,
+            sender_id: senderId,
+            receiver_id: receiverId,
+            message_text: messageText || `Oferta de servicio: S/.${offerPrice}`,
+            message_type: 'offer',
+            offer_price: parseFloat(offerPrice),
+            offer_status: 'pending',
+            appointment_id: appointmentId || null,
+            created_at: new Date().toISOString(),
+            is_read: false
+        };
+        getIO().to(`user_${receiverId}`).emit('receive_message', offerPayload);
+        getIO().to(`user_${senderId}`).emit('receive_message', offerPayload);
+    } catch (_) { /* Socket.IO not yet initialized */ }
+
     const [techProfile] = await pool.query('SELECT names, company_name FROM user_profiles WHERE user_id = ?', [senderId]);
     const techName = techProfile[0]?.company_name || techProfile[0]?.names || 'Un técnico';
 
     await notificationService.createNotification(
         receiverId, 'Propuesta de Servicio Recibida',
         `${techName} te ha enviado una oferta por S/.${offerPrice}`,
-        'offer', { senderId: senderId.toString(), offerId: result.insertId.toString(), price: offerPrice.toString() }
+        'offer', { senderId: senderId.toString(), offerId: offerId.toString(), price: offerPrice.toString() }
     );
 
-    res.status(201).json(Respuesta.ok({ offerId: result.insertId }, '¡Tu propuesta ha sido enviada al cliente!', 201));
+    res.status(201).json(Respuesta.ok({ offerId }, '¡Tu propuesta ha sido enviada al cliente!', 201));
 });
 
 /**
@@ -158,7 +178,7 @@ const acceptOffer = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
     const [rows] = await pool.query(
-        'SELECT receiver_id, offer_status FROM chat_messages WHERE id = ? AND message_type = "offer"',
+        'SELECT sender_id, receiver_id, offer_status FROM chat_messages WHERE id = ? AND message_type = "offer"',
         [id]
     );
     if (rows.length === 0) throw new AppError('No se pudo localizar la propuesta solicitada.', 404);
@@ -166,6 +186,13 @@ const acceptOffer = asyncHandler(async (req, res) => {
     if (rows[0].offer_status !== 'pending') throw new AppError('Esta propuesta ya ha sido procesada o ha expirado.', 400);
 
     await pool.query('UPDATE chat_messages SET offer_status = "accepted" WHERE id = ?', [id]);
+
+    try {
+        const updatePayload = { offerId: parseInt(id), offerStatus: 'accepted' };
+        getIO().to(`user_${rows[0].sender_id}`).emit('offer_updated', updatePayload);
+        getIO().to(`user_${userId}`).emit('offer_updated', updatePayload);
+    } catch (_) {}
+
     res.json(Respuesta.ok(null, '¡Has aceptado la propuesta correctamente!'));
 });
 
@@ -176,11 +203,23 @@ const rejectOffer = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const [result] = await pool.query(
+    const [rows] = await pool.query(
+        'SELECT sender_id, receiver_id FROM chat_messages WHERE id = ? AND receiver_id = ? AND message_type = "offer"',
+        [id, userId]
+    );
+    if (rows.length === 0) throw new AppError('Oferta no encontrada o no autorizada.', 404);
+
+    await pool.query(
         'UPDATE chat_messages SET offer_status = "rejected" WHERE id = ? AND receiver_id = ? AND message_type = "offer"',
         [id, userId]
     );
-    if (result.affectedRows === 0) throw new AppError('Oferta no encontrada o no autorizada.', 404);
+
+    try {
+        const updatePayload = { offerId: parseInt(id), offerStatus: 'rejected' };
+        getIO().to(`user_${rows[0].sender_id}`).emit('offer_updated', updatePayload);
+        getIO().to(`user_${userId}`).emit('offer_updated', updatePayload);
+    } catch (_) {}
+
     res.json(Respuesta.ok(null, 'Propuesta rechazada.'));
 });
 
@@ -191,11 +230,23 @@ const cancelOffer = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
 
-    const [result] = await pool.query(
+    const [rows] = await pool.query(
+        'SELECT sender_id, receiver_id FROM chat_messages WHERE id = ? AND sender_id = ? AND message_type = "offer"',
+        [id, userId]
+    );
+    if (rows.length === 0) throw new AppError('Oferta no encontrada o no autorizada.', 404);
+
+    await pool.query(
         'UPDATE chat_messages SET offer_status = "cancelled", cancelled_by = ? WHERE id = ? AND sender_id = ? AND message_type = "offer"',
         [userId, id, userId]
     );
-    if (result.affectedRows === 0) throw new AppError('Oferta no encontrada o no autorizada.', 404);
+
+    try {
+        const updatePayload = { offerId: parseInt(id), offerStatus: 'cancelled' };
+        getIO().to(`user_${rows[0].receiver_id}`).emit('offer_updated', updatePayload);
+        getIO().to(`user_${userId}`).emit('offer_updated', updatePayload);
+    } catch (_) {}
+
     res.json(Respuesta.ok(null, 'Propuesta cancelada correctamente.'));
 });
 

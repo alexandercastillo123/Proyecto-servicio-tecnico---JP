@@ -8,10 +8,12 @@ import {
   ShieldCheck, CreditCard
 } from 'lucide-react';
 import { clientService, techService } from '../services/api';
+import { useSocket } from '../context/SocketContext';
 
 const AppointmentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { socketService, isConnected } = useSocket();
   const [appt, setAppt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
@@ -23,6 +25,42 @@ const AppointmentDetails = () => {
   useEffect(() => {
     fetchDetails();
   }, [id]);
+
+  // Real-time socket listeners for this appointment
+  useEffect(() => {
+    if (!socketService) return;
+
+    const unsubProgress = socketService.on('appointment_progress', (data) => {
+      if (String(data.appointment_id) === String(id)) {
+        fetchDetails();
+      }
+    });
+
+    const unsubPrice = socketService.on('appointment_price_updated', (data) => {
+      if (String(data.appointment_id) === String(id)) {
+        fetchDetails();
+      }
+    });
+
+    const unsubWaiting = socketService.on('appointment_payment_waiting', (data) => {
+      if (String(data.appointment_id) === String(id)) {
+        fetchDetails();
+      }
+    });
+
+    const unsubConfirmed = socketService.on('appointment_payment_confirmed', (data) => {
+      if (String(data.appointment_id) === String(id)) {
+        fetchDetails();
+      }
+    });
+
+    return () => {
+      unsubProgress();
+      unsubPrice();
+      unsubWaiting();
+      unsubConfirmed();
+    };
+  }, [socketService, id]);
 
   const fetchDetails = async () => {
     try {
