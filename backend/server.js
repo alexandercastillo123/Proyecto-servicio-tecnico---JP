@@ -5,6 +5,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./config/swagger');
+const { setIO } = require('./config/socketManager');
 require('dotenv').config();
 
 const errorHandler = require('./middleware/errorHandler');
@@ -29,6 +30,10 @@ const io = new Server(server, {
         methods: ["GET", "POST"]
     }
 });
+
+// Register io in the singleton manager so controllers can access it
+// without creating circular dependencies via require('../server')
+setIO(io);
 
 const PORT = process.env.PORT || 3000;
 
