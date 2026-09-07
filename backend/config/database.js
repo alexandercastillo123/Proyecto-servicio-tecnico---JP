@@ -1,7 +1,11 @@
 const mysql = require('mysql2/promise');
-const Respuesta = require('../utils/Respuesta');
 require('dotenv').config();
 
+/**
+ * MySQL2 connection pool.
+ * All queries should use pool.query() or pool.getConnection() directly.
+ * Errors are thrown and caught by asyncHandler → errorHandler.
+ */
 const pool = mysql.createPool({
     host: process.env.DB_HOST || 'localhost',
     user: process.env.DB_USER || 'root',
@@ -13,43 +17,19 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
-async function listar(query, tables = false, values = []) {
-    let respuesta = new Respuesta();
-    try {
-        const [rows] = await pool.query(query, values);
-        respuesta.exito = true;
-        respuesta.estado = 200;
-        respuesta.mensaje = "exito";
-        respuesta.resultado = !tables ? rows[0] : rows;
-    } catch (err) {
-        console.error('Database Error:', err);
-        respuesta.exito = false;
-        respuesta.estado = 400;
-        respuesta.mensaje = err.sqlMessage || err.message;
-        respuesta.resultado = [];
-    }
-    return respuesta;
-}
+/**
+ * Execute any SQL query with parameters.
+ * Returns the result directly; throws on DB error (caught by asyncHandler).
+ *
+ * @param {string} sql - SQL query string with ? placeholders
+ * @param {Array} [params=[]] - Parameters for prepared statement
+ * @returns {Promise<Array>} [rows, fields] from mysql2
+ */
+const query = async (sql, params = []) => {
+    return pool.query(sql, params);
+};
 
-async function ejecutar(query, values = []) {
-    let respuesta = new Respuesta();
-    try {
-        const [result] = await pool.query(query, values);
-        respuesta.exito = true;
-        respuesta.estado = 200;
-        respuesta.mensaje = "exito";
-        respuesta.resultado = result;
-    } catch (err) {
-        console.error('Database Error:', err);
-        respuesta.exito = false;
-        respuesta.estado = 400;
-        respuesta.mensaje = err.sqlMessage || err.message;
-        respuesta.resultado = [];
-    }
-    return respuesta;
-}
-
-// Test database connection
+// Test database connection on startup
 pool.getConnection()
     .then(connection => {
         console.log('✅ Database connected successfully');
@@ -59,8 +39,4 @@ pool.getConnection()
         console.error('❌ Database connection failed:', err.message);
     });
 
-module.exports = {
-    pool,
-    listar,
-    ejecutar
-};
+module.exports = { pool, query };

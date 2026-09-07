@@ -1,493 +1,257 @@
-const db = require('../config/database');
+const { pool } = require('../config/database');
 const Respuesta = require('../utils/Respuesta');
+const asyncHandler = require('../utils/asyncHandler');
 const notificationService = require('../services/notification.service');
-const { io } = require('../server');
+const { getIO } = require('../config/socketManager');
+const AppError = require('../utils/AppError');
 
 /**
- * Get user conversations list
+ * GET /api/messages/conversations
  */
-const getConversations = async (req, res) => {
-    let respuesta = new Respuesta();
-    try {
-        const userId = req.user.id;
+const getConversations = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
 
-        const dbRes = await db.listar(
-            `SELECT DISTINCT
-        CASE 
-          WHEN sender_id = ? THEN receiver_id
-          ELSE sender_id
-        END as other_user_id,
-        u.email, u.username, u.role as other_user_role,
-        up.names, up.surnames, up.company_name, up.profile_image_url,
-        MAX(cm.created_at) as last_message_time,
-        (SELECT message_text FROM chat_messages 
-         WHERE (sender_id = other_user_id AND receiver_id = ?) 
-            OR (sender_id = ? AND receiver_id = other_user_id)
-         ORDER BY created_at DESC LIMIT 1) as last_message_text,
-        COUNT(CASE WHEN cm.receiver_id = ? AND cm.is_read = FALSE THEN 1 END) as unread_count
-      FROM chat_messages cm
-      INNER JOIN users u ON (
-        CASE 
-          WHEN cm.sender_id = ? THEN cm.receiver_id
-          ELSE cm.sender_id
-        END = u.id
-      )
-      LEFT JOIN user_profiles up ON u.id = up.user_id
-      WHERE sender_id = ? OR receiver_id = ?
-      GROUP BY other_user_id, u.email, u.username, u.role, up.names, up.surnames, up.company_name, up.profile_image_url
-      ORDER BY last_message_time DESC`,
-            true,
-            [userId, userId, userId, userId, userId, userId, userId]
-        );
+    const [rows] = await pool.query(
+        `SELECT DISTINCT
+            CASE WHEN sender_id = ? THEN receiver_id ELSE sender_id END as other_user_id,
+            u.email, u.username, u.role as other_user_role,
+            up.names, up.surnames, up.company_name, up.profile_image_url,
+            MAX(cm.created_at) as last_message_time,
+            (SELECT message_text FROM chat_messages
+             WHERE (sender_id = other_user_id AND receiver_id = ?)
+                OR (sender_id = ? AND receiver_id = other_user_id)
+             ORDER BY created_at DESC LIMIT 1) as last_message_text,
+            COUNT(CASE WHEN cm.receiver_id = ? AND cm.is_read = FALSE THEN 1 END) as unread_count
+        FROM chat_messages cm
+        INNER JOIN users u ON (
+            CASE WHEN cm.sender_id = ? THEN cm.receiver_id ELSE cm.sender_id END = u.id
+        )
+        LEFT JOIN user_profiles up ON u.id = up.user_id
+        WHERE sender_id = ? OR receiver_id = ?
+        GROUP BY other_user_id, u.email, u.username, u.role, up.names, up.surnames, up.company_name, up.profile_image_url
+        ORDER BY last_message_time DESC`,
+        [userId, userId, userId, userId, userId, userId, userId]
+    );
 
-        respuesta.exito = true;
-        respuesta.estado = 200;
-        respuesta.mensaje = "exito";
-        respuesta.resultado = dbRes.resultado || [];
+    res.json(Respuesta.ok(rows, 'Éxito'));
+});
 
-        res.json(respuesta);
+/**
+ * GET /api/messages/:otherUserId
+ */
+const getMessages = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { otherUserId } = req.params;
 
-    } catch (error) {
-        console.error('Get conversations error:', error);
-        respuesta.mensaje = 'Error al obtener las conversaciones: ' + error.message;
-        res.status(500).json(respuesta);
+    const [rows] = await pool.query(
+        `SELECT
+            cm.id, cm.sender_id, cm.receiver_id, cm.message_text,
+            cm.message_type, cm.offer_price, cm.offer_status, cm.cancelled_by,
+            cm.created_at, cm.is_read, cm.deleted_at, cm.is_edited,
+            cm.appointment_id, cm.order_id,
+            a.status as appointment_status,
+            a.price as appointment_price,
+            a.payment_method as appointment_payment_method,
+            a.payment_status as appointment_payment_status,
+            a.payment_confirmed_at as appointment_payment_confirmed_at,
+            a.cancelled_by as app_cancelled_by,
+            (SELECT role FROM users WHERE id = a.cancelled_by) as canceller_role,
+            o.status as order_status,
+            o.payment_status as order_payment_status,
+            o.payment_method as order_payment_method,
+            o.total_price as order_price,
+            o.delivery_address as order_address,
+            o.latitude as order_lat, o.longitude as order_lng,
+            p.name as order_product_name
+        FROM chat_messages cm
+        LEFT JOIN appointments a ON cm.appointment_id = a.id
+        LEFT JOIN store_orders o ON cm.order_id = o.id
+        LEFT JOIN store_products p ON o.product_id = p.id
+        WHERE (cm.sender_id = ? AND cm.receiver_id = ?)
+           OR (cm.sender_id = ? AND cm.receiver_id = ?)
+        ORDER BY cm.created_at ASC`,
+        [userId, otherUserId, otherUserId, userId]
+    );
+
+    // Mark as read
+    await pool.query(
+        'UPDATE chat_messages SET is_read = TRUE WHERE receiver_id = ? AND sender_id = ? AND is_read = FALSE',
+        [userId, otherUserId]
+    );
+
+    res.json(Respuesta.ok(rows, 'Éxito'));
+});
+
+/**
+ * POST /api/messages/send
+ */
+const sendMessage = asyncHandler(async (req, res) => {
+    const senderId = req.user.id;
+    const { receiverId, messageText, appointmentId, messageType = 'text' } = req.body;
+
+    const [receiver] = await pool.query('SELECT id FROM users WHERE id = ?', [receiverId]);
+    if (receiver.length === 0) {
+        throw new AppError('No logramos encontrar al destinatario del mensaje.', 404);
     }
-};
 
-/**
- * Get messages with specific user
- */
-const getMessages = async (req, res) => {
-    let respuesta = new Respuesta();
+    const [result] = await pool.query(
+        'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id) VALUES (?, ?, ?, ?, ?)',
+        [senderId, receiverId, messageText, messageType, appointmentId || null]
+    );
+    const messageId = result.insertId;
+
+    // Real-time emit
     try {
-        const userId = req.user.id;
-        const { otherUserId } = req.params;
-
-        const dbRes = await db.listar(
-            `SELECT 
-                cm.id, cm.sender_id, cm.receiver_id, cm.message_text,
-                cm.message_type, cm.offer_price, cm.offer_status, cm.cancelled_by,
-                cm.created_at, cm.is_read, cm.deleted_at, cm.is_edited,
-                cm.appointment_id, cm.order_id,
-                a.status as appointment_status,
-                a.price as appointment_price,
-                a.payment_method as appointment_payment_method,
-                a.payment_status as appointment_payment_status,
-                a.payment_confirmed_at as appointment_payment_confirmed_at,
-                a.cancelled_by as app_cancelled_by,
-                (SELECT role FROM users WHERE id = a.cancelled_by) as canceller_role,
-                o.status as order_status,
-                o.payment_status as order_payment_status,
-                o.payment_method as order_payment_method,
-                o.total_price as order_price,
-                o.delivery_address as order_address,
-                o.latitude as order_lat,
-                o.longitude as order_lng,
-                p.name as order_product_name
-            FROM chat_messages cm
-            LEFT JOIN appointments a ON cm.appointment_id = a.id
-            LEFT JOIN store_orders o ON cm.order_id = o.id
-            LEFT JOIN store_products p ON o.product_id = p.id
-            WHERE (cm.sender_id = ? AND cm.receiver_id = ?)
-               OR (cm.sender_id = ? AND cm.receiver_id = ?)
-            ORDER BY cm.created_at ASC`,
-            true,
-            [userId, otherUserId, otherUserId, userId]
-        );
-
-        if (!dbRes.exito) {
-            throw new Error(dbRes.mensaje);
-        }
-
-        // Mark messages as read
-        await db.ejecutar(
-            `UPDATE chat_messages SET is_read = TRUE
-             WHERE receiver_id = ? AND sender_id = ? AND is_read = FALSE`,
-            [userId, otherUserId]
-        );
-
-        respuesta.exito = true;
-        respuesta.estado = 200;
-        respuesta.mensaje = "exito";
-        respuesta.resultado = dbRes.resultado || [];
-
-        res.json(respuesta);
-
-    } catch (error) {
-        console.error('Get messages error:', error);
-        respuesta.mensaje = 'Error al obtener los mensajes: ' + error.message;
-        res.status(500).json(respuesta);
-    }
-};
-
-/**
- * Send text message
- */
-const sendMessage = async (req, res) => {
-    let respuesta = new Respuesta();
-    try {
-        const senderId = req.user.id;
-        const { receiverId, messageText, appointmentId, messageType = 'text' } = req.body;
-
-        // Verify receiver exists
-        const recRes = await db.listar('SELECT id FROM users WHERE id = ?', false, [receiverId]);
-
-        if (!recRes.exito || !recRes.resultado) {
-            respuesta.estado = 404;
-            respuesta.mensaje = 'No logramos encontrar al destinatario del mensaje.';
-            return res.status(404).json(respuesta);
-        }
-
-const dbRes = await db.ejecutar(
-             `INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id)
-        VALUES (?, ?, ?, ?, ?)`,
-             [senderId, receiverId, messageText, messageType, appointmentId || null]
-         );
-
-        if (!dbRes.exito) {
-            return res.status(500).json(dbRes);
-        }
-
-        const messageId = dbRes.resultado.insertId;
-
-        // Emit Socket.IO event to receiver
-        io.to(`user_${receiverId}`).emit('receive_message', {
-            id: messageId,
-            sender_id: senderId,
-            receiver_id: receiverId,
-            message_text: messageText,
-            message_type: messageType,
-            appointment_id: appointmentId,
-            created_at: new Date().toISOString(),
-            is_read: false
+        getIO().to(`user_${receiverId}`).emit('receive_message', {
+            id: messageId, sender_id: senderId, receiver_id: receiverId,
+            message_text: messageText, message_type: messageType,
+            appointment_id: appointmentId, created_at: new Date().toISOString(), is_read: false
         });
+    } catch (_) { /* Socket.IO not yet initialized */ }
 
-        respuesta.exito = true;
-        respuesta.estado = 201;
-        respuesta.mensaje = 'Mensaje enviado correctamente.';
-        respuesta.resultado = {
-            messageId: messageId
-        };
+    // Push notification
+    const [senderProfile] = await pool.query('SELECT names, company_name FROM user_profiles WHERE user_id = ?', [senderId]);
+    const senderName = senderProfile[0]?.company_name || senderProfile[0]?.names || 'Un usuario';
+    await notificationService.createNotification(
+        receiverId, `Mensaje de ${senderName}`, messageText, 'chat',
+        { senderId: senderId.toString(), messageType: 'text' }
+    );
 
-        // Enviar notificación al destinatario
-        const [senderProfile] = await db.pool.query(
-            'SELECT names, company_name FROM user_profiles WHERE user_id = ?',
-            [senderId]
-        );
-        const senderName = senderProfile[0]?.company_name || senderProfile[0]?.names || 'Un usuario';
-        
-        await notificationService.createNotification(
-            receiverId,
-            `Mensaje de ${senderName}`,
-            messageText,
-            'chat',
-            { senderId: senderId.toString(), messageType: 'text' }
-        );
-
-        res.status(201).json(respuesta);
-
-    } catch (error) {
-        console.error('Send message error:', error);
-        respuesta.mensaje = 'Error al enviar el mensaje: ' + error.message;
-        res.status(500).json(respuesta);
-    }
-};
+    res.status(201).json(Respuesta.ok({ messageId }, 'Mensaje enviado correctamente.', 201));
+});
 
 /**
- * Send service offer
+ * POST /api/messages/offer
  */
-const sendOffer = async (req, res) => {
-    let respuesta = new Respuesta();
-    try {
-        const senderId = req.user.id;
-        const { receiverId, offerPrice, messageText, appointmentId } = req.body;
+const sendOffer = asyncHandler(async (req, res) => {
+    const senderId = req.user.id;
+    const { receiverId, offerPrice, messageText, appointmentId } = req.body;
 
-        // Verify sender is a technician
-        const userRes = await db.listar(
-            'SELECT role FROM users WHERE id = ?',
-            false,
-            [senderId]
-        );
-
-        if (!userRes.exito || !userRes.resultado || userRes.resultado.role !== 'tech') {
-            respuesta.estado = 403;
-            respuesta.mensaje = 'Solo los prestadores de servicio autorizados pueden enviar propuestas.';
-            return res.status(403).json(respuesta);
-        }
-
-        const dbRes = await db.ejecutar(
-            `INSERT INTO chat_messages (
-        sender_id, receiver_id, message_text, message_type,
-        offer_price, offer_status, appointment_id
-      ) VALUES (?, ?, ?, 'offer', ?, 'pending', ?)`,
-            [senderId, receiverId, messageText || `Oferta de servicio: S/.${offerPrice}`, offerPrice, appointmentId || null]
-        );
-
-        if (!dbRes.exito) {
-            return res.status(500).json(dbRes);
-        }
-
-        respuesta.exito = true;
-        respuesta.estado = 201;
-        respuesta.mensaje = '¡Tu propuesta ha sido enviada al cliente!';
-        respuesta.resultado = {
-            offerId: dbRes.resultado.insertId
-        };
-
-        // Enviar notificación de oferta
-        const [techProfile] = await db.pool.query(
-            'SELECT names, company_name FROM user_profiles WHERE user_id = ?',
-            [senderId]
-        );
-        const techName = techProfile[0]?.company_name || techProfile[0]?.names || 'Un técnico';
-
-        await notificationService.createNotification(
-            receiverId,
-            'Propuesta de Servicio Recibida',
-            `${techName} te ha enviado una oferta por S/.${offerPrice}`,
-            'offer',
-            { 
-                senderId: senderId.toString(), 
-                offerId: dbRes.resultado.insertId.toString(),
-                price: offerPrice.toString()
-            }
-        );
-
-        res.status(201).json(respuesta);
-
-    } catch (error) {
-        console.error('Send offer error:', error);
-        respuesta.mensaje = 'Error al enviar la oferta: ' + error.message;
-        res.status(500).json(respuesta);
+    const [userRows] = await pool.query('SELECT role FROM users WHERE id = ?', [senderId]);
+    if (userRows.length === 0 || userRows[0].role !== 'tech') {
+        throw new AppError('Solo los prestadores de servicio autorizados pueden enviar propuestas.', 403);
     }
-};
+
+    const [result] = await pool.query(
+        `INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, offer_price, offer_status, appointment_id)
+         VALUES (?, ?, ?, 'offer', ?, 'pending', ?)`,
+        [senderId, receiverId, messageText || `Oferta de servicio: S/.${offerPrice}`, offerPrice, appointmentId || null]
+    );
+
+    const [techProfile] = await pool.query('SELECT names, company_name FROM user_profiles WHERE user_id = ?', [senderId]);
+    const techName = techProfile[0]?.company_name || techProfile[0]?.names || 'Un técnico';
+
+    await notificationService.createNotification(
+        receiverId, 'Propuesta de Servicio Recibida',
+        `${techName} te ha enviado una oferta por S/.${offerPrice}`,
+        'offer', { senderId: senderId.toString(), offerId: result.insertId.toString(), price: offerPrice.toString() }
+    );
+
+    res.status(201).json(Respuesta.ok({ offerId: result.insertId }, '¡Tu propuesta ha sido enviada al cliente!', 201));
+});
 
 /**
- * Accept offer
+ * PUT /api/messages/offers/:id/accept
  */
-const acceptOffer = async (req, res) => {
-    let respuesta = new Respuesta();
-    try {
-        const userId = req.user.id;
-        const { id } = req.params;
+const acceptOffer = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
 
-        // Verify user is receiver
-        const offerRes = await db.listar(
-            'SELECT receiver_id, offer_status FROM chat_messages WHERE id = ? AND message_type = "offer"',
-            false,
-            [id]
-        );
+    const [rows] = await pool.query(
+        'SELECT receiver_id, offer_status FROM chat_messages WHERE id = ? AND message_type = "offer"',
+        [id]
+    );
+    if (rows.length === 0) throw new AppError('No se pudo localizar la propuesta solicitada.', 404);
+    if (rows[0].receiver_id !== userId) throw new AppError('No autorizado para aceptar esta oferta.', 403);
+    if (rows[0].offer_status !== 'pending') throw new AppError('Esta propuesta ya ha sido procesada o ha expirado.', 400);
 
-        if (!offerRes.exito || !offerRes.resultado) {
-            respuesta.estado = 404;
-            respuesta.mensaje = 'No se pudo localizar la propuesta solicitada.';
-            return res.status(404).json(respuesta);
-        }
-
-        if (offerRes.resultado.receiver_id !== userId) {
-            respuesta.estado = 403;
-            respuesta.mensaje = 'No autorizado para aceptar esta oferta';
-            return res.status(403).json(respuesta);
-        }
-
-        if (offerRes.resultado.offer_status !== 'pending') {
-            respuesta.estado = 400;
-            respuesta.mensaje = 'Esta propuesta ya ha sido procesada o ha expirado.';
-            return res.status(400).json(respuesta);
-        }
-
-        await db.ejecutar(
-            'UPDATE chat_messages SET offer_status = "accepted" WHERE id = ?',
-            [id]
-        );
-
-        respuesta.exito = true;
-        respuesta.estado = 200;
-        respuesta.mensaje = '¡Has aceptado la propuesta correctamente!';
-        res.json(respuesta);
-
-    } catch (error) {
-        console.error('Accept offer error:', error);
-        respuesta.mensaje = 'Error al aceptar la oferta: ' + error.message;
-        res.status(500).json(respuesta);
-    }
-};
+    await pool.query('UPDATE chat_messages SET offer_status = "accepted" WHERE id = ?', [id]);
+    res.json(Respuesta.ok(null, '¡Has aceptado la propuesta correctamente!'));
+});
 
 /**
- * Reject offer
+ * PUT /api/messages/offers/:id/reject
  */
-const rejectOffer = async (req, res) => {
-    let respuesta = new Respuesta();
-    try {
-        const userId = req.user.id;
-        const { id } = req.params;
+const rejectOffer = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
 
-        const dbRes = await db.ejecutar(
-            'UPDATE chat_messages SET offer_status = "rejected" WHERE id = ? AND receiver_id = ? AND message_type = "offer"',
-            [id, userId]
-        );
-
-        if (!dbRes.exito || dbRes.resultado.affectedRows === 0) {
-            respuesta.estado = 404;
-            respuesta.mensaje = 'Oferta no encontrada o no autorizada';
-            return res.status(404).json(respuesta);
-        }
-
-        respuesta.exito = true;
-        respuesta.estado = 200;
-        respuesta.mensaje = 'Propuesta rechazada.';
-        res.json(respuesta);
-
-    } catch (error) {
-        console.error('Reject offer error:', error);
-        respuesta.mensaje = 'Error al rechazar la oferta: ' + error.message;
-        res.status(500).json(respuesta);
-    }
-};
+    const [result] = await pool.query(
+        'UPDATE chat_messages SET offer_status = "rejected" WHERE id = ? AND receiver_id = ? AND message_type = "offer"',
+        [id, userId]
+    );
+    if (result.affectedRows === 0) throw new AppError('Oferta no encontrada o no autorizada.', 404);
+    res.json(Respuesta.ok(null, 'Propuesta rechazada.'));
+});
 
 /**
- * Cancel offer (sender only)
+ * PUT /api/messages/offers/:id/cancel
  */
-const cancelOffer = async (req, res) => {
-    let respuesta = new Respuesta();
-    try {
-        const userId = req.user.id;
-        const { id } = req.params;
+const cancelOffer = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
 
-        const dbRes = await db.ejecutar(
-            'UPDATE chat_messages SET offer_status = "cancelled", cancelled_by = ? WHERE id = ? AND sender_id = ? AND message_type = "offer"',
-            [userId, id, userId]
-        );
-
-        if (!dbRes.exito || dbRes.resultado.affectedRows === 0) {
-            respuesta.estado = 404;
-            respuesta.mensaje = 'Oferta no encontrada o no autorizada';
-            return res.status(404).json(respuesta);
-        }
-
-        respuesta.exito = true;
-        respuesta.estado = 200;
-        respuesta.mensaje = 'Propuesta cancelada correctamente.';
-        res.json(respuesta);
-
-    } catch (error) {
-        console.error('Cancel offer error:', error);
-        respuesta.mensaje = 'Error al cancelar la oferta: ' + error.message;
-        res.status(500).json(respuesta);
-    }
-};
+    const [result] = await pool.query(
+        'UPDATE chat_messages SET offer_status = "cancelled", cancelled_by = ? WHERE id = ? AND sender_id = ? AND message_type = "offer"',
+        [userId, id, userId]
+    );
+    if (result.affectedRows === 0) throw new AppError('Oferta no encontrada o no autorizada.', 404);
+    res.json(Respuesta.ok(null, 'Propuesta cancelada correctamente.'));
+});
 
 /**
- * Mark message as read
+ * PUT /api/messages/:id/read
  */
-const markAsRead = async (req, res) => {
-    let respuesta = new Respuesta();
-    try {
-        const userId = req.user.id;
-        const { id } = req.params;
+const markAsRead = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
 
-        const dbRes = await db.ejecutar(
-            'UPDATE chat_messages SET is_read = TRUE WHERE id = ? AND receiver_id = ?',
-            [id, userId]
-        );
-
-        if (!dbRes.exito || dbRes.resultado.affectedRows === 0) {
-            respuesta.estado = 404;
-            respuesta.mensaje = 'Mensaje no encontrado o no autorizado';
-            return res.status(404).json(respuesta);
-        }
-
-        respuesta.exito = true;
-        respuesta.estado = 200;
-        respuesta.mensaje = 'Mensaje marcado como leído';
-        res.json(respuesta);
-
-    } catch (error) {
-        console.error('Mark as read error:', error);
-        respuesta.mensaje = 'Error al marcar como leído: ' + error.message;
-        res.status(500).json(respuesta);
-    }
-};
+    const [result] = await pool.query(
+        'UPDATE chat_messages SET is_read = TRUE WHERE id = ? AND receiver_id = ?',
+        [id, userId]
+    );
+    if (result.affectedRows === 0) throw new AppError('Mensaje no encontrado o no autorizado.', 404);
+    res.json(Respuesta.ok(null, 'Mensaje marcado como leído.'));
+});
 
 /**
- * Update message text
+ * PUT /api/messages/:id
  */
-const updateMessage = async (req, res) => {
-    let respuesta = new Respuesta();
-    try {
-        const userId = req.user.id;
-        const { id } = req.params;
-        const { messageText } = req.body;
+const updateMessage = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { messageText } = req.body;
 
-        const dbRes = await db.ejecutar(
-            'UPDATE chat_messages SET message_text = ?, is_edited = TRUE WHERE id = ? AND sender_id = ? AND message_type = "text"',
-            [messageText, id, userId]
-        );
-
-        if (!dbRes.exito || dbRes.resultado.affectedRows === 0) {
-            respuesta.estado = 404;
-            respuesta.mensaje = 'Mensaje no encontrado o no autorizado para editar';
-            return res.status(404).json(respuesta);
-        }
-
-        respuesta.exito = true;
-        respuesta.mensaje = 'Mensaje editado con éxito.';
-        res.json(respuesta);
-    } catch (error) {
-        res.status(500).json({ mensaje: error.message });
-    }
-};
+    const [result] = await pool.query(
+        'UPDATE chat_messages SET message_text = ?, is_edited = TRUE WHERE id = ? AND sender_id = ? AND message_type = "text"',
+        [messageText, id, userId]
+    );
+    if (result.affectedRows === 0) throw new AppError('Mensaje no encontrado o no autorizado para editar.', 404);
+    res.json(Respuesta.ok(null, 'Mensaje editado con éxito.'));
+});
 
 /**
- * Delete message (Delete for everyone if requested)
+ * DELETE /api/messages/:id
  */
-const deleteMessage = async (req, res) => {
-    let respuesta = new Respuesta();
-    try {
-        const userId = req.user.id;
-        const { id } = req.params;
-        const { deleteForEveryone = false } = req.body;
+const deleteMessage = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+    const { deleteForEveryone = false } = req.body;
 
-        // Fetch message details
-        const msgRes = await db.listar('SELECT sender_id FROM chat_messages WHERE id = ?', false, [id]);
-        
-        if (!msgRes.exito || !msgRes.resultado) {
-            return res.status(404).json({ mensaje: 'Mensaje no encontrado' });
-        }
+    const [rows] = await pool.query('SELECT sender_id FROM chat_messages WHERE id = ?', [id]);
+    if (rows.length === 0) throw new AppError('Mensaje no encontrado.', 404);
 
-        const msg = msgRes.resultado;
-
-        if (deleteForEveryone) {
-            if (msg.sender_id !== userId) {
-                return res.status(403).json({ mensaje: 'No puedes eliminar mensajes de otros para todos' });
-            }
-
-            await db.ejecutar(
-                'UPDATE chat_messages SET message_text = "🚫 Mensaje eliminado", deleted_at = NOW() WHERE id = ?',
-                [id]
-            );
-        } else {
-            // Delete for me
-            await db.ejecutar('DELETE FROM chat_messages WHERE id = ? AND (sender_id = ? OR receiver_id = ?)', [id, userId, userId]);
-        }
-
-        respuesta.exito = true;
-        respuesta.mensaje = 'El mensaje ha sido eliminado.';
-        res.json(respuesta);
-    } catch (error) {
-        res.status(500).json({ mensaje: error.message });
+    if (deleteForEveryone) {
+        if (rows[0].sender_id !== userId) throw new AppError('No puedes eliminar mensajes de otros para todos.', 403);
+        await pool.query('UPDATE chat_messages SET message_text = "🚫 Mensaje eliminado", deleted_at = NOW() WHERE id = ?', [id]);
+    } else {
+        await pool.query('DELETE FROM chat_messages WHERE id = ? AND (sender_id = ? OR receiver_id = ?)', [id, userId, userId]);
     }
-};
+
+    res.json(Respuesta.ok(null, 'El mensaje ha sido eliminado.'));
+});
 
 module.exports = {
-    getConversations,
-    getMessages,
-    sendMessage,
-    sendOffer,
-    acceptOffer,
-    rejectOffer,
-    cancelOffer,
-    markAsRead,
-    updateMessage,
-    deleteMessage
+    getConversations, getMessages, sendMessage, sendOffer,
+    acceptOffer, rejectOffer, cancelOffer, markAsRead, updateMessage, deleteMessage
 };
