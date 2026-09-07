@@ -7,9 +7,11 @@ import {
 } from 'lucide-react';
 import { techService, messageService, authService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { useSocket } from '../context/SocketContext';
 
 const TechDashboard = () => {
   const navigate = useNavigate();
+  const { socketService } = useSocket();
   const [appointments, setAppointments] = useState([]);
   const [conversations, setConversations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,6 +23,31 @@ const TechDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // Listen to real-time events
+  useEffect(() => {
+    if (!socketService) return;
+
+    const unsubApptCreated = socketService.on('appointment_created', () => {
+      fetchDashboardData();
+    });
+
+    const unsubApptProgress = socketService.on('appointment_progress', () => {
+      fetchDashboardData();
+    });
+
+    const unsubMsg = socketService.on('receive_message', () => {
+      messageService.getConversations().then(r => {
+        if (r.data.exito) setConversations(r.data.resultado || []);
+      }).catch(() => {});
+    });
+
+    return () => {
+      unsubApptCreated();
+      unsubApptProgress();
+      unsubMsg();
+    };
+  }, [socketService]);
 
   const fetchDashboardData = async () => {
     try {

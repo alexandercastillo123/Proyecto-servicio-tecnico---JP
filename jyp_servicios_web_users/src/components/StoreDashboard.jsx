@@ -9,9 +9,11 @@ import {
 } from 'lucide-react';
 import { storeService, messageService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { useSocket } from '../context/SocketContext';
 
 const StoreDashboard = () => {
   const navigate = useNavigate();
+  const { socketService } = useSocket();
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [conversations, setConversations] = useState([]);
@@ -22,6 +24,24 @@ const StoreDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
   }, []);
+
+  // Listen to socket events in StoreDashboard
+  useEffect(() => {
+    if (!socketService) return;
+
+    const unsubMsg = socketService.on('receive_message', () => {
+      fetchDashboardData();
+    });
+
+    const unsubAppt = socketService.on('appointment_created', () => {
+      fetchDashboardData();
+    });
+
+    return () => {
+      unsubMsg();
+      unsubAppt();
+    };
+  }, [socketService]);
 
   const fetchDashboardData = async () => {
     try {

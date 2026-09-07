@@ -5,12 +5,14 @@ import {
   Home, Search, Calendar, User, LogOut, 
   Menu, X, Bell, LayoutDashboard, Package,
   Settings, ChevronLeft, ChevronRight, Zap,
-  MessageSquare, ShoppingCart, MapPin, Store
+  MessageSquare, ShoppingCart, MapPin, Store, Wifi, WifiOff
 } from 'lucide-react';
+import { useSocket } from '../context/SocketContext';
 
 const Layout = ({ user, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const location = useLocation();
+  const { isConnected, unreadCount, setUnreadCount } = useSocket();
 
   const menuItems = {
     client: [
@@ -18,12 +20,12 @@ const Layout = ({ user, onLogout }) => {
       { path: '/stores', icon: Store, label: 'Tiendas Oficiales' },
       { path: '/appointments', icon: Calendar, label: 'Mis Citas' },
       { path: '/orders', icon: ShoppingCart, label: 'Mis Pedidos' },
-      { path: '/chat', icon: MessageSquare, label: 'Mensajes' },
+      { path: '/chat', icon: MessageSquare, label: 'Mensajes', badge: unreadCount },
       { path: '/profile', icon: User, label: 'Mi Perfil' },
     ],
     tech: [
       { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-      { path: '/chat', icon: MessageSquare, label: 'Mensajes' },
+      { path: '/chat', icon: MessageSquare, label: 'Mensajes', badge: unreadCount },
       { path: '/appointments', icon: Calendar, label: 'Mis Citas' },
       { path: '/profile', icon: User, label: 'Mi Perfil' },
     ],
@@ -31,7 +33,7 @@ const Layout = ({ user, onLogout }) => {
       { path: '/', icon: LayoutDashboard, label: 'Panel' },
       { path: '/products', icon: Package, label: 'Catálogo' },
       { path: '/orders', icon: ShoppingCart, label: 'Pedidos' },
-      { path: '/chat', icon: MessageSquare, label: 'Mensajes' },
+      { path: '/chat', icon: MessageSquare, label: 'Mensajes', badge: unreadCount },
       { path: '/profile', icon: User, label: 'Perfil' },
     ],
   };
@@ -71,20 +73,37 @@ const Layout = ({ user, onLogout }) => {
               <Link 
                 key={item.path} 
                 to={item.path}
+                onClick={() => {
+                  if (item.path === '/chat') {
+                    setUnreadCount(0);
+                  }
+                }}
                 className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-300 relative group ${
                   isActive ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <item.icon size={22} className={isActive ? 'animate-pulse' : ''} />
+                <div className="relative shrink-0">
+                  <item.icon size={22} className={isActive ? 'animate-pulse' : ''} />
+                  {item.badge > 0 && !isSidebarOpen && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping" />
+                  )}
+                </div>
                 <AnimatePresence>
                   {isSidebarOpen && (
-                    <motion.span 
+                    <motion.div 
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="font-bold whitespace-nowrap"
+                      className="flex items-center justify-between flex-1"
                     >
-                      {item.label}
-                    </motion.span>
+                      <span className="font-bold whitespace-nowrap">
+                        {item.label}
+                      </span>
+                      {item.badge > 0 && (
+                        <span className="px-2 py-0.5 bg-rose-500 text-white rounded-full text-[10px] font-black animate-pulse">
+                          {item.badge}
+                        </span>
+                      )}
+                    </motion.div>
                   )}
                 </AnimatePresence>
                 {isActive && (
@@ -129,6 +148,12 @@ const Layout = ({ user, onLogout }) => {
               <MapPin size={14} className="text-primary" />
               Lima, Perú
             </h2>
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-wider">
+              <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-amber-400'}`} />
+              <span className={isConnected ? 'text-emerald-400' : 'text-amber-400'}>
+                {isConnected ? 'Socket en vivo' : 'Conectando...'}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-6">

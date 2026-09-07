@@ -10,11 +10,13 @@ import {
 } from 'lucide-react';
 import { messageService, clientService, techService, storeService } from '../services/api';
 import { toast } from 'react-hot-toast';
+import { useSocket } from '../context/SocketContext';
 
 const Chat = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const initialUserId = searchParams.get('user');
+  const { socketService, emitTyping, isConnected } = useSocket();
   
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
@@ -24,6 +26,7 @@ const Chat = () => {
   const [showOfferModal, setShowOfferModal] = useState(false);
   const [offerPrice, setOfferPrice] = useState('');
   const [currentUser] = useState(JSON.parse(localStorage.getItem('user') || '{}'));
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
   
   // New States for Parity
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -33,10 +36,113 @@ const Chat = () => {
   const [processing, setProcessing] = useState(false);
 
   const scrollRef = useRef();
+  const typingTimeoutRef = useRef(null);
 
   useEffect(() => {
     fetchConversations();
   }, []);
+
+  // Socket.IO Real-time listeners
+  useEffect(() => {
+    if (!socketService) return;
+
+    // Escuchar mensajes entrantes
+    const unsubMessage = socketService.on('receive_message', (data) => {
+      const activeOtherId = selectedConversation?.other_user_id;
+      const isRelatedToActiveChat = 
+        String(data.sender_id) === String(activeOtherId) || 
+        String(data.receiver_id) === String(activeOtherId);
+
+      if (isRelatedToActiveChat) {
+        setMessages((prev) => {
+          // Evitar duplicados por id
+          if (data.id && prev.some(m => m.id === data.id)) {
+            return prev;
+          }
+          return [...prev, data];
+        });
+        setIsOtherTyping(false);
+        setTimeout(scrollToBottom, 50);
+      }
+
+      // Actualizar lista de conversaciones en tiempo real
+      setConversations((prev) => {
+        const otherId = String(data.sender_id) === String(currentUser.id) ? data.receiver_id : data.sender_id;
+        const index = prev.findIndex(c => String(c.other_user_id) === String(otherId));
+        
+        if (index !== -1) {
+          const updated = [...prev];
+          updated[index] = {
+            ...updated[index],
+            last_message: data.message_text || (data.message_type === 'offer' ? `Oferta: S/ ${data.offer_price}` : 'Mensaje'),
+            last_message_time: data.created_at || new Date().toISOString()
+          };
+          // Mover al principio
+          const [item] = updated.splice(index, 1);
+          return [item, ...updated];
+        } else {
+          // Si es nueva conversación, refrescar desde API
+          fetchConversations();
+          return prev;
+        }
+      });
+    });
+
+    // Escuchar indicador de escribiendo
+    const unsubTyping = socketService.on('user_typing', (data) => {
+      if (selectedConversation && String(data.senderId) === String(selectedConversation.other_user_id)) {
+        setIsOtherTyping(!!data.isTyping);
+      }
+    });
+
+    // Escuchar actualización de ofertas
+    const unsubOffer = socketService.on('offer_updated', (data) => {
+      setMessages((prev) => 
+        prev.map(m => (m.id === data.offerId || m.offer_id === data.offerId) 
+          ? { ...m, offer_status: data.offerStatus } 
+          : m
+        )
+      );
+    });
+
+    // Escuchar actualización de precios de cita
+    const unsubPrice = socketService.on('appointment_price_updated', (data) => {
+      setMessages((prev) =>
+        prev.map(m => m.appointment_id === data.appointment_id
+          ? { ...m, appointment_price: data.price }
+          : m
+        )
+      );
+    });
+
+    // Escuchar pagos de citas
+    const unsubPaymentWaiting = socketService.on('appointment_payment_waiting', (data) => {
+      setMessages((prev) =>
+        prev.map(m => m.appointment_id === data.appointment_id
+          ? { ...m, appointment_payment_status: 'waiting_confirmation' }
+          : m
+        )
+      );
+    });
+
+    const unsubPaymentConfirmed = socketService.on('appointment_payment_confirmed', (data) => {
+      setMessages((prev) =>
+        prev.map(m => m.appointment_id === data.appointment_id
+          ? { ...m, appointment_payment_status: 'paid', appointment_status: 'confirmed' }
+          : m
+        )
+      );
+    });
+
+    return () => {
+      unsubMessage();
+      unsubTyping();
+      unsubOffer();
+      unsubPrice();
+      unsubPaymentWaiting();
+      unsubPaymentConfirmed();
+    };
+  }, [socketService, selectedConversation, currentUser.id]);
 
   useEffect(() => {
     if (initialUserId && conversations.length >= 0) {
@@ -107,24 +213,47 @@ const Chat = () => {
     }
   };
 
+  const handleInputChange = (e) => {
+    setNewMessage(e.target.value);
+
+    if (selectedConversation && emitTyping) {
+      emitTyping(selectedConversation.other_user_id, true);
+
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+
+      typingTimeoutRef.current = setTimeout(() => {
+        emitTyping(selectedConversation.other_user_id, false);
+      }, 1500);
+    }
+  };
+
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedConversation) return;
 
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    emitTyping(selectedConversation.other_user_id, false);
+
+    const messageText = newMessage.trim();
+    setNewMessage('');
+
     try {
       const data = {
         receiverId: selectedConversation.other_user_id,
-        messageText: newMessage,
+        messageText,
       };
       const resp = await messageService.sendMessage(data);
       if (resp.data.exito) {
-        setNewMessage('');
         fetchMessages(selectedConversation.other_user_id);
-        // Refresh conversations list to update last message
         fetchConversations();
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      toast.error('Error al enviar mensaje');
     }
   };
 
@@ -331,8 +460,10 @@ const Chat = () => {
                 <div>
                   <h2 className="text-sm font-black text-white">{selectedConversation.username || `${selectedConversation.names} ${selectedConversation.surnames}`}</h2>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 rounded-full bg-success" />
-                    <span className="text-[10px] text-success font-black uppercase tracking-wider">En línea</span>
+                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-success animate-pulse' : 'bg-amber-400'}`} />
+                    <span className={`text-[10px] font-black uppercase tracking-wider ${isConnected ? 'text-success' : 'text-amber-400'}`}>
+                      {isConnected ? 'En vivo' : 'Conectando...'}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -546,6 +677,25 @@ const Chat = () => {
               <div ref={scrollRef} />
             </div>
 
+            {/* Typing Indicator */}
+            <AnimatePresence>
+              {isOtherTyping && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 5 }} 
+                  animate={{ opacity: 1, y: 0 }} 
+                  exit={{ opacity: 0, y: 5 }}
+                  className="px-6 py-1 bg-surface/20 flex items-center gap-2 text-xs text-primary font-bold"
+                >
+                  <div className="flex gap-1 items-center">
+                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                  <span>{selectedConversation?.username || 'El usuario'} está escribiendo...</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Input Area */}
             <div className="p-6 bg-surface/30 backdrop-blur-md border-t border-white/5">
               <form onSubmit={handleSendMessage} className="flex gap-4">
@@ -558,7 +708,7 @@ const Chat = () => {
                     placeholder="Escribe tu mensaje aquí..." 
                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all"
                     value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
+                    onChange={handleInputChange}
                   />
                 </div>
                 <button type="submit" className="p-3 bg-primary hover:bg-primary-dark rounded-xl text-white shadow-lg shadow-primary/30 transition-all">

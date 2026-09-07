@@ -7,8 +7,10 @@ import {
 } from 'lucide-react';
 import { clientService, techService } from '../services/api';
 import { Link } from 'react-router-dom';
+import { useSocket } from '../context/SocketContext';
 
 const AppointmentList = () => {
+  const { socketService } = useSocket();
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, pending, confirmed, completed, cancelled
@@ -17,6 +19,34 @@ const AppointmentList = () => {
   useEffect(() => {
     fetchAppointments();
   }, [filter]);
+
+  // Real-time socket updates for appointments
+  useEffect(() => {
+    if (!socketService) return;
+
+    const unsubProgress = socketService.on('appointment_progress', () => {
+      fetchAppointments();
+    });
+
+    const unsubCreated = socketService.on('appointment_created', () => {
+      fetchAppointments();
+    });
+
+    const unsubPrice = socketService.on('appointment_price_updated', () => {
+      fetchAppointments();
+    });
+
+    const unsubConfirmed = socketService.on('appointment_payment_confirmed', () => {
+      fetchAppointments();
+    });
+
+    return () => {
+      unsubProgress();
+      unsubCreated();
+      unsubPrice();
+      unsubConfirmed();
+    };
+  }, [socketService, filter]);
 
   const fetchAppointments = async () => {
     setLoading(true);
