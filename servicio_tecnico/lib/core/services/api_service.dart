@@ -1,5 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'package:path/path.dart' as p;
+import 'local_cache_service.dart';
 
 class ApiResponse<T> {
   final bool success;
@@ -28,14 +31,23 @@ class ApiService {
 
   void setToken(String token) {
     _token = token;
+    LocalCacheService.saveToken(token);
   }
 
   String? getToken() {
+    if (_token == null) {
+      _token = LocalCacheService.getToken();
+    }
     return _token;
   }
 
   void clearToken() {
     _token = null;
+    LocalCacheService.clearAuth();
+  }
+
+  Future<void> logout() async {
+    clearToken();
   }
 
   Map<String, String> _getHeaders({bool includeAuth = false}) {
@@ -112,15 +124,17 @@ class ApiService {
     }
   }
 
-  Future<ApiResponse<T>> delete<T>(
-    String url, {
+  Future<ApiResponse<T>> patch<T>(
+    String url,
+    Map<String, dynamic> body, {
     bool requiresAuth = false,
     T Function(dynamic)? fromJson,
   }) async {
     try {
-      final response = await http.delete(
+      final response = await http.patch(
         Uri.parse(url),
         headers: _getHeaders(includeAuth: requiresAuth),
+        body: jsonEncode(body),
       );
 
       return _handleResponse<T>(response, fromJson);
@@ -128,6 +142,93 @@ class ApiService {
       return ApiResponse(
         success: false,
         message: 'Error de conexión: ${e.toString()}',
+      );
+    }
+  }
+
+  Future<ApiResponse<T>> delete<T>(
+    String url, {
+    Map<String, dynamic>? body,
+    bool requiresAuth = false,
+    T Function(dynamic)? fromJson,
+  }) async {
+    try {
+      final response = await http.delete(
+        Uri.parse(url),
+        headers: _getHeaders(includeAuth: requiresAuth),
+        body: body != null ? jsonEncode(body) : null,
+      );
+
+      return _handleResponse<T>(response, fromJson);
+    } catch (e) {
+      return ApiResponse(
+        success: false,
+        message: 'Error de conexión: ${e.toString()}',
+      );
+    }
+  }
+
+  Future<ApiResponse<T>> uploadFile<T>(
+    String url,
+    String filePath, {
+    String fieldName = 'file',
+    bool requiresAuth = true,
+    T Function(dynamic)? fromJson,
+  }) async {
+    try {
+      final extension = p.extension(filePath).toLowerCase();
+      String type = 'image';
+      String subtype = 'jpeg'; // default
+
+      if (extension == '.png') subtype = 'png';
+      if (extension == '.webp') subtype = 'webp';
+      if (extension == '.gif') subtype = 'gif';
+
+      final file = await http.MultipartFile.fromPath(
+        fieldName,
+        filePath,
+        contentType: MediaType(type, subtype),
+      );
+      return postMultipart<T>(url, {}, file, requiresAuth: requiresAuth, fromJson: fromJson);
+    } catch (e) {
+      return ApiResponse(
+        success: false,
+        message: 'Error al preparar archivo: ${e.toString()}',
+      );
+    }
+  }
+
+  Future<ApiResponse<T>> postMultipart<T>(
+    String url,
+    Map<String, String> fields,
+    http.MultipartFile file, {
+    bool requiresAuth = false,
+    T Function(dynamic)? fromJson,
+  }) async {
+    try {
+      final request = http.MultipartRequest('POST', Uri.parse(url));
+
+      // Add headers
+      final headers = _getHeaders(includeAuth: requiresAuth);
+      headers.remove(
+        'Content-Type',
+      ); // http.MultipartRequest sets this automatically
+      request.headers.addAll(headers);
+
+      // Add fields
+      request.fields.addAll(fields);
+
+      // Add file
+      request.files.add(file);
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      return _handleResponse<T>(response, fromJson);
+    } catch (e) {
+      return ApiResponse(
+        success: false,
+        message: 'Error al subir archivo: ${e.toString()}',
       );
     }
   }

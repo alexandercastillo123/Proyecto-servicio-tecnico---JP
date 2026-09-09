@@ -8,6 +8,7 @@ import '../../features/home/presentation/screens/client_home_screen.dart';
 import '../../features/technicians/presentation/screens/technician_list_screen.dart';
 import '../../features/auth/presentation/screens/forgot_password_screen.dart';
 import '../../features/auth/presentation/screens/verification_code_screen.dart';
+import '../../features/auth/presentation/screens/reset_password_screen.dart';
 import '../../features/profile/presentation/screens/profile_screen.dart';
 import '../../features/technicians/presentation/screens/technician_profile_screen.dart';
 import '../../features/appointments/presentation/screens/appointment_scheduling_screen.dart';
@@ -15,9 +16,58 @@ import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/profile/presentation/screens/provider_profile_screen.dart';
 import '../../features/profile/presentation/screens/change_photo_screen.dart';
 import '../../features/profile/presentation/screens/edit_data_screen.dart';
+import '../../features/appointments/presentation/screens/appointment_details_screen.dart';
+import '../../features/home/presentation/screens/store_home_screen.dart';
+import '../../features/home/presentation/screens/store_profile_screen.dart';
+import '../../features/home/presentation/screens/order_flow_wizard.dart';
+import '../models/store.dart';
+import '../models/store_product.dart';
+import '../../features/store/presentation/screens/create_store_screen.dart';
+import '../../features/profile/presentation/screens/notification_settings_screen.dart';
+import '../../features/payments/presentation/screens/culqi_payment_screen.dart';
+import '../../features/profile/presentation/screens/settings_screen.dart';
+import '../../features/profile/presentation/screens/legal_content_screen.dart';
+import '../../features/profile/presentation/screens/change_password_screen.dart';
+
+import '../../../../features/profile/presentation/screens/notifications_screen.dart';
+
+import 'package:servicio_tecnico_app/core/services/api_service.dart';
+import 'package:servicio_tecnico_app/core/services/local_cache_service.dart';
 
 final appRouter = GoRouter(
-  initialLocation: '/login', // Login is now the start
+  initialLocation: '/login',
+  redirect: (context, state) {
+    final token = ApiService().getToken();
+    final role = LocalCacheService.getRole();
+    final lastActivity = LocalCacheService.getLastActivity();
+
+    // Inactivity timeout: 24 hours
+    if (token != null && lastActivity != null) {
+      final now = DateTime.now().millisecondsSinceEpoch;
+      if (now - lastActivity > 1000 * 60 * 60 * 24) {
+        ApiService().clearToken();
+        return '/login';
+      }
+    }
+
+    final isLoggingIn =
+        state.matchedLocation == '/login' ||
+        state.matchedLocation == '/role-selection' ||
+        state.matchedLocation.startsWith('/register');
+
+    if (token != null && isLoggingIn) {
+      LocalCacheService.saveLastActivity(); // Update activity
+      if (role == 'client') return '/client-home';
+      if (role == 'tech') return '/home';
+      if (role == 'store') return '/store-home';
+    }
+
+    if (token != null) {
+      LocalCacheService.saveLastActivity();
+    }
+
+    return null;
+  },
   routes: [
     GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
     // Forgot Password Flow
@@ -25,10 +75,20 @@ final appRouter = GoRouter(
       path: '/forgot-password',
       builder: (context, state) => const ForgotPasswordScreen(),
     ),
-    // ...
     GoRoute(
       path: '/forgot-password/verify',
-      builder: (context, state) => const VerificationCodeScreen(),
+      builder: (context, state) {
+        final email = state.uri.queryParameters['email'] ?? '';
+        return VerificationCodeScreen(email: email);
+      },
+    ),
+    GoRoute(
+      path: '/forgot-password/reset',
+      builder: (context, state) {
+        final email = state.uri.queryParameters['email'] ?? '';
+        final code = state.uri.queryParameters['code'] ?? '';
+        return ResetPasswordScreen(email: email, code: code);
+      },
     ),
     // Register/Role Selection
     GoRoute(
@@ -62,6 +122,14 @@ final appRouter = GoRouter(
       builder: (context, state) => const ProviderHomeScreen(),
     ),
     GoRoute(
+      path: '/store-home',
+      builder: (context, state) => const StoreHomeScreen(),
+    ),
+    GoRoute(
+      path: '/create-store',
+      builder: (context, state) => const CreateStoreScreen(),
+    ),
+    GoRoute(
       path: '/profile',
       builder: (context, state) => const ProfileScreen(),
     ),
@@ -78,6 +146,14 @@ final appRouter = GoRouter(
       builder: (context, state) => const EditDataScreen(),
     ),
     GoRoute(
+      path: '/notification-settings',
+      builder: (context, state) => const NotificationSettingsScreen(),
+    ),
+    GoRoute(
+      path: '/notifications',
+      builder: (context, state) => const NotificationsScreen(),
+    ),
+    GoRoute(
       path: '/technician-profile',
       builder: (context, state) => const TechnicianProfileScreen(),
     ),
@@ -85,6 +161,64 @@ final appRouter = GoRouter(
       path: '/appointment-scheduling',
       builder: (context, state) => const AppointmentSchedulingScreen(),
     ),
+    GoRoute(
+      path: '/appointment-details/:id',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
+        return AppointmentDetailsScreen(appointmentId: id);
+      },
+    ),
     GoRoute(path: '/chat', builder: (context, state) => const ChatScreen()),
+    GoRoute(
+      path: '/store-profile/:id',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
+        return StoreProfileScreen(storeId: id);
+      },
+    ),
+    GoRoute(
+      path: '/order-flow-wizard',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        final storeId = extra['storeId'] as int? ?? 0;
+        final store = extra['store'] as Store;
+        final products = extra['products'] as List<StoreProduct>? ?? [];
+        return OrderFlowWizard(
+          storeId: storeId,
+          store: store,
+          products: products,
+        );
+      },
+    ),
+    GoRoute(
+      path: '/settings',
+      builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/legal',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return LegalContentScreen(
+          title: extra['title'] ?? 'Legal',
+          content: extra['content'] ?? '',
+        );
+      },
+    ),
+    GoRoute(
+      path: '/change-password',
+      builder: (context, state) => const ChangePasswordScreen(),
+    ),
+    GoRoute(
+      path: '/culqi-payment',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>? ?? {};
+        return CulqiPaymentScreen(
+          amount: extra['amount'] ?? 0.0,
+          description: extra['description'] ?? '',
+          entityId: extra['entityId'] ?? 0,
+          paymentType: extra['paymentType'] ?? 'appointment',
+        );
+      },
+    ),
   ],
 );
