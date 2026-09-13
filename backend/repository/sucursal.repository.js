@@ -156,7 +156,9 @@ const hasCompletedTransaction = async (clientId, storeId) => {
         [clientId, storeId]
     );
     const [appRows] = await pool.query(
-        `SELECT id FROM appointments WHERE client_id = ? AND store_id = ? AND status = 'completed' LIMIT 1`,
+        `SELECT a.id FROM appointments a
+         JOIN sucursales_citas sc ON a.id = sc.cita_id
+         WHERE a.client_id = ? AND sc.sucursal_id = ? AND a.status = 'completed' LIMIT 1`,
         [clientId, storeId]
     );
     return orderRows.length > 0 || appRows.length > 0;

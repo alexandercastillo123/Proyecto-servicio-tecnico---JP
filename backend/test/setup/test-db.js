@@ -86,6 +86,19 @@ async function truncateAll(dbName) {
     try {
         await conn.query('SET FOREIGN_KEY_CHECKS = 0');
         const tables = [
+            'store_order_products',
+            'store_orders',
+            'store_reviews',
+            'store_schedules',
+            'store_products',
+            'reviews',
+            'technician_schedules',
+            'payment_logs',
+            'notifications',
+            'notification_settings',
+            'chat_messages',
+            'sucursales_citas',
+            'appointments',
             'user_device_tokens',
             'password_resets',
             'sucursales',
