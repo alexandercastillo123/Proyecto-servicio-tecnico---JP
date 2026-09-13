@@ -8,16 +8,25 @@ const { pool } = require('../config/database');
 // ─── Notifications ────────────────────────────────────────────────────────────
 
 const insert = async (userId, title, message, type, extraData = {}) => {
+    let relatedId = null;
+    if (typeof extraData === 'number') {
+        relatedId = extraData;
+    } else if (extraData && typeof extraData === 'object') {
+        const rawId = extraData.related_id || extraData.relatedId || extraData.appointmentId || extraData.orderId;
+        if (rawId !== undefined && rawId !== null) {
+            relatedId = parseInt(rawId, 10) || null;
+        }
+    }
     const [result] = await pool.query(
-        'INSERT INTO notifications (user_id, title, message, type, extra_data) VALUES (?, ?, ?, ?, ?)',
-        [userId, title, message, type, JSON.stringify(extraData)]
+        'INSERT INTO notifications (user_id, title, message, type, related_id) VALUES (?, ?, ?, ?, ?)',
+        [userId, title, message, type, relatedId]
     );
     return result.insertId;
 };
 
 const findByUser = async (userId, limit = 50) => {
     const [rows] = await pool.query(
-        'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT ?',
+        'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ?',
         [userId, limit]
     );
     return rows;
@@ -46,15 +55,16 @@ const createDefaultSettings = async (userId) => {
 };
 
 const updateSettings = async (userId, fields) => {
-    const { push_enabled, appointments_reminders, chat_notifications, order_updates } = fields;
+    const { push_enabled, appointments_reminders, appointment_reminders, chat_notifications, order_updates } = fields;
+    const reminders = appointment_reminders !== undefined ? appointment_reminders : appointments_reminders;
     await pool.query(
         `UPDATE notification_settings
-         SET push_enabled              = COALESCE(?, push_enabled),
-             appointments_reminders    = COALESCE(?, appointments_reminders),
-             chat_notifications        = COALESCE(?, chat_notifications),
-             order_updates             = COALESCE(?, order_updates)
+         SET push_enabled          = COALESCE(?, push_enabled),
+             appointment_reminders = COALESCE(?, appointment_reminders),
+             chat_notifications    = COALESCE(?, chat_notifications),
+             order_updates         = COALESCE(?, order_updates)
          WHERE user_id = ?`,
-        [push_enabled, appointments_reminders, chat_notifications, order_updates, userId]
+        [push_enabled, reminders, chat_notifications, order_updates, userId]
     );
 };
 
