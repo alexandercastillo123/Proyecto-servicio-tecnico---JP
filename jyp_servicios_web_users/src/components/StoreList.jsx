@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Store, MapPin, Search, Filter, 
-  ChevronRight, Phone, Clock, ShoppingCart,
-  ArrowRight, X, Zap, Target, Star, ShieldCheck, RefreshCw, Navigation
-} from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
+import { Store, MapPin, Search, Filter, ChevronRight, Phone, Clock, ShoppingCart, ArrowRight, X, Zap, Target, Star, ShieldCheck, RefreshCw, Navigation } from 'lucide-react';
 import { storeService, messageService } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -30,14 +25,6 @@ const userIcon = new L.Icon({
   iconSize: [30, 30],
   iconAnchor: [15, 15],
 });
-
-const RecenterMap = ({ coords }) => {
-  const map = useMap();
-  useEffect(() => {
-    if (coords) map.setView(coords, map.getZoom());
-  }, [coords, map]);
-  return null;
-};
 
 const StoreList = () => {
   const navigate = useNavigate();
