@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:animate_do/animate_do.dart';
 import 'package:servicio_tecnico_app/core/services/auth_service.dart';
+import 'package:servicio_tecnico_app/core/services/local_cache_service.dart';
 import '../../../../core/constants/assets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
@@ -17,164 +20,244 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const SizedBox(height: 40),
-              // Logo
-              Center(
-                child: Image.asset(
-                  AppAssets.logo,
-                  height: 150, // Adjust height as needed
-                  fit: BoxFit.contain,
-                ),
+      body: Stack(
+        children: [
+          // Fondo con gradiente premium adaptativo
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: Theme.of(context).brightness == Brightness.dark
+                    ? [const Color(0xFF1E293B), const Color(0xFF020617)]
+                    : [const Color(0xFFEBE9FF), Colors.white],
+                stops: const [0.0, 0.4],
               ),
-
-              const SizedBox(height: 60),
-
-              CustomTextField(
-                label: 'Correo Electrónico',
-                hint: 'Correo Electrónico',
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-              ),
-
-              const SizedBox(height: 20),
-
-              CustomTextField(
-                label: 'Contraseña',
-                hint: 'Contraseña',
-                controller: _passwordController,
-                isPassword: !_isPasswordVisible,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _isPasswordVisible
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                    color: AppColors.primary,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _isPasswordVisible = !_isPasswordVisible;
-                    });
-                  },
-                ),
-              ),
-
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => context.push('/forgot-password'),
-                  child: const Text(
-                    '¿Olvido su contraseña?',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
+            ),
+          ),
+          
+          SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const SizedBox(height: 60),
+                  
+                  // Logo con animación y sombra suave
+                  FadeInDown(
+                    duration: const Duration(milliseconds: 1000),
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.getBackgroundColor(context),
+                          shape: BoxShape.circle,
+                          boxShadow: AppColors.softShadow,
+                        ),
+                        child: Image.asset(
+                          AppAssets.logo,
+                          height: 100,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
 
-              const SizedBox(height: 32),
+                  const SizedBox(height: 48),
 
-              CustomButton(
-                text: 'Iniciar Sesión',
-                onPressed: () async {
-                  // Validar que los campos no estén vacíos
-                  if (_emailController.text.isEmpty ||
-                      _passwordController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Por favor complete todos los campos'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                    return;
-                  }
-
-                  // Mostrar loading
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (context) =>
-                        const Center(child: CircularProgressIndicator()),
-                  );
-
-                  try {
-                    // Llamar al backend
-                    final authService = AuthService();
-                    final response = await authService.login(
-                      email: _emailController.text.trim(),
-                      password: _passwordController.text,
-                    );
-
-                    // Cerrar loading
-                    if (context.mounted) Navigator.pop(context);
-
-                    if (response.success && response.data != null) {
-                      final role = response.data!['role'];
-
-                      // Navegar según el rol
-                      if (context.mounted) {
-                        if (role == 'client') {
-                          context.go('/client-home');
-                        } else if (role == 'tech') {
-                          context.go('/home');
-                        }
-                      }
-                    } else {
-                      // Mostrar error
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              response.message ?? 'Error al iniciar sesión',
-                            ),
-                            backgroundColor: Colors.red,
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 800),
+                    delay: const Duration(milliseconds: 200),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Bienvenido de nuevo',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.outfit(
+                            fontSize: 32,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.getTextPrimary(context),
+                            letterSpacing: -0.5,
                           ),
-                        );
-                      }
-                    }
-                  } catch (e) {
-                    // Cerrar loading si hay error
-                    if (context.mounted) Navigator.pop(context);
-
-                    // Mostrar error
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Error: ${e.toString()}'),
-                          backgroundColor: Colors.red,
                         ),
-                      );
-                    }
-                  }
-                },
-              ),
-
-              const SizedBox(height: 48),
-              Center(
-                child: TextButton(
-                  onPressed: () => context.push('/role-selection'),
-                  child: const Text(
-                    '¿No tiene una cuenta?',
-                    style: TextStyle(color: AppColors.primary, fontSize: 14),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Ingresa tus credenciales para continuar',
+                          style: GoogleFonts.outfit(
+                            fontSize: 16,
+                            color: AppColors.getTextSecondary(context),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+
+                  const SizedBox(height: 48),
+
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 800),
+                    delay: const Duration(milliseconds: 400),
+                    child: Column(
+                      children: [
+                        CustomTextField(
+                          label: 'Correo Electrónico',
+                          hint: 'ejemplo@correo.com',
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          prefixIcon: const Icon(Icons.email_outlined, color: AppColors.primary, size: 20),
+                        ),
+                        const SizedBox(height: 24),
+                        CustomTextField(
+                          label: 'Contraseña',
+                          hint: '••••••••',
+                          controller: _passwordController,
+                          isPassword: !_isPasswordVisible,
+                          prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.primary, size: 20),
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: AppColors.textLight,
+                              size: 20,
+                            ),
+                            onPressed: () => setState(() => _isPasswordVisible = !_isPasswordVisible),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+                  
+                  FadeIn(
+                    delay: const Duration(milliseconds: 600),
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () => context.push('/forgot-password'),
+                        child: Text(
+                          '¿Olvidaste tu contraseña?',
+                          style: GoogleFonts.outfit(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 800),
+                    delay: const Duration(milliseconds: 600),
+                    child: CustomButton(
+                      text: 'Iniciar Sesión',
+                      isLoading: _isLoading,
+                      onPressed: _handleLogin,
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+                  
+                  FadeInUp(
+                    duration: const Duration(milliseconds: 800),
+                    delay: const Duration(milliseconds: 800),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '¿No tienes cuenta? ',
+                          style: GoogleFonts.outfit(
+                            color: AppColors.textSecondary,
+                            fontSize: 15,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => context.push('/role-selection'),
+                          child: Text(
+                            'Regístrate aquí',
+                            style: GoogleFonts.outfit(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handleLogin() async {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      _showError('Por favor, ingresa tu correo y contraseña para continuar.');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final authService = AuthService();
+      final response = await authService.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (response.success && response.data != null) {
+        final role = response.data!['role'];
+        final userId = response.data!['id'];
+        await LocalCacheService.saveRole(role);
+        if (userId != null) {
+          await LocalCacheService.saveUserId(userId);
+        }
+        await LocalCacheService.saveLastActivity(); // Initialize activity tracking
+        
+        if (mounted) {
+          if (role == 'client') {
+            context.go('/client-home');
+          } else if (role == 'tech') {
+            context.go('/home');
+          } else if (role == 'store') {
+            context.go('/store-home');
+          }
+        }
+      } else {
+        _showError(response.message ?? 'El correo o la contraseña son incorrectos. Inténtalo de nuevo.');
+      }
+    } catch (e) {
+      _showError('No pudimos conectar con el servidor. Verifica tu internet e intenta nuevamente.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: GoogleFonts.outfit()),
+        backgroundColor: AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 }
+

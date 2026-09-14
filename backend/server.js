@@ -1,18 +1,40 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const http = require('http');
+const { Server } = require('socket.io');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpecs = require('./config/swagger');
+const { setIO } = require('./config/socketManager');
 require('dotenv').config();
 
 const errorHandler = require('./middleware/errorHandler');
 
-// Import routes
+// Importar rutas
 const authRoutes = require('./routes/auth.routes');
 const usersRoutes = require('./routes/users.routes');
 const techniciansRoutes = require('./routes/technicians.routes');
 const appointmentsRoutes = require('./routes/appointments.routes');
 const messagesRoutes = require('./routes/messages.routes');
+const sucursalesRoutes = require('./routes/sucursales.routes');
+const adminRoutes = require('./routes/admin.routes');
+const notificationsRoutes = require('./routes/notifications.routes');
+const culqiRoutes = require('./routes/culqi.routes');
+const appointmentManager = require('./utils/appointmentManager');
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: "*",
+        methods: ["GET", "POST"]
+    }
+});
+
+// Register io in the singleton manager so controllers can access it
+// without creating circular dependencies via require('../server')
+setIO(io);
+
 const PORT = process.env.PORT || 3000;
 
 // Middleware
@@ -21,59 +43,101 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded files statically
+// Swagger Documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs));
+
+// Servir archivos subidos estáticamente
 app.use('/uploads', express.static('uploads'));
 
-// Health check endpoint
+// Punto de verificación de salud (Health check)
 app.get('/health', (req, res) => {
     res.json({
         success: true,
-        message: 'Server is running',
+        mensaje: 'El servidor está funcionando',
         timestamp: new Date().toISOString()
     });
 });
 
-// API Routes
+// Rutas de la API
 app.use('/api/auth', authRoutes);
 app.use('/api/users', usersRoutes);
 app.use('/api/technicians', techniciansRoutes);
 app.use('/api/appointments', appointmentsRoutes);
 app.use('/api/messages', messagesRoutes);
+app.use('/api/sucursales', sucursalesRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/notifications', notificationsRoutes);
+app.use('/api/culqi', culqiRoutes);
 
-// 404 handler
+// Manejador de ruta no encontrada (404)
 app.use((req, res) => {
     res.status(404).json({
         success: false,
-        message: 'Endpoint not found'
+        mensaje: 'Endpoint no encontrado'
     });
 });
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
 
-// Start server
-app.listen(PORT, '0.0.0.0', () => {
+// Socket.io connection logic
+io.on('connection', (socket) => {
+    console.log(`📡 Nuevo cliente conectado: ${socket.id}`);
+
+    socket.on('join_room', (userId) => {
+        socket.join(`user_${userId}`);
+        socket.userId = userId;
+        console.log(`👤 Usuario ${userId} se unió a su sala privada`);
+    });
+
+    socket.on('leave_room', (userId) => {
+        socket.leave(`user_${userId}`);
+        console.log(`👋 Usuario ${userId} salió de su sala`);
+    });
+
+    socket.on('send_message', (data) => {
+        // Enviar a la sala del destinatario
+        io.to(`user_${data.receiverId}`).emit('receive_message', data);
+        console.log(`✉️ Mensaje enviado de ${data.senderId} a ${data.receiverId}`);
+    });
+
+    socket.on('typing', (data) => {
+        if (data && data.receiverId) {
+            io.to(`user_${data.receiverId}`).emit('user_typing', {
+                senderId: data.senderId,
+                isTyping: !!data.isTyping
+            });
+        }
+    });
+
+    socket.on('disconnect', () => {
+        console.log(`🔌 Cliente desconectado (${socket.id})`);
+    });
+});
+
+// Iniciar servidor
+server.listen(PORT, '0.0.0.0', () => {
     console.log('╔═══════════════════════════════════════════════════════╗');
     console.log('║                                                       ║');
-    console.log('║   🚀 Servicio Técnico J&P - Backend API Server       ║');
+    console.log('║   🚀 Servicio Técnico J&P - Servidor Backend API      ║');
     console.log('║                                                       ║');
     console.log('╚═══════════════════════════════════════════════════════╝');
     console.log('');
-    console.log(`📡 Server running on: http://localhost:${PORT}`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`⏰ Started at: ${new Date().toLocaleString()}`);
+    console.log(`📡 Servidor ejecutándose en: http://localhost:${PORT}`);
+    console.log(`📖 Documentación API: http://localhost:${PORT}/api-docs`);
+    console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`⏰ Iniciado en: ${new Date().toLocaleString()}`);
     console.log('');
-    console.log('Available endpoints:');
+    console.log('Endpoints principales:');
     console.log('  GET  /health                          - Health check');
-    console.log('  POST /api/auth/register               - Register user');
-    console.log('  POST /api/auth/login                  - Login user');
-    console.log('  GET  /api/users/profile               - Get profile (Auth)');
-    console.log('  GET  /api/technicians                 - List technicians');
-    console.log('  POST /api/appointments                - Create appointment (Auth)');
-    console.log('  GET  /api/messages/conversations      - Get conversations (Auth)');
+    console.log('  POST /api/auth/login                  - Iniciar sesión');
+    console.log('  GET  /api-docs                        - Documentación Swagger');
     console.log('');
-    console.log('Press CTRL+C to stop the server');
+    console.log('Presione CTRL+C para detener el servidor');
     console.log('═══════════════════════════════════════════════════════');
+    
+    // Iniciar tareas automatizadas
+    appointmentManager.startAppointmentAutomation();
 });
 
 // Graceful shutdown
@@ -87,4 +151,5 @@ process.on('SIGINT', () => {
     process.exit(0);
 });
 
-module.exports = app;
+module.exports = { app, server, io };
+
