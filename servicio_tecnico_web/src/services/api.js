@@ -16,6 +16,7 @@ api.interceptors.request.use((config) => {
 export const authService = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   getProfile: () => api.get('/users/profile'),
+  updateProfile: (data) => api.put('/users/profile', data),
 };
 
 export const adminService = {

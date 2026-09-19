@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import { Search, Filter, Star, MapPin, Phone, MessageSquare, Calendar, ChevronRight, Target, Zap, ShieldCheck, RefreshCw, Navigation, User, ArrowRight } from 'lucide-react';
 import { clientService } from '../services/api.js';
@@ -25,16 +25,6 @@ const userIcon = new L.Icon({
   iconSize: [30, 30],
   iconAnchor: [15, 15],
 });
-
-const RecenterMap = ({ coords }) => {
-  const map = useMap();
-  useEffect(() => {
-    if (coords) {
-      map.setView(coords, map.getZoom());
-    }
-  }, [coords, map]);
-  return null;
-};
 
 const TechnicianList = ({ userLocation, onLocationUpdate }) => {
   const navigate = useNavigate();
@@ -76,7 +66,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
     }
   };
 
-  const MapEvents = () => {
+const MapEvents = () => {
     useMapEvents({
       dblclick(e) {
         const { lat, lng } = e.latlng;
@@ -199,6 +189,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
       {/* Map Area */}
       <div className="flex-1 min-h-[400px] lg:min-h-0 rounded-[40px] overflow-hidden border border-white/5 relative shadow-3xl bg-slate-900">
         <MapContainer 
+          key={`${mapCenter[0]},${mapCenter[1]}`}
           center={mapCenter} 
           zoom={13} 
           doubleClickZoom={false}
@@ -207,7 +198,6 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
         >
           <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution="&copy; CARTO" />
           <MapEvents />
-          <RecenterMap coords={mapCenter} />
           
           {tempMarker && (
             <>

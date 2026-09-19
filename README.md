@@ -54,4 +54,7 @@ flutter run
 
 ## ✒️ Autor
 **Alexander Castillo** - *Desarrollo y mantenimiento*
-**Johan Pa** - *Desarrollo y mantenimiento*
+**Naydelin** - *Desarrollo y mantenimiento*
+**Jose Castillo** - *Desarrollo y mantenimiento*
+**Josue Ataulluco** - *Desarrollo y mantenimiento*
+**Alexsander Cipriano** - *Desarrollo y mantenimiento*
