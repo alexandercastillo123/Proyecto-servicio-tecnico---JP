@@ -1,18 +1,22 @@
-describe('Pruebas Unitarias - Admin Service', () => {
-    // éxito
-    test('Debería retornar las estadísticas correctamente cuando el servicio responde con éxito', () => {
-        const resultadoSimulado = { usuariosActivos: 10, sucursales: 3, estatus: 'success' };
+const adminService = require('../../../services/admin.service');
+const adminRepo = require('../../../repository/admin.repository');
+jest.mock('../../../repository/admin.repository');
 
-        expect(resultadoSimulado.estatus).toBe('success');
-        expect(resultadoSimulado).toHaveProperty('usuariosActivos');
+describe('Pruebas Unitarias - Admin Service (Funciones Reales)', () => {
+
+    // éxito
+    test('Debería retornar la lista de usuarios correctamente desde el repositorio', async () => {
+        const mockUsuarios = [{ id: 1, email: 'admin@test.com', role: 'admin' }];
+        adminRepo.getAllUsers.mockResolvedValue(mockUsuarios);
+
+        const result = await adminService.getAllUsers({});
+        expect(result).toEqual(mockUsuarios);
     });
 
     // error
-    test('Debería lanzar un error controlado si falla la conexión al obtener métricas', () => {
-        const ejecutarServicio = () => {
-            throw new Error('Error al conectar con la base de datos de administración');
-        };
+    test('Debería propagar el error si el repositorio falla al obtener sucursales', async () => {
+        adminRepo.getAllBranches.mockRejectedValue(new Error('Error de conexión con la BD'));
 
-        expect(ejecutarServicio).toThrow('Error al conectar con la base de datos de administración');
+        await expect(adminService.getAllBranches()).rejects.toThrow('Error de conexión con la BD');
     });
 });

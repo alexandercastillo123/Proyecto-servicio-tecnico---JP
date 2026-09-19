@@ -1,17 +1,20 @@
-describe('Pruebas Unitarias - Culqi Service (Pagos)', () => {
-    // éxito
-    test('Debería procesar el cargo correctamente con la pasarela de pagos Culqi', () => {
-        const respuestaCulqi = { id: 'chr_test_999', estado: 'capturado' };
+const culqiService = require('../../../services/culqi.service');
+const sucursalRepo = require('../../../repository/sucursal.repository');
 
-        expect(respuestaCulqi.estado).toBe('capturado');
-        expect(respuestaCulqi.id).toBeDefined();
+jest.mock('../../../repository/sucursal.repository');
+jest.mock('axios');
+
+describe('Pruebas Unitarias - Culqi Service (Funciones Reales)', () => {
+
+    // éxito
+    test('Debería retornar la llave pública pk_test configurada por defecto', () => {
+        const publicKey = culqiService.getPublicKey();
+        expect(publicKey).toContain('pk_test');
     });
 
     // error
-    test('Debería retornar un error de tarjeta rechazada si los fondos son insuficientes', () => {
-        const errorCulqi = { codigo: 'card_declined', mensaje: 'Fondos insuficientes en la tarjeta' };
-
-        expect(errorCulqi.codigo).toBe('card_declined');
-        expect(errorCulqi.mensaje).toContain('insuficientes');
+    test('Debería lanzar un AppError 400 si se intenta pagar un pedido sin enviar el culqiToken', async () => {
+        await expect(culqiService.payOrderCulqi(101, 1, null))
+            .rejects.toThrow('Token de Culqi requerido.');
     });
 });

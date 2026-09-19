@@ -1,17 +1,29 @@
-describe('Pruebas Unitarias - Auth Service', () => {
-    // éxito
-    test('Debería generar un token de acceso válido cuando las credenciales coinciden', () => {
-        const respuestaLogin = { token: "jwt_token_simulado_exito", auth: true };
+const authService = require('../../../services/auth.service');
+const userRepo = require('../../../repository/user.repository');
+const bcrypt = require('bcryptjs');
 
-        expect(respuestaLogin.auth).toBe(true);
-        expect(respuestaLogin.token).toBeDefined();
+jest.mock('../../../repository/user.repository');
+jest.mock('bcryptjs');
+
+describe('Pruebas Unitarias - Auth Service (Funciones Reales)', () => {
+
+    // éxito
+    test('Debería iniciar sesión y retornar un token si el correo y clave coinciden', async () => {
+        const mockUser = { id: 5, email: 'user@test.com', password_hash: 'hash123', username: 'testuser', role: 'client' };
+        userRepo.findByEmail.mockResolvedValue(mockUser);
+        bcrypt.compare.mockResolvedValue(true);
+        const result = await authService.loginUser('user@test.com', 'clave123');
+        expect(result).toHaveProperty('token');
+        expect(result.userId).toBe(5);
     });
 
     // error
-    test('Debería rechazar el acceso si la contraseña ingresada es incorrecta', () => {
-        const respuestaLoginFallido = { mensaje: "Contraseña incorrecta", auth: false };
+    test('Debería lanzar AppError 401 si la contraseña ingresada es inválida', async () => {
+        const mockUser = { id: 5, email: 'user@test.com', password_hash: 'hash123' };
+        userRepo.findByEmail.mockResolvedValue(mockUser);
+        bcrypt.compare.mockResolvedValue(false);
 
-        expect(respuestaLoginFallido.auth).toBe(false);
-        expect(respuestaLoginFallido.mensaje).toBe("Contraseña incorrecta");
+        await expect(authService.loginUser('user@test.com', 'clave_erronea'))
+            .rejects.toThrow('Correo o contraseña inválidos.');
     });
 });
