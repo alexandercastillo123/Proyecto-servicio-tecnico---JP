@@ -29,14 +29,16 @@ const query = async (sql, params = []) => {
     return pool.query(sql, params);
 };
 
-// Test database connection on startup
-pool.getConnection()
-    .then(connection => {
-        console.log('✅ Database connected successfully');
-        connection.release();
-    })
-    .catch(err => {
-        console.error('❌ Database connection failed:', err.message);
-    });
+// Test database connection on startup (only in non-test environments)
+if (process.env.NODE_ENV !== 'test') {
+    pool.getConnection()
+        .then(connection => {
+            console.log('✅ Database connected successfully');
+            connection.release();
+        })
+        .catch(err => {
+            console.error('❌ Database connection failed:', err.message);
+        });
+}
 
 module.exports = { pool, query };
