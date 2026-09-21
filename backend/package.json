@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "test": "jest",
     "test:services": "jest test/services",
+    "test:endpoints": "jest test/endpoints",
     "test:socket": "jest socket.integration.test.js --runInBand"
   },
   "keywords": [
@@ -39,6 +40,7 @@
   "devDependencies": {
     "jest": "^30.5.1",
     "nodemon": "^3.0.3",
-    "socket.io-client": "^4.8.3"
+    "socket.io-client": "^4.8.3",
+    "supertest": "^7.2.2"
   }
 }
