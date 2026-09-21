@@ -1,23 +1,38 @@
 const admin = require('firebase-admin');
-const path = require('path');
-const fs = require('fs');
-
-const serviceAccountPath = path.join(__dirname, '..', 'serviceAccountKey.json');
 
 let firebaseApp = null;
 
-if (fs.existsSync(serviceAccountPath)) {
+// Allow passing the service account as a JSON string via env (12-factor friendly)
+// or fall back to a local serviceAccountKey.json file.
+const serviceAccountFromEnv = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+
+if (serviceAccountFromEnv) {
     try {
-        const serviceAccount = require(serviceAccountPath);
         firebaseApp = admin.initializeApp({
-            credential: admin.credential.cert(serviceAccount)
+            credential: admin.credential.cert(JSON.parse(serviceAccountFromEnv))
         });
-        console.log('Firebase Admin SDK initialized successfully');
+        console.log('Firebase Admin SDK initialized from env');
     } catch (error) {
-        console.error('Error initializing Firebase Admin SDK:', error.message);
+        console.error('Error initializing Firebase Admin SDK from env:', error.message);
     }
 } else {
-    console.warn('serviceAccountKey.json not found. Push notifications will be disabled.');
+    const path = require('path');
+    const fs = require('fs');
+    const serviceAccountPath = path.join(__dirname, '..', 'serviceAccountKey.json');
+
+    if (fs.existsSync(serviceAccountPath)) {
+        try {
+            const serviceAccount = require(serviceAccountPath);
+            firebaseApp = admin.initializeApp({
+                credential: admin.credential.cert(serviceAccount)
+            });
+            console.log('Firebase Admin SDK initialized successfully');
+        } catch (error) {
+            console.error('Error initializing Firebase Admin SDK:', error.message);
+        }
+    } else {
+        console.warn('serviceAccountKey.json not found. Push notifications will be disabled.');
+    }
 }
 
 const sendPushNotification = async (token, title, body, data = {}) => {

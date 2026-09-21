@@ -90,4 +90,33 @@ describe('Endpoints: /api/culqi', () => {
             expect(culqiService.payOrderCulqi).toHaveBeenCalledWith('5', 10, 'tkn_test_order');
         });
     });
+
+    describe('POST /api/culqi/webhook', () => {
+        test('debería retornar 200 al recibir un webhook procesado correctamente', async () => {
+            culqiService.handleWebhook.mockResolvedValue({ received: true, chargeId: 'chr_1', status: 'success' });
+
+            const res = await request(app)
+                .post('/api/culqi/webhook')
+                .set('Content-Type', 'application/json')
+                .send({ type: 'charge.success', data: { id: 'chr_1' } });
+
+            expect(res.status).toBe(200);
+            expect(res.body.exito).toBe(true);
+            expect(culqiService.handleWebhook).toHaveBeenCalled();
+        });
+
+        test('debería retornar 401 si la firma del webhook es inválida', async () => {
+            culqiService.handleWebhook.mockRejectedValue(
+                new AppError('Firma de webhook Culqi inválida', 401)
+            );
+
+            const res = await request(app)
+                .post('/api/culqi/webhook')
+                .set('Content-Type', 'application/json')
+                .send({ type: 'charge.success' });
+
+            expect(res.status).toBe(401);
+            expect(res.body.exito).toBe(false);
+        });
+    });
 });

@@ -25,6 +25,7 @@ import '../models/store_product.dart';
 import '../../features/store/presentation/screens/create_store_screen.dart';
 import '../../features/profile/presentation/screens/notification_settings_screen.dart';
 import '../../features/payments/presentation/screens/culqi_payment_screen.dart';
+import '../../features/payments/presentation/screens/order_details_screen.dart';
 import '../../features/profile/presentation/screens/settings_screen.dart';
 import '../../features/profile/presentation/screens/legal_content_screen.dart';
 import '../../features/profile/presentation/screens/change_password_screen.dart';
@@ -208,7 +209,7 @@ final appRouter = GoRouter(
       path: '/change-password',
       builder: (context, state) => const ChangePasswordScreen(),
     ),
-    GoRoute(
+     GoRoute(
       path: '/culqi-payment',
       builder: (context, state) {
         final extra = state.extra as Map<String, dynamic>? ?? {};
@@ -217,6 +218,17 @@ final appRouter = GoRouter(
           description: extra['description'] ?? '',
           entityId: extra['entityId'] ?? 0,
           paymentType: extra['paymentType'] ?? 'appointment',
+        );
+      },
+    ),
+    GoRoute(
+      path: '/order-details/:id',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '0') ?? 0;
+        return OrderDetailsScreen(
+          orderId: id,
+          amount: 0,
+          description: 'Orden #$id en proceso',
         );
       },
     ),

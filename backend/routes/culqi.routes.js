@@ -21,4 +21,10 @@ router.post('/pay-appointment/:id', authenticate, culqiController.payAppointment
  */
 router.post('/pay-order/:id', authenticate, culqiController.payOrderCulqi);
 
+/**
+ * @route   POST /api/culqi/webhook
+ * @desc    Recibe eventos asíncronos de Culqi (requiere body raw para verificar firma)
+ */
+router.post('/webhook', culqiController.webhookCulqi);
+
 module.exports = router;

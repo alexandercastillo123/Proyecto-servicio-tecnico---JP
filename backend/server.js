@@ -38,6 +38,8 @@ setIO(io);
 const PORT = process.env.PORT || 3000;
 
 // Middleware
+// Raw body para el webhook de Culqi (antes de express.json para poder verificar firma HMAC)
+app.use('/api/culqi/webhook', express.raw({ type: 'application/json' }));
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());

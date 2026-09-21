@@ -33,6 +33,23 @@ Future<void> main() async {
   await FirebaseService.initialize();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
+  // Navegar al abrir la app desde una notificación push (app cerrada/background/tap)
+  FirebaseService.onNotificationTap = (data) {
+    final type = data['type'];
+    final rawId = data['appointmentId'] ?? data['related_id'] ?? data['orderId'];
+    final id = int.tryParse(rawId?.toString() ?? '');
+    if (id == null || id <= 0) return;
+    switch (type) {
+      case 'appointment':
+        appRouter.go('/appointment-details/$id');
+        break;
+      case 'order':
+        // La data de orden no incluye amount/description; abre directamente
+        appRouter.go('/order-details/$id');
+        break;
+    }
+  };
+
   runApp(
     MultiProvider(
       providers: [

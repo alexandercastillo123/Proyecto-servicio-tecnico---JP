@@ -29,4 +29,18 @@ const getPublicKey = (req, res) => {
     res.json(Respuesta.ok({ publicKey: culqiService.getPublicKey() }, 'Éxito'));
 };
 
-module.exports = { payAppointmentCulqi, payOrderCulqi, getPublicKey };
+/**
+ * POST /api/culqi/webhook
+ * Recibe notificaciones asíncronas de Culqi (charge.success, charge.failed, etc).
+ * El body debe enviarse crudo (raw) para poder verificar la firma HMAC.
+ */
+const webhookCulqi = asyncHandler(async (req, res) => {
+    const signature = req.headers['x-culqi-signature'] || req.headers['x-culqi-webhook-signature'];
+    const timestamp = req.headers['x-culqi-timestamp'] || req.headers['x-culqi-webhook-timestamp'];
+    const rawBody = req.body instanceof Buffer ? req.body.toString('utf8') : JSON.stringify(req.body);
+
+    const result = await culqiService.handleWebhook(rawBody, signature, timestamp, req.body instanceof Buffer ? undefined : req.body);
+    res.json(Respuesta.ok(result, 'Webhook procesado'));
+});
+
+module.exports = { payAppointmentCulqi, payOrderCulqi, getPublicKey, webhookCulqi };

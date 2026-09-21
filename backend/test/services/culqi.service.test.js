@@ -291,4 +291,62 @@ describe('culqi.service', () => {
             );
         });
     });
+
+    describe('handleWebhook (idempotente)', () => {
+        beforeEach(() => {
+            paymentRepo.findByChargeId.mockResolvedValue(null);
+            paymentRepo.logPayment.mockResolvedValue();
+        });
+
+        test('charge.success sin log previo registra log success', async () => {
+            const payload = { type: 'charge.success', data: { id: 'chr_1', amount: 8550 } };
+            const result = await culqiService.handleWebhook(
+                JSON.stringify(payload), 'sig', '123', undefined
+            );
+
+            expect(result).toMatchObject({ chargeId: 'chr_1', status: 'success' });
+            expect(paymentRepo.findByChargeId).toHaveBeenCalledWith('chr_1');
+            expect(paymentRepo.logPayment).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    chargeId: 'chr_1',
+                    status: 'success',
+                    type: 'appointment'
+                })
+            );
+        });
+
+        test('charge.failed registra log failed', async () => {
+            const payload = { type: 'charge.failed', data: { id: 'chr_2', amount: 8550 } };
+            await culqiService.handleWebhook(JSON.stringify(payload), 'sig', '123', undefined);
+
+            expect(paymentRepo.logPayment).toHaveBeenCalledWith(
+                expect.objectContaining({ chargeId: 'chr_2', status: 'failed' })
+            );
+        });
+
+        test('no vuelve a registrar si ya fue procesado con éxito', async () => {
+            paymentRepo.findByChargeId.mockResolvedValue({ entity_type: 'appointment', entity_id: 10, status: 'success' });
+            const payload = { type: 'charge.failed', data: { id: 'chr_1' } };
+
+            const result = await culqiService.handleWebhook(JSON.stringify(payload), 'sig', '123', undefined);
+
+            expect(result).toMatchObject({ chargeId: 'chr_1', already: 'success' });
+            expect(paymentRepo.updateStatusByCharge).not.toHaveBeenCalled();
+            expect(paymentRepo.logPayment).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Idempotencia en payAppointmentCulqi', () => {
+        test('no debería cobrar dos veces la misma cita', async () => {
+            appointmentRepo.findWithClientEmail.mockResolvedValue({
+                id: 10, client_id: 1, technician_id: 5, price: '85.50',
+                email: 'c@test.com', payment_status: 'pending'
+            });
+            paymentRepo.existsSuccessfulPayment.mockResolvedValue(true);
+
+            await expect(culqiService.payAppointmentCulqi(10, 1, 'tkn_test')).rejects.toThrow(
+                new AppError('Esta cita ya fue pagada.', 400)
+            );
+        });
+    });
 });

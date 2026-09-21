@@ -1,15 +1,17 @@
 const nodemailer = require('nodemailer');
 
-// SMTP Configuration from User
+// SMTP Configuration from environment (fallback to legacy codecta.pe account)
 const transporter = nodemailer.createTransport({
-    host: 'mail.codecta.pe',
-    port: 465,
-    secure: true, // true for 465, false for other ports
+    host: process.env.SMTP_HOST || 'mail.codecta.pe',
+    port: process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465,
+    secure: process.env.SMTP_SECURE !== undefined ? process.env.SMTP_SECURE === 'true' : true, // true for 465
     auth: {
-        user: 'mail_sender@codecta.pe',
-        pass: '&WmNltbeU~Y='
+        user: process.env.SMTP_USER || 'mail_sender@codecta.pe',
+        pass: process.env.SMTP_PASS || '&WmNltbeU~Y='
     }
 });
+
+const FROM = process.env.SMTP_FROM || '"J&P Periféricos S.A.C" <mail_sender@codecta.pe>';
 
 /**
  * Send a verification code to user email
@@ -20,7 +22,7 @@ const transporter = nodemailer.createTransport({
 const sendResetCode = async (email, code) => {
     try {
         const mailOptions = {
-            from: '"J&P Periféricos S.A.C" <mail_sender@codecta.pe>',
+            from: FROM,
             to: email,
             subject: 'Código de recuperación de contraseña',
             html: `
@@ -63,7 +65,7 @@ const sendPaymentConfirmation = async (email, details) => {
         const referenceLabel = type === 'order' ? 'Pedido #' : 'Cita #';
 
         const mailOptions = {
-            from: '"J&P Periféricos S.A.C" <mail_sender@codecta.pe>',
+            from: FROM,
             to: email,
             subject: `✔ Pago Exitoso - ${title} ${id}`,
             html: `
@@ -128,5 +130,6 @@ const sendPaymentConfirmation = async (email, details) => {
 
 module.exports = {
     sendResetCode,
-    sendPaymentConfirmation
+    sendPaymentConfirmation,
+    transporter
 };
