@@ -8,6 +8,7 @@ import '../../../../core/constants/assets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
 import '../../../../shared/widgets/custom_button.dart';
+import '../../../../core/services/firebase_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -223,12 +224,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (response.success && response.data != null) {
         final role = response.data!['role'];
-        final userId = response.data!['id'];
+        final userId = response.data!['userId'] ?? response.data!['id'];
         await LocalCacheService.saveRole(role);
         if (userId != null) {
           await LocalCacheService.saveUserId(userId);
         }
         await LocalCacheService.saveLastActivity(); // Initialize activity tracking
+        
+        // Solicitar permisos de notificación nativos inmediatamente
+        await FirebaseService.requestNotificationPermission();
         
         if (mounted) {
           if (role == 'client') {

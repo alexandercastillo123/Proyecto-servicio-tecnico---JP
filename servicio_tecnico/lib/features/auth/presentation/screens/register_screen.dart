@@ -9,6 +9,7 @@ import 'package:servicio_tecnico_app/core/services/auth_service.dart';
 import 'package:servicio_tecnico_app/core/services/camera_service.dart';
 import 'package:servicio_tecnico_app/core/services/local_cache_service.dart';
 import 'package:servicio_tecnico_app/core/services/user_service.dart';
+import 'package:servicio_tecnico_app/core/services/firebase_service.dart';
 import 'package:camera/camera.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -729,12 +730,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
         if (response.success && response.data != null) {
           final role = response.data!['role'] ?? widget.role;
-          final userId = response.data!['id'];
+          final userId = response.data!['userId'] ?? response.data!['id'];
           await LocalCacheService.saveRole(role);
           if (userId != null) {
             await LocalCacheService.saveUserId(userId);
           }
           await LocalCacheService.saveLastActivity();
+
+          // Solicitar permisos de notificación nativos inmediatamente
+          await FirebaseService.requestNotificationPermission();
 
           if (context.mounted) {
             final target = role == 'client' ? '/client-home' : '/home';

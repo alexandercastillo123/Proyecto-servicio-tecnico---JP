@@ -146,23 +146,34 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
       if (!mounted) return;
 
       if (response.success) {
-        // Navegar a pantalla de detalles del pedido en lugar de volver al chat
-        Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => OrderDetailsScreen(
-              orderId: widget.entityId,
-              amount: widget.amount,
-              description: widget.description,
-            ),
-          ),
-        );
+        setState(() {
+          _paymentSuccess = true;
+          _isProcessing = false;
+        });
+
+        Future.delayed(const Duration(seconds: 3), () {
+          if (!mounted) return;
+          if (widget.paymentType == 'order') {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => OrderDetailsScreen(
+                  orderId: widget.entityId,
+                  amount: widget.amount,
+                  description: widget.description,
+                ),
+              ),
+            );
+          } else {
+            Navigator.of(context).pop(true);
+          }
+        });
       } else {
         setState(() => _errorMsg = response.message ?? 'Pago rechazado');
       }
     } catch (e) {
       setState(() => _errorMsg = 'Error inesperado. Intenta de nuevo.');
     } finally {
-      if (mounted) setState(() => _isProcessing = false);
+      if (mounted && !_paymentSuccess) setState(() => _isProcessing = false);
     }
   }
 

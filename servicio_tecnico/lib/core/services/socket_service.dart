@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
+import '../constants/api_constants.dart';
 
 class SocketService {
   static final SocketService _instance = SocketService._internal();
@@ -42,9 +43,10 @@ class SocketService {
   int? get currentUserId => _userId;
 
   Future<void> init({required int userId, required String authToken}) async {
-    final baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://10.0.2.2:3000';
+    final baseUrl = dotenv.env['API_BASE_URL'] ??
+        ApiConstants.baseUrl.replaceAll('/api', '');
 
-    if (_socket != null && _initialized) {
+    if (_socket != null && _initialized && _userId == userId && isConnected) {
       return;
     }
 
@@ -53,10 +55,15 @@ class SocketService {
     }
 
     _userId = userId;
+    _initialized = true;
     _socket = IO.io(baseUrl, IO.OptionBuilder()
-        .setTransports(['websocket'])
+        .setTransports(['websocket', 'polling'])
         .enableAutoConnect()
+        .enableReconnection()
+        .setReconnectionAttempts(999)
+        .setReconnectionDelay(1000)
         .setExtraHeaders({'Authorization': 'Bearer $authToken'})
+        .setAuth({'token': authToken})
         .build());
 
     _socket!.onConnect((_) {

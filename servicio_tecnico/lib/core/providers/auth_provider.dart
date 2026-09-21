@@ -27,6 +27,8 @@ class AuthProvider extends ChangeNotifier {
 
       if (response.success && response.data != null) {
         _user = response.data;
+        // Solicitar permisos de notificación si aún no se han concedido
+        FirebaseService.requestNotificationPermission();
         // Configurar token de notificaciones push (funciona aunque la app esté cerrada)
         FirebaseService.setupToken();
         // Inicializar Socket.IO para tiempo real en chat

@@ -54,7 +54,12 @@ const payAppointmentCulqi = async (appointmentId, userId, culqiToken) => {
     const chatMsg = `💳 *¡Pago con Culqi confirmado!* El cliente pagó S/ ${appData.price} para la cita #${appointmentId}. La cita está *confirmada automáticamente*.`;
     await appointmentRepo.insertChatMessage(userId, appData.technician_id, chatMsg, 'appointment', appointmentId);
 
-    sendPaymentConfirmation(appData.email, { type: 'appointment', id: appointmentId, itemName: 'Servicio Técnico / Cita', amount: appData.price });
+    try {
+        await sendPaymentConfirmation(appData.email, { type: 'appointment', id: appointmentId, itemName: 'Servicio Técnico / Cita', amount: appData.price });
+        console.log(`📧 Comprobante de pago Culqi enviado a: ${appData.email}`);
+    } catch (emailErr) {
+        console.error('⚠️ Error al enviar comprobante Culqi:', emailErr.message);
+    }
 
     await paymentRepo.logPayment({ type: 'appointment', entityId: appointmentId, chargeId: charge.id, amount: appData.price, status: 'success', raw: charge });
 
@@ -93,7 +98,12 @@ const payOrderCulqi = async (orderId, userId, culqiToken) => {
     const chatMsg = `💳 *¡Pago con Culqi exitoso!* El cliente pagó S/ ${parseFloat(orderData.total_price).toFixed(2)} por "${orderData.product_name}" x${orderData.quantity}. El pedido está *confirmado automáticamente*.`;
     await sucursalRepo.insertOrderChatMessage(userId, orderData.store_user_id, chatMsg, orderId);
 
-    sendPaymentConfirmation(orderData.email, { type: 'order', id: orderId, itemName: orderData.product_name, amount: orderData.total_price });
+    try {
+        await sendPaymentConfirmation(orderData.email, { type: 'order', id: orderId, itemName: orderData.product_name, amount: orderData.total_price });
+        console.log(`📧 Comprobante de pago Culqi enviado a: ${orderData.email}`);
+    } catch (emailErr) {
+        console.error('⚠️ Error al enviar comprobante Culqi:', emailErr.message);
+    }
 
     await paymentRepo.logPayment({ type: 'order', entityId: orderId, chargeId: charge.id, amount: orderData.total_price, status: 'success', raw: charge });
 

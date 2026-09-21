@@ -11,22 +11,23 @@ class FirebaseService {
   static bool _initialized = false;
 
   static Future<void> initialize() async {
+    // 1. Solicitar permisos de notificación a nivel del sistema operativo (Android 13+ y iOS)
+    // Se ejecuta de inmediato para asegurar que el cuadro de diálogo de permisos se muestre al usuario
+    await requestNotificationPermission();
+
+    // 2. Inicializar Firebase si está configurado
     try {
       await Firebase.initializeApp();
       
-      // Request notification permissions for Android 13+ and iOS
-      await _requestNotificationPermission();
-      
-      // Configure foreground message handling
+      // Configurar mensajes en primer plano
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         if (kDebugMode) {
           print('Foreground message received: ${message.notification?.title}');
         }
-        // Show local notification or update UI
         _showForegroundNotification(message);
       });
 
-      // Handle when app is opened from terminated state by tapping notification
+      // Manejar apertura de la app desde notificación
       FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
         if (kDebugMode) {
           print('App opened from notification: ${message.notification?.title}');
@@ -35,33 +36,41 @@ class FirebaseService {
 
     } catch (e) {
       if (kDebugMode) {
-        print('Error initializing Firebase: $e');
+        print('Firebase init warning (google-services.json no configurado o omitido): $e');
       }
     }
   }
 
-  static Future<void> _requestNotificationPermission() async {
-    // Android 13+ requires runtime permission
-    if (Platform.isAndroid) {
-      final status = await Permission.notification.status;
-      if (status.isDenied) {
-        final result = await Permission.notification.request();
-        if (kDebugMode) {
-          print('Notification permission result: $result');
+  /// Solicitar permisos de notificación (Android 13+ runtime permission y iOS)
+  static Future<bool> requestNotificationPermission() async {
+    try {
+      if (Platform.isAndroid || Platform.isIOS) {
+        final status = await Permission.notification.status;
+        if (!status.isGranted) {
+          final result = await Permission.notification.request();
+          if (kDebugMode) {
+            print('Notification permission result: $result');
+          }
+          return result.isGranted;
         }
+        return true;
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error requesting OS notification permission: $e');
       }
     }
 
-    // Also call Firebase's permission for iOS and cross-platform
-    NotificationSettings settings = await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
-
-    if (kDebugMode) {
-      print('User granted permission: ${settings.authorizationStatus}');
+    try {
+      NotificationSettings settings = await _messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
+      return settings.authorizationStatus == AuthorizationStatus.authorized;
+    } catch (_) {
+      return false;
     }
   }
 
