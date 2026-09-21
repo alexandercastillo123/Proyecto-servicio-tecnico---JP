@@ -147,4 +147,127 @@ body {
   background: var(--surface) !important;
   color: white !important;
   border: 1px solid var(--border);
-}
+}
+
+/* ─── Admin Panel Styles ─────────────────────────────── */
+.admin-stat-card {
+  background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.01) 100%);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.admin-stat-card:hover {
+  border-color: rgba(59, 40, 255, 0.4);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 40px -15px rgba(0,0,0,0.6), 0 0 20px -10px var(--primary-glow);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.admin-table thead th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+  white-space: nowrap;
+}
+
+.admin-table tbody td {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 13px;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.admin-table tbody tr {
+  transition: background 0.2s ease;
+}
+
+.admin-table tbody tr:hover {
+  background: rgba(255,255,255,0.03);
+  cursor: pointer;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.status-pending    { background: rgba(251,191,36,0.15); color: #FBBF24; }
+.status-confirmed  { background: rgba(59,40,255,0.15);  color: #818CF8; }
+.status-completed  { background: rgba(16,185,129,0.15); color: #10B981; }
+.status-cancelled  { background: rgba(244,63,94,0.15);  color: #FB7185; }
+.status-on_the_way { background: rgba(59,130,246,0.15); color: #60A5FA; }
+.status-arrived    { background: rgba(99,102,241,0.15); color: #A5B4FC; }
+.status-in_progress{ background: rgba(139,92,246,0.15); color: #C4B5FD; }
+.status-expired    { background: rgba(148,163,184,0.15);color: #94A3B8; }
+.status-cancellation_pending { background: rgba(249,115,22,0.15); color: #FB923C; }
+.status-shipped    { background: rgba(139,92,246,0.15); color: #C4B5FD; }
+.status-delivered  { background: rgba(20,184,166,0.15); color: #2DD4BF; }
+
+/* No-scrollbar utility */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Admin form input */
+.admin-input {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  outline: none;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.admin-input:focus {
+  border-color: var(--primary);
+  background: rgba(255,255,255,0.07);
+  box-shadow: 0 0 0 4px rgba(59,40,255,0.12);
+}
+
+.admin-input::placeholder { color: var(--text-dim); }
+
+.admin-select {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  color: white;
+  padding: 11px 14px;
+  border-radius: 12px;
+  outline: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.admin-select:focus { border-color: var(--primary); }
+.admin-select option { background: #0A0C14; color: white; }

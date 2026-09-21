@@ -36,7 +36,8 @@ const Register = ({ onLogin }) => {
     setError('');
     try {
       const res = await authService.register(formData);
-      const { token, ...user } = res.data.resultado;
+      const { token, ...rawUser } = res.data.resultado;
+      const user = { ...rawUser, id: rawUser.id || rawUser.userId, userId: rawUser.userId || rawUser.id };
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       onLogin(user);

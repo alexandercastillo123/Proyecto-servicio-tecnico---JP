@@ -12,7 +12,8 @@ class SocketService {
    * Conectar a Socket.IO con el ID del usuario y el token de autenticación
    */
   connect(userId, authToken) {
-    if (this.socket && this.isConnected && this.userId === userId) {
+    if (this.socket && this.isConnected && String(this.userId) === String(userId)) {
+      this._notifyListeners('connection_status', { connected: true, socketId: this.socket.id });
       return this.socket;
     }
 
@@ -22,19 +23,20 @@ class SocketService {
 
     this.userId = userId;
 
-    // Detect URL: en desarrollo usa el proxy de Vite o puerto 3000
-    const serverUrl = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-      ? 'http://127.0.0.1:3000'
+    // Conectar dinámicamente al backend en puerto 3000 usando el mismo host
+    const backendPort = '3000';
+    const serverUrl = window.location.port !== backendPort
+      ? `${window.location.protocol}//${window.location.hostname}:${backendPort}`
       : window.location.origin;
 
     this.socket = io(serverUrl, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       autoConnect: true,
       reconnection: true,
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      extraHeaders: authToken ? { Authorization: `Bearer ${authToken}` } : {}
+      auth: authToken ? { token: authToken } : {}
     });
 
     this.socket.on('connect', () => {

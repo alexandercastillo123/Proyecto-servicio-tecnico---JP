@@ -57,7 +57,8 @@ const StoreDashboard = () => {
       if (convsResp.data.exito) setConversations(convsResp.data.resultado || []);
       
       // Update local storage user with actual branch info if missing
-      const myStore = await storeService.getBranches().then(r => r.data.resultado?.find(s => s.user_id === user.id));
+      const uid = user.id || user.userId;
+      const myStore = await storeService.getBranches().then(r => r.data.resultado?.find(s => s.user_id === uid));
       if (myStore) {
         const updatedUser = { ...user, branchId: myStore.id, branchName: myStore.name };
         localStorage.setItem('user', JSON.stringify(updatedUser));
