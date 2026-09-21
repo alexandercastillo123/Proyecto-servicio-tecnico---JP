@@ -1,38 +1,74 @@
+const AppError = require('../utils/AppError');
+
 /**
- * Global error handling middleware
+ * Global error handling middleware.
+ * Handles both operational errors (AppError) and unexpected programmer errors.
+ * Must be registered last in Express middleware chain.
+ *
+ * @param {Error} err
+ * @param {import('express').Request} req
+ * @param {import('express').Response} res
+ * @param {import('express').NextFunction} next
  */
 const errorHandler = (err, req, res, next) => {
-    console.error('Error:', err);
+    // Log all errors in development; log only unexpected errors in production
+    if (process.env.NODE_ENV === 'development' || !err.isOperational) {
+        console.error('❌ Error:', err);
+    }
 
-    // Multer file upload errors
+    // ── Multer errors ──────────────────────────────────────────────────────
     if (err.code === 'LIMIT_FILE_SIZE') {
         return res.status(400).json({
-            success: false,
-            message: 'File size too large. Maximum size is 5MB.'
+            exito: false, estado: 400,
+            mensaje: 'El tamaño del archivo es demasiado grande. Máximo 10MB.',
+            resultado: null
         });
     }
 
-    // MySQL errors
+    if (err.message && err.message.includes('Solo se permiten imágenes')) {
+        return res.status(400).json({
+            exito: false, estado: 400,
+            mensaje: err.message,
+            resultado: null
+        });
+    }
+
+    // ── MySQL errors ───────────────────────────────────────────────────────
     if (err.code === 'ER_DUP_ENTRY') {
         return res.status(409).json({
-            success: false,
-            message: 'Duplicate entry. This record already exists.'
+            exito: false, estado: 409,
+            mensaje: 'El registro ya existe (entrada duplicada).',
+            resultado: null
         });
     }
 
     if (err.code && err.code.startsWith('ER_')) {
         return res.status(500).json({
-            success: false,
-            message: 'Database error occurred',
-            error: process.env.NODE_ENV === 'development' ? err.message : undefined
+            exito: false, estado: 500,
+            mensaje: process.env.NODE_ENV === 'development'
+                ? `Error de base de datos: ${err.message}`
+                : 'Error interno de base de datos.',
+            resultado: null
         });
     }
 
-    // Default error response
-    res.status(err.statusCode || 500).json({
-        success: false,
-        message: err.message || 'Internal server error',
-        error: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    // ── AppError (operational, expected) ──────────────────────────────────
+    if (err.isOperational) {
+        return res.status(err.statusCode).json({
+            exito: false,
+            estado: err.statusCode,
+            mensaje: err.message,
+            resultado: null
+        });
+    }
+
+    // ── Unknown / programmer errors ────────────────────────────────────────
+    res.status(500).json({
+        exito: false, estado: 500,
+        mensaje: process.env.NODE_ENV === 'development'
+            ? err.message
+            : 'Error interno del servidor. Por favor intenta más tarde.',
+        resultado: null
     });
 };
 
