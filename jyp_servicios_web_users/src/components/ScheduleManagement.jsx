@@ -30,7 +30,7 @@ const ScheduleManagement = () => {
     try {
       const user = JSON.parse(localStorage.getItem('user'));
       if (user) {
-        const response = await techService.getSchedule(user.id);
+        const response = await techService.getSchedule(user.id || user.userId);
         if (response.data.success && response.data.data.length > 0) {
           setSchedules(response.data.data);
         }

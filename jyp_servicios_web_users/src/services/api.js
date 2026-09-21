@@ -18,6 +18,17 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error);
 });
 
+// Admin-specific axios instance (same token key, different service namespace)
+const adminApi = axios.create({
+  baseURL: '/api',
+  headers: { 'Content-Type': 'application/json' },
+});
+adminApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
 // Response interceptor for error handling
 api.interceptors.response.use((response) => {
   return response;
@@ -87,6 +98,32 @@ export const messageService = {
   acceptOffer: (id) => api.put(`/messages/offer/${id}/accept`),
   rejectOffer: (id) => api.put(`/messages/offer/${id}/reject`),
   cancelOffer: (id) => api.put(`/messages/offer/${id}/cancel`),
+};
+
+export const adminService = {
+  getAppointments: (params) => adminApi.get('/admin/appointments', { params }),
+  getUsers: (params) => adminApi.get('/admin/users', { params }),
+  getBranches: () => adminApi.get('/admin/sucursales'),
+  getOrders: (params) => adminApi.get('/admin/orders', { params }),
+};
+
+export const adminStoreService = {
+  getBranches: () => adminApi.get('/admin/sucursales'),
+  createBranch: (data) => adminApi.post('/sucursales', data),
+  updateBranch: (id, data) => adminApi.put(`/sucursales/${id}`, data),
+  getProducts: (id) => adminApi.get(`/sucursales/${id}/products`),
+  addProduct: (data) => adminApi.post('/sucursales/products', data),
+  updateProduct: (id, data) => adminApi.put(`/sucursales/products/${id}`, data),
+  deleteProduct: (id) => adminApi.delete(`/sucursales/products/${id}`),
+  uploadStoreImage: (formData) => adminApi.post('/sucursales/upload-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  uploadProductImage: (formData) => adminApi.post('/sucursales/products/upload-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  getOrders: (storeId) => adminApi.get(`/sucursales/orders/store/${storeId}`),
+  updateOrderStatus: (id, status) => adminApi.patch(`/sucursales/orders/${id}/status`, { status }),
+  getStoreAppointments: (storeId) => adminApi.get(`/sucursales/${storeId}/appointments`),
 };
 
 export default api;

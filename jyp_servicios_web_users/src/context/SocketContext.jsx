@@ -6,14 +6,16 @@ import { useNavigate, useLocation } from 'react-router-dom';
 const SocketContext = createContext(null);
 
 export const SocketProvider = ({ user, children }) => {
-  const [isConnected, setIsConnected] = useState(false);
+  const [isConnected, setIsConnected] = useState(() => socketService.isConnected);
   const [unreadCount, setUnreadCount] = useState(0);
   const navigate = useNavigate();
   const location = useLocation();
   const activeChatUserIdRef = useRef(null);
+  const locationRef = useRef(location.pathname);
 
-  // Mantener actualizado el usuario activo en el chat según los query params
+  // Mantener actualizado el pathname y el usuario activo en el chat
   useEffect(() => {
+    locationRef.current = location.pathname;
     if (location.pathname === '/chat') {
       const params = new URLSearchParams(location.search);
       activeChatUserIdRef.current = params.get('user');
@@ -22,15 +24,18 @@ export const SocketProvider = ({ user, children }) => {
     }
   }, [location]);
 
+  const userId = user?.id || user?.userId;
+
   useEffect(() => {
-    if (!user || !user.id) {
+    if (!userId) {
       socketService.disconnect();
       setIsConnected(false);
       return;
     }
 
+    setIsConnected(socketService.isConnected);
     const token = localStorage.getItem('token');
-    socketService.connect(user.id, token);
+    socketService.connect(userId, token);
 
     // Listener de estado de conexión
     const unsubConnection = socketService.on('connection_status', ({ connected }) => {
@@ -39,8 +44,8 @@ export const SocketProvider = ({ user, children }) => {
 
     // Listener de mensajes entrantes para notificaciones globales
     const unsubMessages = socketService.on('receive_message', (data) => {
-      const isFromOther = String(data.sender_id) !== String(user.id);
-      const isViewingThisChat = location.pathname === '/chat' && String(activeChatUserIdRef.current) === String(data.sender_id);
+      const isFromOther = String(data.sender_id) !== String(userId);
+      const isViewingThisChat = locationRef.current === '/chat' && String(activeChatUserIdRef.current) === String(data.sender_id);
 
       if (isFromOther) {
         setUnreadCount((prev) => prev + 1);
@@ -81,7 +86,7 @@ export const SocketProvider = ({ user, children }) => {
 
     // Listener de nueva cita creada
     const unsubNewAppointment = socketService.on('appointment_created', (data) => {
-      if (user.role === 'tech' || user.role === 'store') {
+      if (user?.role === 'tech' || user?.role === 'store') {
         toast.success(`🎉 ¡Nueva solicitud de servicio recibida para el ${data.scheduled_date}!`, {
           duration: 6000,
           icon: '🛠️'
@@ -103,7 +108,7 @@ export const SocketProvider = ({ user, children }) => {
       unsubNewAppointment();
       unsubOffer();
     };
-  }, [user, location.pathname]);
+  }, [userId, user?.role]);
 
   const value = {
     socketService,

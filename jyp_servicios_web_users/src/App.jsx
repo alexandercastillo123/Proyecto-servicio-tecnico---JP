@@ -22,6 +22,15 @@ import StoreProfile from './components/StoreProfile';
 import OrderList from './components/OrderList';
 import { Toaster } from 'react-hot-toast';
 import { SocketProvider } from './context/SocketContext';
+
+// Admin
+import AdminLayout from './components/admin/AdminLayout';
+import AdminDashboard from './components/admin/AdminDashboard';
+import AdminAppointments from './components/admin/AdminAppointments';
+import AdminUsers from './components/admin/AdminUsers';
+import AdminOrders from './components/admin/AdminOrders';
+import AdminStores from './components/admin/AdminStores';
+
 import './index.css';
 
 function App() {
@@ -31,7 +40,14 @@ function App() {
   useEffect(() => {
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        const parsed = JSON.parse(savedUser);
+        if (parsed) {
+          parsed.id = parsed.id || parsed.userId;
+          parsed.userId = parsed.userId || parsed.id;
+          setUser(parsed);
+        }
+      } catch (_) {}
     }
     setLoading(false);
   }, []);
@@ -46,6 +62,10 @@ function App() {
   }
 
   const handleLogin = (userData) => {
+    if (userData) {
+      userData.id = userData.id || userData.userId;
+      userData.userId = userData.userId || userData.id;
+    }
     setUser(userData);
   };
 
@@ -55,54 +75,86 @@ function App() {
     setUser(null);
   };
 
+  const isAdmin = user?.role === 'admin';
+
   return (
     <Router>
-      <SocketProvider user={user}>
-        <Toaster position="top-right" toastOptions={{
-          style: {
-            background: '#1A1C1E',
-            color: '#fff',
-            border: '1px solid rgba(255,255,255,0.1)',
-            fontFamily: 'Outfit, sans-serif',
-            fontSize: '14px',
-            fontWeight: '600'
-          }
-        }} />
-        <Routes>
-          <Route path="/login" element={!user ? <Login onLogin={handleLogin} /> : <Navigate to="/" />} />
-          <Route path="/register" element={!user ? <Register onLogin={handleLogin} /> : <Navigate to="/" />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/verify-code" element={<VerifyCode />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          
-          {/* Protected Routes */}
-          <Route path="/" element={user ? <Layout user={user} onLogout={handleLogout} /> : <Navigate to="/login" />}>
-            <Route index element={
-              user?.role === 'client' ? <ClientDashboard /> : 
-              user?.role === 'tech' ? <TechDashboard /> : 
-              user?.role === 'store' ? <StoreDashboard /> :
-              <Navigate to="/login" />
-            } />
-            
-            {/* General Features */}
-            <Route path="technicians" element={<TechnicianList />} />
-            <Route path="technician/:id" element={<TechnicianProfile />} />
-            <Route path="appointments" element={<AppointmentList />} />
-            <Route path="appointments/schedule" element={<AppointmentScheduling />} />
-            <Route path="appointments/:id" element={<AppointmentDetails />} />
-            <Route path="chat" element={<Chat />} />
-            <Route path="profile" element={<ProfileEdit />} />
-            <Route path="orders" element={<OrderList />} />
-            
-            {/* Store Specific */}
-            <Route path="stores" element={<StoreList />} />
-            <Route path="stores/create" element={<StoreCreate />} />
-            <Route path="store/:id" element={<StoreProfile />} />
-          </Route>
+      <Toaster position="top-right" toastOptions={{
+        style: {
+          background: '#1A1C1E',
+          color: '#fff',
+          border: '1px solid rgba(255,255,255,0.1)',
+          fontFamily: 'Plus Jakarta Sans, sans-serif',
+          fontSize: '14px',
+          fontWeight: '600'
+        }
+      }} />
 
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </SocketProvider>
+      <Routes>
+        {/* ── Public Auth Routes ─────────────────────────── */}
+        <Route path="/login"           element={!user ? <Login onLogin={handleLogin} /> : <Navigate to="/" />} />
+        <Route path="/register"        element={!user ? <Register onLogin={handleLogin} /> : <Navigate to="/" />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/verify-code"     element={<VerifyCode />} />
+        <Route path="/reset-password"  element={<ResetPassword />} />
+
+        {/* ── Admin Routes ───────────────────────────────── */}
+        <Route
+          path="/admin"
+          element={
+            user && isAdmin
+              ? <AdminLayout user={user} onLogout={handleLogout} />
+              : <Navigate to={user ? '/' : '/login'} />
+          }
+        >
+          <Route index                element={<AdminDashboard />} />
+          <Route path="citas"         element={<AdminAppointments />} />
+          <Route path="usuarios"      element={<AdminUsers />} />
+          <Route path="pedidos"       element={<AdminOrders />} />
+          <Route path="sucursales"    element={<AdminStores />} />
+          <Route path="sucursales/:id" element={<AdminStores />} />
+        </Route>
+
+        {/* ── Regular User Routes ────────────────────────── */}
+        <Route
+          path="/"
+          element={
+            user
+              ? isAdmin
+                ? <Navigate to="/admin" />
+                : (
+                  <SocketProvider user={user}>
+                    <Layout user={user} onLogout={handleLogout} />
+                  </SocketProvider>
+                )
+              : <Navigate to="/login" />
+          }
+        >
+          <Route index element={
+            user?.role === 'client' ? <ClientDashboard /> :
+            user?.role === 'tech'   ? <TechDashboard />   :
+            user?.role === 'store'  ? <StoreDashboard />  :
+            <Navigate to="/login" />
+          } />
+
+          {/* General Features */}
+          <Route path="technicians"           element={<TechnicianList />} />
+          <Route path="technician/:id"        element={<TechnicianProfile />} />
+          <Route path="appointments"          element={<AppointmentList />} />
+          <Route path="appointments/schedule" element={<AppointmentScheduling />} />
+          <Route path="appointments/:id"      element={<AppointmentDetails />} />
+          <Route path="chat"                  element={<Chat />} />
+          <Route path="profile"               element={<ProfileEdit />} />
+          <Route path="orders"                element={<OrderList />} />
+
+          {/* Store Specific */}
+          <Route path="stores"                element={<StoreList />} />
+          <Route path="stores/create"         element={<StoreCreate />} />
+          <Route path="store/:id"             element={<StoreProfile />} />
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
     </Router>
   );
 }
