@@ -115,30 +115,32 @@ io.on('connection', (socket) => {
     });
 });
 
-// Iniciar servidor
-server.listen(PORT, '0.0.0.0', () => {
-    console.log('╔═══════════════════════════════════════════════════════╗');
-    console.log('║                                                       ║');
-    console.log('║   🚀 Servicio Técnico J&P - Servidor Backend API      ║');
-    console.log('║                                                       ║');
-    console.log('╚═══════════════════════════════════════════════════════╝');
-    console.log('');
-    console.log(`📡 Servidor ejecutándose en: http://localhost:${PORT}`);
-    console.log(`📖 Documentación API: http://localhost:${PORT}/api-docs`);
-    console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`⏰ Iniciado en: ${new Date().toLocaleString()}`);
-    console.log('');
-    console.log('Endpoints principales:');
-    console.log('  GET  /health                          - Health check');
-    console.log('  POST /api/auth/login                  - Iniciar sesión');
-    console.log('  GET  /api-docs                        - Documentación Swagger');
-    console.log('');
-    console.log('Presione CTRL+C para detener el servidor');
-    console.log('═══════════════════════════════════════════════════════');
-    
-    // Iniciar tareas automatizadas
-    appointmentManager.startAppointmentAutomation();
-});
+// Iniciar servidor solo si no estamos en entorno de testing
+if (process.env.NODE_ENV !== 'test') {
+    server.listen(PORT, '0.0.0.0', () => {
+        console.log('╔═══════════════════════════════════════════════════════╗');
+        console.log('║                                                       ║');
+        console.log('║   🚀 Servicio Técnico J&P - Servidor Backend API      ║');
+        console.log('║                                                       ║');
+        console.log('╚═══════════════════════════════════════════════════════╝');
+        console.log('');
+        console.log(`📡 Servidor ejecutándose en: http://localhost:${PORT}`);
+        console.log(`📖 Documentación API: http://localhost:${PORT}/api-docs`);
+        console.log(`🌍 Entorno: ${process.env.NODE_ENV || 'development'}`);
+        console.log(`⏰ Iniciado en: ${new Date().toLocaleString()}`);
+        console.log('');
+        console.log('Endpoints principales:');
+        console.log('  GET  /health                          - Health check');
+        console.log('  POST /api/auth/login                  - Iniciar sesión');
+        console.log('  GET  /api-docs                        - Documentación Swagger');
+        console.log('');
+        console.log('Presione CTRL+C para detener el servidor');
+        console.log('═══════════════════════════════════════════════════════');
+        
+        // Iniciar tareas automatizadas
+        appointmentManager.startAppointmentAutomation();
+    });
+}
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
