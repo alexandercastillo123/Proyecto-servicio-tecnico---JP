@@ -10,7 +10,7 @@ android {
     compileSdk = flutter.compileSdkVersion
     
     // 1. FORZAMOS LA VERSIÓN DEL NDK QUE PIDEN LOS PLUGINS
-    ndkVersion = "27.0.12077973"
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
