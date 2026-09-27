@@ -7,10 +7,9 @@ import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'core/providers/auth_provider.dart';
 import 'core/providers/theme_provider.dart';
+import 'core/providers/realtime_provider.dart';
 import 'core/services/firebase_service.dart';
-import 'core/services/socket_service.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 
 @pragma('vm:entry-point')
@@ -38,6 +37,8 @@ Future<void> main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        // Mantiene la suscripción de tiempo real viva durante toda la sesión.
+        ChangeNotifierProvider(create: (_) => RealtimeProvider()..bootstrap()),
       ],
       child: const MyApp(),
     ),

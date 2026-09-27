@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:servicio_tecnico_app/core/services/auth_service.dart';
 import 'package:servicio_tecnico_app/core/services/local_cache_service.dart';
+import 'package:servicio_tecnico_app/core/services/socket_service.dart';
+import 'package:servicio_tecnico_app/core/services/api_service.dart';
 import '../../../../core/constants/assets.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/custom_text_field.dart';
@@ -229,7 +231,14 @@ class _LoginScreenState extends State<LoginScreen> {
           await LocalCacheService.saveUserId(userId);
         }
         await LocalCacheService.saveLastActivity(); // Initialize activity tracking
-        
+
+        // Abre el canal de tiempo real en el mismo momento del login para que los
+        // mensajes entrantes se reciban aunque el usuario no abra el chat.
+        final token = ApiService().getToken();
+        if (userId != null && token != null) {
+          await SocketService().init(userId: userId, authToken: token);
+        }
+
         if (mounted) {
           if (role == 'client') {
             context.go('/client-home');

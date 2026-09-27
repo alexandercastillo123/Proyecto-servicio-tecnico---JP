@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/local_cache_service.dart';
 import '../constants/api_constants.dart';
 import '../models/user.dart';
 import '../services/firebase_service.dart';
@@ -74,7 +75,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    SocketService().dispose();
+    SocketService().disconnect();
     await FirebaseService.deleteToken();
     await _apiService.logout();
     _user = null;
@@ -84,8 +85,13 @@ class AuthProvider extends ChangeNotifier {
   // Llamado al iniciar la app si ya hay token guardado (app en background/cerrada)
   Future<void> initializeFromToken() async {
     final token = _apiService.getToken();
-    if (token != null) {
-      FirebaseService.setupToken();
-    }
+    final userId = LocalCacheService.getUserId();
+    if (token == null || userId == null) return;
+
+    FirebaseService.setupToken();
+
+    // Restablece la conexión en tiempo real al recuperar la sesión, sin esperar
+    // a que se abra alguna vista.
+    await SocketService().init(userId: userId, authToken: token);
   }
 }

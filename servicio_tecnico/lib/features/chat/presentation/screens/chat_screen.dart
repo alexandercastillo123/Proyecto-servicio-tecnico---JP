@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import '../../../../core/services/api_service.dart';
 import '../../../../core/services/message_service.dart';
 import '../../../../core/services/user_service.dart';
 import '../../../../core/services/appointment_service.dart';
@@ -124,23 +123,40 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _initSocketListener() {
+    _messageSubscription?.cancel();
     _messageSubscription = _socketService.onMessageReceived.listen((data) {
       if (_isDisposed) return;
-      if (data['sender_id'] == _otherUserId ||
-          data['receiver_id'] == _currentUserId) {
-        setState(() {
-          _messages.add({
-            ...data,
-            'is_me': data['sender_id'] == _currentUserId,
-          });
-        });
-        _scrollToBottom();
-      }
-    });
-  }
 
-  void _startSocketListener() {
-    // Already handled in _initSocketListener
+      final senderId = data['sender_id']?.toString();
+      final receiverId = data['receiver_id']?.toString();
+      final me = _currentUserId?.toString();
+      final other = _otherUserId?.toString();
+      if (senderId == null || receiverId == null || me == null || other == null) {
+        return;
+      }
+
+      // Solo los mensajes de esta conversación, en cualquiera de los dos
+      // sentidos. Antes bastaba con que el destinatario fuera el usuario actual,
+      // lo que colaba mensajes de otros chats en esta vista.
+      final isMine = senderId == me && receiverId == other;
+      final isFromOther = senderId == other && receiverId == me;
+      if (!isMine && !isFromOther) return;
+
+      // Evita duplicados si el mensaje ya llegó con la carga por API.
+      final messageId = data['id'];
+      if (messageId != null &&
+          _messages.any((m) => m['id']?.toString() == messageId.toString())) {
+        return;
+      }
+
+      setState(() {
+        _messages.add({
+          ...data,
+          'is_me': isMine,
+        });
+      });
+      _scrollToBottom();
+    });
   }
 
   Future<void> _loadInitialData(int userId) async {
@@ -149,12 +165,10 @@ class _ChatScreenState extends State<ChatScreen> {
       if (profileRes.success) {
         _userRole = profileRes.data?['role'];
         _currentUserId = profileRes.data?['id'] ?? profileRes.data?['user_id'];
-        final token = ApiService().getToken();
-if (!_socketService.isConnected &&
-                             token != null &&
-                             _currentUserId != null) {
-          _socketService.init(userId: _currentUserId!, authToken: token);
-        }
+        // Restablece la conexión si el socket se perdió por segundo plano o
+        // cambio de red. Antes solo comprobaba isConnected, pero init() salía
+        // de inmediato porque _initialized ya estaba en true.
+        _socketService.ensureConnected();
       }
 
       // Obtener disponibilidad del otro usuario (si es técnico)
@@ -166,11 +180,13 @@ if (!_socketService.isConnected &&
         });
       }
 
-      await _loadMessages(userId);
+      // Se suscribe antes de cargar para no perder lo que llegue durante la
+      // petición inicial.
       _initSocketListener();
+      await _loadMessages(userId);
     } catch (e) {
-      await _loadMessages(userId);
       _initSocketListener();
+      await _loadMessages(userId);
     }
   }
 
