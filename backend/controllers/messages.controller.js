@@ -82,6 +82,9 @@ const getMessages = asyncHandler(async (req, res) => {
     res.json(Respuesta.ok(rows, 'Éxito'));
 });
 
+const path = require('path');
+const upload = require('../middleware/upload');
+
 /**
  * POST /api/messages/send
  */
@@ -100,13 +103,15 @@ const sendMessage = asyncHandler(async (req, res) => {
     );
     const messageId = result.insertId;
 
-    // Real-time emit
+    // Real-time emit to both receiver and sender
     try {
-        getIO().to(`user_${receiverId}`).emit('receive_message', {
-            id: messageId, sender_id: senderId, receiver_id: receiverId,
+        const payload = {
+            id: messageId, sender_id: senderId, receiver_id: parseInt(receiverId),
             message_text: messageText, message_type: messageType,
             appointment_id: appointmentId, created_at: new Date().toISOString(), is_read: false
-        });
+        };
+        getIO().to(`user_${receiverId}`).emit('receive_message', payload);
+        getIO().to(`user_${senderId}`).emit('receive_message', payload);
     } catch (_) { /* Socket.IO not yet initialized */ }
 
     // Push notification
@@ -118,6 +123,79 @@ const sendMessage = asyncHandler(async (req, res) => {
     );
 
     res.status(201).json(Respuesta.ok({ messageId }, 'Mensaje enviado correctamente.', 201));
+});
+
+/**
+ * POST /api/messages/media
+ * Multipart upload for chat files (image, audio, video, document)
+ */
+const sendMediaMessage = asyncHandler(async (req, res) => {
+    const senderId = req.user.id;
+    const { receiverId, appointmentId, messageText } = req.body;
+
+    if (!req.file) {
+        throw new AppError('Debes seleccionar un archivo para enviar.', 400);
+    }
+    if (!receiverId) {
+        throw new AppError('El ID del destinatario es obligatorio.', 400);
+    }
+
+    const [receiver] = await pool.query('SELECT id FROM users WHERE id = ?', [receiverId]);
+    if (receiver.length === 0) {
+        throw new AppError('No logramos encontrar al destinatario del mensaje.', 404);
+    }
+
+    const fileUrl = upload.getRelativePath(req.file);
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    const mime = req.file.mimetype || '';
+
+    let messageType = 'file';
+    if (mime.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.webp', '.gif'].includes(ext)) {
+        messageType = 'image';
+    } else if (mime.startsWith('audio/') || ['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.opus'].includes(ext)) {
+        messageType = 'audio';
+    } else if (mime.startsWith('video/') || ['.mp4', '.mov', '.avi', '.mkv', '.webm'].includes(ext)) {
+        messageType = 'video';
+    }
+
+    const [result] = await pool.query(
+        'INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, appointment_id) VALUES (?, ?, ?, ?, ?)',
+        [senderId, receiverId, fileUrl, messageType, appointmentId || null]
+    );
+    const messageId = result.insertId;
+
+    const messagePayload = {
+        id: messageId,
+        sender_id: senderId,
+        receiver_id: parseInt(receiverId),
+        message_text: fileUrl,
+        message_type: messageType,
+        appointment_id: appointmentId ? parseInt(appointmentId) : null,
+        created_at: new Date().toISOString(),
+        is_read: false
+    };
+
+    // Real-time emit to both receiver and sender
+    try {
+        getIO().to(`user_${receiverId}`).emit('receive_message', messagePayload);
+        getIO().to(`user_${senderId}`).emit('receive_message', messagePayload);
+    } catch (_) {}
+
+    // Push notification
+    const [senderProfile] = await pool.query('SELECT names, company_name FROM user_profiles WHERE user_id = ?', [senderId]);
+    const senderName = senderProfile[0]?.company_name || senderProfile[0]?.names || 'Un usuario';
+    const notifLabels = {
+        image: '📷 Envió una imagen',
+        audio: '🎵 Envió un mensaje de voz/audio',
+        video: '🎥 Envió un video',
+        file:  '📎 Envió un archivo'
+    };
+    await notificationService.createNotification(
+        receiverId, `Mensaje de ${senderName}`, notifLabels[messageType] || 'Envió un archivo', 'chat',
+        { senderId: senderId.toString(), messageType }
+    );
+
+    res.status(201).json(Respuesta.ok(messagePayload, 'Archivo enviado correctamente.', 201));
 });
 
 /**
@@ -303,6 +381,6 @@ const deleteMessage = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
-    getConversations, getMessages, sendMessage, sendOffer,
+    getConversations, getMessages, sendMessage, sendMediaMessage, sendOffer,
     acceptOffer, rejectOffer, cancelOffer, markAsRead, updateMessage, deleteMessage
 };

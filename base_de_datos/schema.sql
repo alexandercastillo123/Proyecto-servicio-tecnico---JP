@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
     receiver_id INT NOT NULL,
     appointment_id INT DEFAULT NULL,
     message_text TEXT,
-    message_type ENUM('text', 'offer', 'appointment', 'order', 'appointment_progress') DEFAULT 'text',
+    message_type ENUM('text', 'offer', 'appointment', 'order', 'appointment_progress', 'image', 'audio', 'video', 'file') DEFAULT 'text',
     offer_price DECIMAL(10, 2),
     offer_status ENUM('pending', 'accepted', 'rejected', 'cancelled') DEFAULT 'pending',
     order_id INT DEFAULT NULL,

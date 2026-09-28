@@ -120,18 +120,21 @@ const LocationPicker = ({ onLocationSelect, initialLocation = { lat: -12.046374,
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <button type="submit" disabled={searching} className="bg-white/5 px-6 rounded-2xl text-white font-black uppercase text-[10px] tracking-widest hover:bg-white/10 border border-white/10 transition-all">
-            {searching ? '...' : 'Buscar'}
+          <button type="submit" disabled={searching} className="bg-white/5 px-6 rounded-2xl text-white font-black uppercase text-[10px] tracking-widest hover:bg-white/10 border border-white/10 transition-all cursor-pointer">
+            <span>{searching ? '...' : 'Buscar'}</span>
           </button>
         </form>
         
         <button 
+          type="button"
           onClick={detectLocation}
           disabled={detecting}
-          className="flex items-center justify-center gap-2 bg-primary/10 border border-primary/20 text-primary px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-primary hover:text-white transition-all shadow-lg"
+          className="flex items-center justify-center gap-2 bg-primary/10 border border-primary/20 text-primary px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-primary hover:text-white transition-all shadow-lg cursor-pointer"
         >
-          <Target size={18} className={detecting ? 'animate-spin' : ''} />
-          {detecting ? 'Detectando...' : 'Ubicación Real'}
+          <span className="shrink-0 inline-flex items-center justify-center">
+            <Target size={18} className={detecting ? 'animate-spin' : ''} />
+          </span>
+          <span>{detecting ? 'Detectando...' : 'Ubicación Real'}</span>
         </button>
       </div>
 

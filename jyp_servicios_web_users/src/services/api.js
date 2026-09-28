@@ -47,6 +47,7 @@ export const authService = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   register: (data) => api.post('/auth/register', data),
   getProfile: () => api.get('/users/profile'),
+  updateProfile: (data) => api.put('/users/profile', data),
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
@@ -94,6 +95,9 @@ export const messageService = {
   getConversations: () => api.get('/messages/conversations'),
   getMessages: (userId) => api.get(`/messages/${userId}`),
   sendMessage: (data) => api.post('/messages', data),
+  sendMediaMessage: (formData) => api.post('/messages/media', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   sendOffer: (data) => api.post('/messages/offer', data),
   acceptOffer: (id) => api.put(`/messages/offer/${id}/accept`),
   rejectOffer: (id) => api.put(`/messages/offer/${id}/reject`),

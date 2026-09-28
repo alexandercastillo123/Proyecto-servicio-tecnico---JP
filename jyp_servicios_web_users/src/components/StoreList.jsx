@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Store, MapPin, Search, Filter, ChevronRight, Phone, Clock, ShoppingCart, ArrowRight, X, Zap, Target, Star, ShieldCheck, RefreshCw, Navigation } from 'lucide-react';
-import { storeService, messageService } from '../services/api';
+import { storeService } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 
 // Fix Leaflet icons
@@ -26,6 +26,29 @@ const userIcon = new L.Icon({
   iconAnchor: [15, 15],
 });
 
+// Helper component to smoothly re-center the map without unmounting MapContainer
+const RecenterMap = ({ coords }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (coords && coords[0] != null && coords[1] != null && !isNaN(coords[0]) && !isNaN(coords[1])) {
+      map.setView(coords, map.getZoom());
+    }
+  }, [coords, map]);
+  return null;
+};
+
+// Helper component for map click/dblclick events
+const MapEvents = ({ onDblClick }) => {
+  useMapEvents({
+    dblclick(e) {
+      if (onDblClick) {
+        onDblClick(e.latlng.lat, e.latlng.lng);
+      }
+    },
+  });
+  return null;
+};
+
 const StoreList = () => {
   const navigate = useNavigate();
   const [stores, setStores] = useState([]);
@@ -33,18 +56,28 @@ const StoreList = () => {
   const [hasSearched, setHasSearched] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearching, setIsSearching] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
   const [userLocation, setUserLocation] = useState(() => {
     const saved = localStorage.getItem('user_location');
-    return saved ? JSON.parse(saved) : { 
+    return saved ? JSON.parse(saved) : {
       address: 'Lima Centro',
-      lat: -12.046374, 
-      lng: -77.042793 
+      lat: -12.046374,
+      lng: -77.042793
     };
   });
 
   const [mapCenter, setMapCenter] = useState([userLocation.lat, userLocation.lng]);
   const [tempMarker, setTempMarker] = useState([userLocation.lat, userLocation.lng]);
+
+  useEffect(() => {
+    setMapReady(true);
+  }, []);
+
+  const filteredStores = stores.filter(s =>
+    (s.name && s.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (s.address && s.address.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   const fetchStores = async () => {
     setLoading(true);
@@ -67,25 +100,15 @@ const StoreList = () => {
     }
   };
 
-  const MapEvents = () => {
-    useMapEvents({
-      dblclick(e) {
-        const { lat, lng } = e.latlng;
-        setTempMarker([lat, lng]);
-      },
-    });
-    return null;
-  };
-
   const handleManualSearch = async () => {
     if (!tempMarker) return;
-    
+
     setIsSearching(true);
     setLoading(true);
     try {
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${tempMarker[0]}&lon=${tempMarker[1]}`);
       const data = await response.json();
-      
+
       const newLoc = {
         lat: tempMarker[0],
         lng: tempMarker[1],
@@ -95,7 +118,7 @@ const StoreList = () => {
       setUserLocation(newLoc);
       localStorage.setItem('user_location', JSON.stringify(newLoc));
       await fetchStores();
-      
+
     } catch (error) {
       console.error('Manual search failed:', error);
       setIsSearching(false);
@@ -103,14 +126,9 @@ const StoreList = () => {
     }
   };
 
-  const filteredStores = stores.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.address?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <div className="max-w-7xl mx-auto space-y-8 font-outfit animate-in fade-in duration-700">
-      
+
       <header className="px-4">
           <h1 className="text-4xl font-black text-white tracking-tight mb-2">
             Tiendas <span className="text-primary">Oficiales</span>
@@ -119,14 +137,14 @@ const StoreList = () => {
       </header>
 
       <div className="flex flex-col lg:flex-row h-[700px] gap-6 px-4">
-        
+
         <div className="w-full lg:w-[400px] flex flex-col gap-6 overflow-hidden">
           <div className="glass-panel p-4 border-white/5 shadow-xl">
              <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Filtrar tiendas..." 
+                <input
+                  type="text"
+                  placeholder="Filtrar tiendas..."
                   className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -151,9 +169,15 @@ const StoreList = () => {
                ))
             ) : filteredStores.length > 0 ? (
               filteredStores.map((store) => (
-                <div 
+                <div
                   key={store.id}
-                  onClick={() => setMapCenter([store.latitude || -12.04, store.longitude || -77.04])}
+                  onClick={() => {
+                    const lat = parseFloat(store.latitude);
+                    const lng = parseFloat(store.longitude);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                      setMapCenter([lat, lng]);
+                    }
+                  }}
                   className="glass-panel p-5 flex flex-col gap-4 cursor-pointer group hover:bg-white/[0.03] hover:border-primary/30 transition-all border border-white/5 shadow-xl animate-in slide-in-from-bottom-4"
                 >
                   <div className="flex gap-4">
@@ -168,9 +192,12 @@ const StoreList = () => {
                       </p>
                     </div>
                   </div>
-                  <button 
-                    onClick={() => navigate(`/store/${store.id}`)}
-                    className="w-full bg-primary text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-center hover:bg-primary-dark transition-all"
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/store/${store.id}`);
+                    }}
+                    className="w-full bg-primary text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-center hover:bg-primary-dark transition-all cursor-pointer"
                   >
                     Ver Catálogo
                   </button>
@@ -185,45 +212,70 @@ const StoreList = () => {
         </div>
 
         <div className="flex-1 min-h-[400px] lg:min-h-0 rounded-[40px] overflow-hidden border border-white/5 relative shadow-3xl bg-slate-900">
-          <MapContainer 
-            center={mapCenter} 
-            zoom={13} 
-            doubleClickZoom={false}
-            style={{ height: '100%', width: '100%' }}
-            zoomControl={false}
-          >
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution="&copy; CARTO" />
-            <MapEvents />
-            <RecenterMap coords={mapCenter} />
-            
-            {tempMarker && (
-              <>
-                <Circle center={tempMarker} radius={500} pathOptions={{ color: '#3B28FF', fillOpacity: 0.1, weight: 1, dashArray: '5, 10' }} />
-                <Marker position={tempMarker} icon={userIcon} />
-              </>
-            )}
+          {mapReady && (
+            <MapContainer 
+              center={mapCenter} 
+              zoom={13} 
+              doubleClickZoom={false}
+              style={{ height: '100%', width: '100%' }}
+              zoomControl={false}
+            >
+              <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution="&copy; CARTO" />
+              <MapEvents onDblClick={(lat, lng) => setTempMarker([lat, lng])} />
+              <RecenterMap coords={mapCenter} />
+              
+              {tempMarker && (
+                <>
+                  <Circle 
+                    center={tempMarker} 
+                    radius={10000} 
+                    pathOptions={{ color: '#3B28FF', fillOpacity: 0.05, weight: 1, dashArray: '5, 10' }} 
+                  />
+                  <Marker position={tempMarker} icon={userIcon} />
+                </>
+              )}
 
-            {hasSearched && filteredStores.map((store) => (
-              <Marker key={store.id} position={[store.latitude || -12.04, store.longitude || -77.04]} icon={storeIcon}>
-                <Popup className="custom-popup">
-                   <div className="p-3 font-outfit text-center">
-                      <h4 className="font-black text-sm mb-2">{store.name}</h4>
-                      <button onClick={() => navigate(`/store/${store.id}`)} className="bg-primary text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase">Ver Tienda</button>
-                   </div>
-                </Popup>
-              </Marker>
-            ))}
-          </MapContainer>
+              {hasSearched && filteredStores.map((store) => {
+                const lat = parseFloat(store.latitude);
+                const lng = parseFloat(store.longitude);
+                if (isNaN(lat) || isNaN(lng)) return null;
+                return (
+                  <Marker 
+                    key={store.id} 
+                    position={[lat, lng]} 
+                    icon={storeIcon}
+                  >
+                    <Popup className="custom-popup">
+                      <div className="p-3 font-outfit text-center">
+                        <h4 className="font-black text-sm mb-2">{store.name}</h4>
+                        <button 
+                          onClick={() => navigate(`/store/${store.id}`)} 
+                          className="bg-primary text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase cursor-pointer hover:bg-primary-dark transition-all"
+                        >
+                          Ver Tienda
+                        </button>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+            </MapContainer>
+          )}
 
           {/* FLOATING BUSCAR BUTTON */}
           <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[1000]">
-             <button 
+             <button
+               type="button"
                onClick={handleManualSearch}
                disabled={isSearching}
-               className="flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-full font-black uppercase tracking-widest text-xs shadow-[0_15px_35px_rgba(59,40,255,0.4)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+               className="flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-full font-black uppercase tracking-widest text-xs shadow-[0_15px_35px_rgba(59,40,255,0.4)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
              >
-               {isSearching ? <RefreshCw className="animate-spin" size={18} /> : <Search size={18} />}
-               Buscar Sucursales aquí
+               <span className="shrink-0 inline-flex items-center justify-center w-5 h-5">
+                 {isSearching ? <RefreshCw className="animate-spin" size={18} /> : <Search size={18} />}
+               </span>
+               <span className="whitespace-nowrap">
+                 {isSearching ? 'Buscando sucursales...' : 'Buscar Sucursales aquí'}
+               </span>
              </button>
           </div>
 
@@ -235,7 +287,7 @@ const StoreList = () => {
                 <div>
                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Zona Seleccionada</p>
                    <p className="text-sm font-black text-white leading-tight">
-                      {userLocation.address.split(',')[0]}
+                      {userLocation.address ? userLocation.address.split(',')[0] : 'Lima'}
                    </p>
                 </div>
              </div>

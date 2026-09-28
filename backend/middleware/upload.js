@@ -25,6 +25,8 @@ const storage = multer.diskStorage({
             category = 'avatars';
         } else if (url.includes('tech')) {
             category = 'technicians';
+        } else if (url.includes('chat') || url.includes('messages')) {
+            category = 'chat';
         }
 
         const dest = path.join(UPLOAD_BASE, category, '/');
@@ -39,10 +41,34 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-    // Verificar por mimetype
+    const url = req.originalUrl.toLowerCase();
+    const isChat = url.includes('chat') || url.includes('messages');
+
+    if (isChat) {
+        // Chat allows images, audios, videos, documents
+        const allowedExtensions = [
+            '.jpg', '.jpeg', '.png', '.webp', '.gif',
+            '.mp3', '.wav', '.m4a', '.aac', '.ogg', '.opus',
+            '.mp4', '.mov', '.avi', '.mkv', '.webm',
+            '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.txt', '.zip'
+        ];
+        const extension = path.extname(file.originalname).toLowerCase();
+        if (
+            allowedExtensions.includes(extension) || 
+            file.mimetype.startsWith('image/') || 
+            file.mimetype.startsWith('audio/') || 
+            file.mimetype.startsWith('video/') || 
+            file.mimetype.startsWith('application/')
+        ) {
+            return cb(null, true);
+        }
+        const error = new Error('Tipo de archivo no permitido en el chat');
+        error.statusCode = 400;
+        return cb(error, false);
+    }
+
+    // Default: Image only
     const isImageMime = file.mimetype.startsWith('image/');
-    
-    // Verificar por extensión (fallback si el mimetype es genérico o falta)
     const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];
     const extension = path.extname(file.originalname).toLowerCase();
     const isImageExtension = allowedExtensions.includes(extension);
@@ -58,7 +84,7 @@ const fileFilter = (req, file, cb) => {
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // Aumentado a 10MB para premium photos
+    limits: { fileSize: 50 * 1024 * 1024 }, // Aumentado a 50MB para videos/audios/archivos
     fileFilter: fileFilter
 });
 

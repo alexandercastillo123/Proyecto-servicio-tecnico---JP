@@ -42,6 +42,27 @@ class MessageService {
     );
   }
 
+  /// Send media message (image, audio, video, document)
+  Future<ApiResponse<Map<String, dynamic>>> sendMediaMessage({
+    required int receiverId,
+    required String filePath,
+    int? appointmentId,
+    String? messageText,
+  }) async {
+    return await _apiService.uploadFile<Map<String, dynamic>>(
+      '${ApiConstants.messages}/media',
+      filePath,
+      fieldName: 'file',
+      fields: {
+        'receiverId': receiverId.toString(),
+        if (appointmentId != null) 'appointmentId': appointmentId.toString(),
+        if (messageText != null && messageText.isNotEmpty) 'messageText': messageText,
+      },
+      requiresAuth: true,
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
   /// Send service offer
   Future<ApiResponse<Map<String, dynamic>>> sendOffer({
     required int receiverId,
