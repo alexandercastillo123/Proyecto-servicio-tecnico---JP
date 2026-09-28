@@ -6,7 +6,8 @@ import {
   User, Check, CheckCheck, Clock, ShieldCheck,
   DollarSign, X, CheckCircle2, ChevronLeft, MessageSquare,
   Zap, Calendar, Smartphone, Wallet, CreditCard, Banknote,
-  AlertCircle, ArrowRight, Package, MapPin, FileText
+  AlertCircle, ArrowRight, Package, MapPin, FileText,
+  Mic, Square, StopCircle
 } from 'lucide-react';
 import { messageService, clientService, techService, storeService } from '../services/api';
 import { toast } from 'react-hot-toast';
@@ -39,6 +40,9 @@ const Chat = () => {
   const typingTimeoutRef = useRef(null);
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
 
   useEffect(() => {
     fetchConversations();
@@ -281,6 +285,75 @@ const Chat = () => {
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const startRecording = async () => {
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast.error('Tu navegador no soporta grabación de audio');
+        return;
+      }
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorderRef.current = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+
+      mediaRecorderRef.current.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await sendAudioMessage(audioBlob);
+        // Stop all tracks to release the microphone
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+    } catch (error) {
+      console.error('Error al iniciar grabación:', error);
+      if (error.name === 'NotAllowedError') {
+        toast.error('Permiso de micrófono denegado. Habilita el permiso en tu navegador.');
+      } else if (error.name === 'NotFoundError') {
+        toast.error('No se encontró un micrófono. Conéctalo e intenta de nuevo.');
+      } else {
+        toast.error('No se pudo grabar audio. Verifica tu micrófono y permisos.');
+      }
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const sendAudioMessage = async (audioBlob) => {
+    if (!selectedConversation) return;
+
+    const timestamp = Date.now();
+    const fileName = `audio_${timestamp}.webm`;
+    const file = new File([audioBlob], fileName, { type: 'audio/webm' });
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('receiverId', selectedConversation.other_user_id);
+
+    try {
+      const resp = await messageService.sendMediaMessage(formData);
+      if (resp.data.exito) {
+        fetchMessages(selectedConversation.other_user_id);
+        fetchConversations();
+      }
+    } catch (error) {
+      console.error('Error sending audio:', error);
+      toast.error('Error al enviar audio');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -781,34 +854,63 @@ const Chat = () => {
                 accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" 
                 className="hidden" 
               />
-              <form onSubmit={handleSendMessage} className="flex gap-4">
-                <button 
-                  type="button" 
-                  disabled={isUploading}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-text-dim transition-all cursor-pointer disabled:opacity-50"
-                  title="Adjuntar imagen, audio, video o documento"
-                >
-                  <Paperclip size={20} className={isUploading ? 'animate-spin' : ''} />
-                </button>
-                <div className="flex-1 relative">
-                  <input 
-                    type="text" 
-                    placeholder={isUploading ? "Subiendo archivo..." : "Escribe tu mensaje aquí..."} 
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-                    value={newMessage}
-                    onChange={handleInputChange}
-                    disabled={isUploading}
-                  />
-                </div>
-                <button 
-                  type="submit" 
-                  disabled={isUploading || !newMessage.trim()}
-                  className="p-3 bg-primary hover:bg-primary-dark rounded-xl text-white shadow-lg shadow-primary/30 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  <Send size={20} />
-                </button>
-              </form>
+               <form onSubmit={handleSendMessage} className="flex gap-4">
+                 <button 
+                   type="button" 
+                   disabled={isUploading}
+                   onClick={() => fileInputRef.current?.click()}
+                   className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-text-dim transition-all cursor-pointer disabled:opacity-50"
+                   title="Adjuntar imagen, audio, video o documento"
+                 >
+                   <Paperclip size={20} className={isUploading ? 'animate-spin' : ''} />
+                 </button>
+                 <div className="flex-1 relative">
+                   <input 
+                     type="text" 
+                     placeholder={isUploading ? "Subiendo archivo..." : "Escribe tu mensaje aquí..."} 
+                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                     value={newMessage}
+                     onChange={handleInputChange}
+                     disabled={isUploading || isRecording}
+                   />
+                 </div>
+                  {isRecording ? (
+                    <button 
+                      type="button"
+                      onMouseDown={startRecording}
+                      onMouseUp={stopRecording}
+                      onMouseLeave={stopRecording}
+                      onTouchStart={startRecording}
+                      onTouchEnd={stopRecording}
+                      className="p-3 bg-red-500/20 hover:bg-red-500/30 rounded-xl text-red-400 transition-all cursor-pointer shadow-lg shadow-red-500/20 flex items-center gap-2"
+                      title="Grabando... suelta para enviar"
+                    >
+                      <Mic size={20} className="animate-pulse" />
+                      <span className="text-xs font-bold">Grabando</span>
+                    </button>
+                  ) : newMessage.trim() ? (
+                    <button 
+                      type="submit" 
+                      disabled={isUploading}
+                      className="p-3 bg-primary hover:bg-primary-dark rounded-xl text-white shadow-lg shadow-primary/30 transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <Send size={20} />
+                    </button>
+                  ) : (
+                    <button 
+                      type="button"
+                      onMouseDown={startRecording}
+                      onMouseUp={stopRecording}
+                      onTouchStart={startRecording}
+                      onTouchEnd={stopRecording}
+                      disabled={isUploading}
+                      className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-text-dim transition-all cursor-pointer disabled:opacity-50"
+                      title="Grabar mensaje de voz"
+                    >
+                      <Mic size={20} />
+                    </button>
+                  )}
+               </form>
             </div>
           </>
         ) : (

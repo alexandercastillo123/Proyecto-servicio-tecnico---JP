@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../../core/services/message_service.dart';
 import '../../../../core/services/user_service.dart';
@@ -51,6 +53,8 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _otherUserAvailable = true;
   int? _otherStoreId;
   int? _currentUserId;
+  final Record _recorder = Record();
+  bool _isRecordingAudio = false;
 
   String _formatTime(String? timestamp) {
     if (timestamp == null) return '';
@@ -130,6 +134,10 @@ class _ChatScreenState extends State<ChatScreen> {
     _typingDebounce?.cancel();
     _typingSubscription?.cancel();
     _messageSubscription?.cancel();
+    if (_isRecordingAudio) {
+      _recorder.stop();
+    }
+    _recorder.dispose();
     super.dispose();
   }
 
@@ -363,24 +371,33 @@ class _ChatScreenState extends State<ChatScreen> {
                         _pickAndSendImage(ImageSource.gallery);
                       },
                     ),
-                    _buildMediaOption(
-                      icon: Icons.videocam,
-                      label: 'Video',
-                      color: Colors.deepOrange,
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _pickAndSendVideo(ImageSource.gallery);
-                      },
-                    ),
-                    _buildMediaOption(
-                      icon: Icons.video_call,
-                      label: 'Grabar',
-                      color: Colors.red,
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _pickAndSendVideo(ImageSource.camera);
-                      },
-                    ),
+                     _buildMediaOption(
+                       icon: Icons.videocam,
+                       label: 'Video',
+                       color: Colors.deepOrange,
+                       onTap: () {
+                         Navigator.pop(ctx);
+                         _pickAndSendVideo(ImageSource.gallery);
+                       },
+                     ),
+                     _buildMediaOption(
+                       icon: Icons.video_call,
+                       label: 'Grabar',
+                       color: Colors.red,
+                       onTap: () {
+                         Navigator.pop(ctx);
+                         _pickAndSendVideo(ImageSource.camera);
+                       },
+                     ),
+                     _buildMediaOption(
+                       icon: Icons.mic,
+                       label: 'Grabar Audio',
+                       color: Colors.green,
+                       onTap: () {
+                         Navigator.pop(ctx);
+                         _recordAndSendAudio();
+                       },
+                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -467,6 +484,99 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     }
+  }
+
+  Future<void> _recordAndSendAudio() async {
+    final hasPermission = await _recorder.hasPermission();
+    if (!hasPermission) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permiso de grabación de audio denegado')),
+        );
+      }
+      return;
+    }
+
+    if (_otherUserId == null) return;
+
+    final dir = await getTemporaryDirectory();
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final path = '${dir.path}/audio_$timestamp.m4a';
+
+    await _recorder.start(
+      path: path,
+      encoder: AudioEncoder.aacLc,
+      bitRate: 128000,
+      samplingRate: 44100,
+    );
+
+    if (!mounted) return;
+
+    setState(() => _isRecordingAudio = true);
+
+    final recordedPath = await showDialog<String?>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _buildRecordingDialog(),
+    );
+
+    if (!mounted) return;
+
+    setState(() => _isRecordingAudio = false);
+
+    if (recordedPath != null && recordedPath.isNotEmpty) {
+      await _sendMediaFile(recordedPath, 'audio');
+    }
+  }
+
+  Widget _buildRecordingDialog() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Dialog(
+      backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: () async {
+                final path = await _recorder.stop();
+                if (mounted) Navigator.pop(context, path);
+              },
+              child: Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.red, width: 2),
+                ),
+                child: const Icon(Icons.stop, color: Colors.red, size: 32),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Grabando audio...',
+              style: TextStyle(
+                color: isDark ? Colors.white : Colors.black87,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Toca Detener para enviar',
+              style: TextStyle(
+                color: isDark ? Colors.white70 : Colors.black54,
+                fontSize: 13,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _sendMediaFile(String filePath, String type) async {
