@@ -172,6 +172,7 @@ class ApiService {
     String url,
     String filePath, {
     String fieldName = 'file',
+    Map<String, String>? fields,
     bool requiresAuth = true,
     T Function(dynamic)? fromJson,
   }) async {
@@ -180,16 +181,53 @@ class ApiService {
       String type = 'image';
       String subtype = 'jpeg'; // default
 
-      if (extension == '.png') subtype = 'png';
-      if (extension == '.webp') subtype = 'webp';
-      if (extension == '.gif') subtype = 'gif';
+      if (extension == '.png') {
+        type = 'image';
+        subtype = 'png';
+      } else if (extension == '.webp') {
+        type = 'image';
+        subtype = 'webp';
+      } else if (extension == '.gif') {
+        type = 'image';
+        subtype = 'gif';
+      } else if (extension == '.mp3') {
+        type = 'audio';
+        subtype = 'mpeg';
+      } else if (extension == '.wav') {
+        type = 'audio';
+        subtype = 'wav';
+      } else if (extension == '.m4a' || extension == '.aac') {
+        type = 'audio';
+        subtype = 'aac';
+      } else if (extension == '.ogg' || extension == '.opus') {
+        type = 'audio';
+        subtype = 'ogg';
+      } else if (extension == '.mp4') {
+        type = 'video';
+        subtype = 'mp4';
+      } else if (extension == '.mov') {
+        type = 'video';
+        subtype = 'quicktime';
+      } else if (extension == '.pdf') {
+        type = 'application';
+        subtype = 'pdf';
+      } else {
+        type = 'application';
+        subtype = 'octet-stream';
+      }
 
       final file = await http.MultipartFile.fromPath(
         fieldName,
         filePath,
         contentType: MediaType(type, subtype),
       );
-      return postMultipart<T>(url, {}, file, requiresAuth: requiresAuth, fromJson: fromJson);
+      return postMultipart<T>(
+        url,
+        fields ?? {},
+        file,
+        requiresAuth: requiresAuth,
+        fromJson: fromJson,
+      );
     } catch (e) {
       return ApiResponse(
         success: false,

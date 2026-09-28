@@ -18,6 +18,7 @@ router.get('/conversations', authenticate, messagesController.getConversations);
  * @access  Private
  */
 router.get('/:otherUserId', authenticate, messagesController.getMessages);
+const upload = require('../middleware/upload');
 
 /**
  * @route   POST /api/messages
@@ -34,6 +35,18 @@ router.post(
     ],
     validate,
     messagesController.sendMessage
+);
+
+/**
+ * @route   POST /api/messages/media
+ * @desc    Send media message (image, audio, video, document)
+ * @access  Private
+ */
+router.post(
+    '/media',
+    authenticate,
+    upload.single('file'),
+    messagesController.sendMediaMessage
 );
 
 /**

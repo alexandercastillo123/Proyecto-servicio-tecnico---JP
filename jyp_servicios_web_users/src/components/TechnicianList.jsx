@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { Search, Filter, Star, MapPin, Phone, MessageSquare, Calendar, ChevronRight, Target, Zap, ShieldCheck, RefreshCw, Navigation, User, ArrowRight } from 'lucide-react';
 import { clientService } from '../services/api.js';
@@ -26,6 +26,29 @@ const userIcon = new L.Icon({
   iconAnchor: [15, 15],
 });
 
+// Helper component to smoothly re-center the map without unmounting MapContainer
+const RecenterMap = ({ coords }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (coords && coords[0] != null && coords[1] != null && !isNaN(coords[0]) && !isNaN(coords[1])) {
+      map.setView(coords, map.getZoom());
+    }
+  }, [coords, map]);
+  return null;
+};
+
+// Helper component for map click/dblclick events
+const MapEvents = ({ onDblClick }) => {
+  useMapEvents({
+    dblclick(e) {
+      if (onDblClick) {
+        onDblClick(e.latlng.lat, e.latlng.lng);
+      }
+    },
+  });
+  return null;
+};
+
 const TechnicianList = ({ userLocation, onLocationUpdate }) => {
   const navigate = useNavigate();
   const [technicians, setTechnicians] = useState([]);
@@ -35,6 +58,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
   const [mapCenter, setMapCenter] = useState([-12.046374, -77.042793]);
   const [tempMarker, setTempMarker] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     if (userLocation) {
@@ -42,6 +66,10 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
        setTempMarker([userLocation.lat, userLocation.lng]);
     }
   }, [userLocation]);
+
+  useEffect(() => {
+    setMapReady(true);
+  }, []);
 
   const fetchTechnicians = async () => {
     setLoading(true);
@@ -64,16 +92,6 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
       setLoading(false);
       setIsSearching(false);
     }
-  };
-
-const MapEvents = () => {
-    useMapEvents({
-      dblclick(e) {
-        const { lat, lng } = e.latlng;
-        setTempMarker([lat, lng]);
-      },
-    });
-    return null;
   };
 
   const handleManualSearch = async () => {
@@ -138,7 +156,13 @@ const MapEvents = () => {
               <div 
                 key={tech.id} 
                 className="glass-panel p-5 flex flex-col gap-4 cursor-pointer group hover:bg-white/[0.03] hover:border-primary/30 transition-all border border-white/5 shadow-xl animate-in slide-in-from-bottom-4 duration-500"
-                onClick={() => setMapCenter([-12.046374 + (tech.id * 0.005), -77.042793 + (tech.id * 0.005)])}
+                onClick={() => {
+                  const lat = parseFloat(tech.latitude);
+                  const lng = parseFloat(tech.longitude);
+                  if (!isNaN(lat) && !isNaN(lng)) {
+                    setMapCenter([lat, lng]);
+                  }
+                }}
               >
                 <div className="flex gap-4">
                   <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shrink-0">
@@ -188,60 +212,70 @@ const MapEvents = () => {
 
       {/* Map Area */}
       <div className="flex-1 min-h-[400px] lg:min-h-0 rounded-[40px] overflow-hidden border border-white/5 relative shadow-3xl bg-slate-900">
-        <MapContainer 
-          key={`${mapCenter[0]},${mapCenter[1]}`}
-          center={mapCenter} 
-          zoom={13} 
-          doubleClickZoom={false}
-          style={{ height: '100%', width: '100%' }}
-          zoomControl={false}
-        >
-          <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution="&copy; CARTO" />
-          <MapEvents />
-          
-          {tempMarker && (
-            <>
-              <Circle 
-                center={tempMarker} 
-                radius={10000} // 10km circle to match the search radius
-                pathOptions={{ color: '#3B28FF', fillOpacity: 0.05, weight: 1, dashArray: '5, 10' }} 
-              />
-              <Marker position={tempMarker} icon={userIcon} />
-            </>
-          )}
+        {mapReady && (
+          <MapContainer 
+            center={mapCenter} 
+            zoom={13} 
+            doubleClickZoom={false}
+            style={{ height: '100%', width: '100%' }}
+            zoomControl={false}
+          >
+            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution="&copy; CARTO" />
+            <MapEvents onDblClick={(lat, lng) => setTempMarker([lat, lng])} />
+            <RecenterMap coords={mapCenter} />
+            
+            {tempMarker && (
+              <>
+                <Circle 
+                  center={tempMarker} 
+                  radius={10000} // 10km circle to match the search radius
+                  pathOptions={{ color: '#3B28FF', fillOpacity: 0.05, weight: 1, dashArray: '5, 10' }} 
+                />
+                <Marker position={tempMarker} icon={userIcon} />
+              </>
+            )}
 
-          {hasSearched && technicians.map((tech) => (
-            tech.latitude && tech.longitude && (
-              <Marker 
-                key={tech.id} 
-                position={[tech.latitude, tech.longitude]} 
-                icon={techIcon}
-              >
-                <Popup className="custom-popup">
-                  <div className="p-3 font-outfit text-center">
-                    <h4 className="font-black text-sm mb-2">{tech.names?.[0]} {tech.surnames?.[0]}</h4>
-                    <button 
-                      onClick={() => navigate(`/technician/${tech.id}`)}
-                      className="bg-primary text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase"
-                    >
-                      Ver Perfil
-                    </button>
-                  </div>
-                </Popup>
-              </Marker>
-            )
-          ))}
-        </MapContainer>
+            {hasSearched && technicians.map((tech) => {
+              const lat = parseFloat(tech.latitude);
+              const lng = parseFloat(tech.longitude);
+              if (isNaN(lat) || isNaN(lng)) return null;
+              return (
+                <Marker 
+                  key={tech.id} 
+                  position={[lat, lng]} 
+                  icon={techIcon}
+                >
+                  <Popup className="custom-popup">
+                    <div className="p-3 font-outfit text-center">
+                      <h4 className="font-black text-sm mb-2">{tech.names?.[0] || 'Técnico'} {tech.surnames?.[0] || ''}</h4>
+                      <button 
+                        onClick={() => navigate(`/technician/${tech.id}`)}
+                        className="bg-primary text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase cursor-pointer hover:bg-primary-dark transition-all"
+                      >
+                        Ver Perfil
+                      </button>
+                    </div>
+                  </Popup>
+                </Marker>
+              );
+            })}
+          </MapContainer>
+        )}
         
         {/* MANUAL SEARCH TRIGGER */}
         <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[1000]">
            <button 
+             type="button"
              onClick={handleManualSearch}
              disabled={isSearching}
-             className="flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-full font-black uppercase tracking-widest text-xs shadow-[0_15px_35px_rgba(59,40,255,0.4)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50"
+             className="flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-full font-black uppercase tracking-widest text-xs shadow-[0_15px_35px_rgba(59,40,255,0.4)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
            >
-             {isSearching ? <RefreshCw className="animate-spin" size={18} /> : <Search size={18} />}
-             Buscar Técnicos aquí
+             <span className="shrink-0 inline-flex items-center justify-center w-5 h-5">
+               {isSearching ? <RefreshCw className="animate-spin" size={18} /> : <Search size={18} />}
+             </span>
+             <span className="whitespace-nowrap">
+               {isSearching ? 'Buscando técnicos...' : 'Buscar Técnicos aquí'}
+             </span>
            </button>
         </div>
 

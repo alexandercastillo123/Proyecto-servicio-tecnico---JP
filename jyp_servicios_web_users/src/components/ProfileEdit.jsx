@@ -7,6 +7,7 @@ import {
   LogOut, Star, Award, Zap
 } from 'lucide-react';
 import { authService } from '../services/api';
+import toast from 'react-hot-toast';
 
 const ProfileEdit = () => {
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || {});
@@ -36,12 +37,16 @@ const ProfileEdit = () => {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // In a real app, we would call an updateProfile endpoint
-      // await authService.updateProfile(user);
-      localStorage.setItem('user', JSON.stringify(user));
-      alert('Perfil actualizado localmente (Simulado)');
+      const response = await authService.updateProfile(user);
+      if (response.data.exito) {
+        localStorage.setItem('user', JSON.stringify(user));
+        toast.success('Perfil actualizado correctamente');
+      } else {
+        toast.error(response.data.mensaje || 'Error al actualizar');
+      }
     } catch (error) {
       console.error(error);
+      toast.error('Error al actualizar el perfil');
     } finally {
       setIsSaving(false);
     }

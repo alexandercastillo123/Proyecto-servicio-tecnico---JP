@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, Star, Calendar, ArrowRight, ShieldCheck, Zap, X, Filter, Store, MessageSquare, User, Target } from 'lucide-react';
+import { Search, MapPin, Star, Calendar, ArrowRight, ShieldCheck, Zap, X, Filter, Store, MessageSquare, User, Target, Clock } from 'lucide-react';
 import { clientService, messageService } from '../services/api';
 import LocationPicker from './LocationPicker';
 import { Link, useNavigate } from 'react-router-dom';

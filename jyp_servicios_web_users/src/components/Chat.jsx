@@ -6,7 +6,7 @@ import {
   User, Check, CheckCheck, Clock, ShieldCheck,
   DollarSign, X, CheckCircle2, ChevronLeft, MessageSquare,
   Zap, Calendar, Smartphone, Wallet, CreditCard, Banknote,
-  AlertCircle, ArrowRight, Package, MapPin
+  AlertCircle, ArrowRight, Package, MapPin, FileText
 } from 'lucide-react';
 import { messageService, clientService, techService, storeService } from '../services/api';
 import { toast } from 'react-hot-toast';
@@ -37,6 +37,8 @@ const Chat = () => {
 
   const scrollRef = useRef();
   const typingTimeoutRef = useRef(null);
+  const fileInputRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     fetchConversations();
@@ -254,6 +256,31 @@ const Chat = () => {
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Error al enviar mensaje');
+    }
+  };
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedConversation) return;
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('receiverId', selectedConversation.other_user_id);
+
+    try {
+      const resp = await messageService.sendMediaMessage(formData);
+      if (resp.data.exito) {
+        fetchMessages(selectedConversation.other_user_id);
+        fetchConversations();
+        toast.success('Archivo enviado correctamente');
+      }
+    } catch (error) {
+      console.error('Error uploading chat file:', error);
+      toast.error('Error al enviar archivo');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -655,6 +682,55 @@ const Chat = () => {
                                  Ver detalles del pedido
                                </button>
                             </div>
+                           ) : msg.message_type === 'image' ? (
+                            <div className="space-y-2 max-w-[280px]">
+                              <a 
+                                href={msg.message_text?.startsWith('http') ? msg.message_text : `http://localhost:3000/uploads/${msg.message_text}`} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                              >
+                                <img 
+                                  src={msg.message_text?.startsWith('http') ? msg.message_text : `http://localhost:3000/uploads/${msg.message_text}`} 
+                                  alt="Adjunto" 
+                                  className="rounded-2xl max-h-60 w-full object-cover shadow-lg hover:opacity-90 transition-opacity border border-white/10" 
+                                />
+                              </a>
+                            </div>
+                          ) : msg.message_type === 'audio' ? (
+                            <div className="space-y-2 min-w-[240px]">
+                              <audio 
+                                controls 
+                                className="w-full h-10 rounded-xl" 
+                                src={msg.message_text?.startsWith('http') ? msg.message_text : `http://localhost:3000/uploads/${msg.message_text}`}
+                              >
+                                Tu navegador no soporta el reproductor de audio.
+                              </audio>
+                            </div>
+                          ) : msg.message_type === 'video' ? (
+                            <div className="space-y-2 max-w-[280px]">
+                              <video 
+                                controls 
+                                className="rounded-2xl w-full max-h-60 shadow-lg border border-white/10" 
+                                src={msg.message_text?.startsWith('http') ? msg.message_text : `http://localhost:3000/uploads/${msg.message_text}`}
+                              >
+                                Tu navegador no soporta el reproductor de video.
+                              </video>
+                            </div>
+                          ) : msg.message_type === 'file' ? (
+                            <div className="flex items-center gap-3 p-3 bg-white/10 rounded-2xl border border-white/5 min-w-[220px]">
+                              <FileText className="text-primary shrink-0" size={24} />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-bold text-white truncate">{msg.message_text?.split('/').pop() || 'Documento adjunto'}</p>
+                                <a 
+                                  href={msg.message_text?.startsWith('http') ? msg.message_text : `http://localhost:3000/uploads/${msg.message_text}`} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer" 
+                                  className="text-[10px] text-primary hover:underline font-bold uppercase tracking-wider block mt-1"
+                                >
+                                  Descargar archivo
+                                </a>
+                              </div>
+                            </div>
                           ) : (
                             <p className="text-sm leading-relaxed">{msg.message_text}</p>
                           )}
@@ -698,20 +774,38 @@ const Chat = () => {
 
             {/* Input Area */}
             <div className="p-6 bg-surface/30 backdrop-blur-md border-t border-white/5">
+              <input 
+                type="file" 
+                ref={fileInputRef} 
+                onChange={handleFileSelect} 
+                accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" 
+                className="hidden" 
+              />
               <form onSubmit={handleSendMessage} className="flex gap-4">
-                <button type="button" className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-text-dim transition-all">
-                  <Paperclip size={20} />
+                <button 
+                  type="button" 
+                  disabled={isUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-text-dim transition-all cursor-pointer disabled:opacity-50"
+                  title="Adjuntar imagen, audio, video o documento"
+                >
+                  <Paperclip size={20} className={isUploading ? 'animate-spin' : ''} />
                 </button>
                 <div className="flex-1 relative">
                   <input 
                     type="text" 
-                    placeholder="Escribe tu mensaje aquí..." 
+                    placeholder={isUploading ? "Subiendo archivo..." : "Escribe tu mensaje aquí..."} 
                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all"
                     value={newMessage}
                     onChange={handleInputChange}
+                    disabled={isUploading}
                   />
                 </div>
-                <button type="submit" className="p-3 bg-primary hover:bg-primary-dark rounded-xl text-white shadow-lg shadow-primary/30 transition-all">
+                <button 
+                  type="submit" 
+                  disabled={isUploading || !newMessage.trim()}
+                  className="p-3 bg-primary hover:bg-primary-dark rounded-xl text-white shadow-lg shadow-primary/30 transition-all cursor-pointer disabled:opacity-50"
+                >
                   <Send size={20} />
                 </button>
               </form>
