@@ -3,6 +3,8 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Permiso grabación de audio (mensajes de voz) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <!-- Internet para mapa OSM y backend -->
     <uses-permission android:name="android.permission.INTERNET" />
     <application
