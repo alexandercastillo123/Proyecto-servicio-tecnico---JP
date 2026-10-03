@@ -1,320 +1,89 @@
-const bcrypt = require('bcryptjs');
-const db = require('../config/database');
-const { generateToken } = require('../utils/jwt');
-const { isValidEmail } = require('../utils/validators');
 const Respuesta = require('../utils/Respuesta');
+const asyncHandler = require('../utils/asyncHandler');
+const authService = require('../services/auth.service');
 
 /**
- * Register new user
+ * POST /api/auth/register
  */
-const register = async (req, res) => {
-    let respuesta = new Respuesta();
-    const connection = await db.pool.getConnection();
-
-    try {
-        await connection.beginTransaction();
-
-        const {
-            email,
-            password,
-            role, // 'client' or 'tech'
-            personType, // 'natural' or 'juridical'
-            names,
-            surnames,
-            dni,
-            companyName,
-            ruc,
-            phone,
-            referenceAddress,
-            address,
-            city
-        } = req.body;
-
-        // Validate email
-        if (!isValidEmail(email)) {
-            respuesta.mensaje = 'Invalid email format';
-            return res.status(400).json(respuesta);
-        }
-
-        // Check if user already exists
-        const [existingUsers] = await connection.query(
-            'SELECT id FROM users WHERE email = ?',
-            [email]
-        );
-
-        if (existingUsers.length > 0) {
-            await connection.rollback();
-            respuesta.estado = 409;
-            respuesta.mensaje = 'Email already registered';
-            return res.status(409).json(respuesta);
-        }
-
-        // Hash password
-        const passwordHash = await bcrypt.hash(password, 10);
-
-        // Insert user
-        const [userResult] = await connection.query(
-            'INSERT INTO users (email, password_hash, role) VALUES (?, ?, ?)',
-            [email, passwordHash, role]
-        );
-
-        const userId = userResult.insertId;
-        const isTech = role === 'tech';
-
-        // Insert user profile
-        await connection.query(
-            `INSERT INTO user_profiles (
-        user_id, phone, address, city, person_type,
-        names, surnames, dni, company_name, ruc, reference_address
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                userId,
-                phone || null,
-                address || null,
-                city || null,
-                personType,
-                personType === 'natural' ? names : null,
-                personType === 'natural' ? surnames : null,
-                personType === 'natural' ? dni : null,
-                personType === 'juridical' ? companyName : null,
-                personType === 'juridical' ? ruc : null,
-                isTech ? referenceAddress : null
-            ]
-        );
-
-        // Handle Technician Schedules
-        if (isTech) {
-            let schedulesToInsert = [];
-            const { schedules } = req.body;
-
-            if (schedules && Array.isArray(schedules) && schedules.length > 0) {
-                // Use provided schedules
-                schedulesToInsert = schedules.map(s => [
-                    userId,
-                    s.dayOfWeek,
-                    s.startTime,
-                    s.endTime,
-                    s.isActive !== undefined ? s.isActive : true
-                ]);
-            } else if (personType === 'natural') {
-                // Default schedule for natural person technician: Mon-Sat, 9:00 - 18:00
-                const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-                schedulesToInsert = days.map(day => [
-                    userId,
-                    day,
-                    '09:00:00',
-                    '18:00:00',
-                    true
-                ]);
-                // Add Sunday as inactive
-                schedulesToInsert.push([userId, 'Sunday', '00:00:00', '00:00:00', false]);
-            }
-
-            if (schedulesToInsert.length > 0) {
-                await connection.query(
-                    `INSERT INTO technician_schedules (technician_id, day_of_week, start_time, end_time, is_active)
-           VALUES ?`,
-                    [schedulesToInsert]
-                );
-            }
-        }
-
-        await connection.commit();
-
-        // Generate token
-        const token = generateToken({
-            id: userId,
-            email: email,
-            role: role
-        });
-
-        respuesta.exito = true;
-        respuesta.estado = 201;
-        respuesta.mensaje = 'User registered successfully';
-        respuesta.resultado = {
-            userId,
-            email,
-            role,
-            token
-        };
-
-        res.status(201).json(respuesta);
-
-    } catch (error) {
-        await connection.rollback();
-        console.error('Registration error:', error);
-        respuesta.mensaje = 'Registration failed: ' + error.message;
-        res.status(500).json(respuesta);
-    } finally {
-        connection.release();
-    }
-};
+const register = asyncHandler(async (req, res) => {
+    const data = await authService.registerUser(req.body);
+    res.status(201).json(Respuesta.ok(data, '¡Bienvenido! Tu cuenta ha sido creada exitosamente.', 201));
+});
 
 /**
- * Login user
+ * POST /api/auth/login
  */
-const login = async (req, res) => {
-    let respuesta = new Respuesta();
-    try {
-        const { email, password } = req.body;
-
-        const dbRes = await db.listar('SELECT id, email, password_hash, role FROM users WHERE email = ?', false, [email]);
-
-        if (!dbRes.exito || !dbRes.resultado) {
-            respuesta.estado = 401;
-            respuesta.mensaje = 'Invalid email or password';
-            return res.status(401).json(respuesta);
-        }
-
-        const user = dbRes.resultado;
-
-        // Verify password
-        const isPasswordValid = await bcrypt.compare(password, user.password_hash);
-
-        if (!isPasswordValid) {
-            respuesta.estado = 401;
-            respuesta.mensaje = 'Invalid email or password';
-            return res.status(401).json(respuesta);
-        }
-
-        // Generate token
-        const token = generateToken({
-            id: user.id,
-            email: user.email,
-            role: user.role
-        });
-
-        respuesta.exito = true;
-        respuesta.estado = 200;
-        respuesta.mensaje = 'Login successful';
-        respuesta.resultado = {
-            userId: user.id,
-            email: user.email,
-            role: user.role,
-            token
-        };
-
-        res.json(respuesta);
-
-    } catch (error) {
-        console.error('Login error:', error);
-        respuesta.mensaje = 'Login failed: ' + error.message;
-        res.status(500).json(respuesta);
-    }
-};
+const login = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
+    const data = await authService.loginUser(email, password);
+    res.json(Respuesta.ok(data, 'Bienvenido de nuevo. Has iniciado sesión correctamente.'));
+});
 
 /**
- * Request password reset (send verification code)
+ * POST /api/auth/forgot-password
  */
-const forgotPassword = async (req, res) => {
-    try {
-        const { email } = req.body;
-
-        // Check if user exists
-        const [users] = await db.query(
-            'SELECT id FROM users WHERE email = ?',
-            [email]
-        );
-
-        if (users.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'No account found with this email'
-            });
-        }
-
-        // Generate 6-digit code (in production, send via email)
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-        // In a real app, you'd store this code in DB with expiration
-        // and send it via email service
-
-        res.json({
-            success: true,
-            message: 'Verification code sent to email',
-            // ONLY FOR DEVELOPMENT - Remove in production
-            devCode: verificationCode
-        });
-
-    } catch (error) {
-        console.error('Forgot password error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Failed to process request',
-            error: error.message
-        });
-    }
-};
+const forgotPassword = asyncHandler(async (req, res) => {
+    await authService.requestPasswordReset(req.body.email);
+    res.json(Respuesta.ok(null, 'Hemos enviado un código de seguridad a tu correo electrónico.'));
+});
 
 /**
- * Verify reset code
+ * POST /api/auth/verify-code
  */
-const verifyCode = async (req, res) => {
-    try {
-        const { email, code } = req.body;
-
-        // In real implementation, verify code from database
-        // For now, we'll just validate format
-
-        res.json({
-            success: true,
-            message: 'Code verified successfully'
-        });
-
-    } catch (error) {
-        console.error('Verify code error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Verification failed',
-            error: error.message
-        });
-    }
-};
+const verifyCode = asyncHandler(async (req, res) => {
+    const { email, code } = req.body;
+    await authService.verifyResetCode(email, code);
+    res.json(Respuesta.ok(null, 'Código validado correctamente.'));
+});
 
 /**
- * Reset password with verification code
+ * POST /api/auth/reset-password
  */
-const resetPassword = async (req, res) => {
-    try {
-        const { email, code, newPassword } = req.body;
+const resetPassword = asyncHandler(async (req, res) => {
+    const { email, code, newPassword } = req.body;
+    await authService.resetUserPassword(email, code, newPassword);
+    res.json(Respuesta.ok(null, 'Tu contraseña ha sido actualizada. Ahora puedes iniciar sesión con tus nuevas credenciales.'));
+});
 
-        // In real implementation, verify code first
+/**
+ * POST /api/auth/validate-email
+ */
+const validateEmail = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json(Respuesta.fail('El correo es obligatorio.'));
+    await authService.validateEmailAvailability(email);
+    res.json(Respuesta.ok(null, 'El correo ingresado es válido y está disponible.'));
+});
 
-        // Hash new password
-        const passwordHash = await bcrypt.hash(newPassword, 10);
+/**
+ * POST /api/auth/validate-username
+ */
+const validateUsername = asyncHandler(async (req, res) => {
+    const { username } = req.body;
+    if (!username) return res.status(400).json(Respuesta.fail('El usuario es obligatorio.'));
+    await authService.validateUsernameAvailability(username);
+    res.json(Respuesta.ok(null, 'El nombre de usuario está disponible.'));
+});
 
-        // Update password
-        const [result] = await db.query(
-            'UPDATE users SET password_hash = ? WHERE email = ?',
-            [passwordHash, email]
-        );
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-
-        res.json({
-            success: true,
-            message: 'Password reset successfully'
-        });
-
-    } catch (error) {
-        console.error('Reset password error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Password reset failed',
-            error: error.message
-        });
+/**
+ * POST /api/auth/change-password
+ */
+const changePassword = asyncHandler(async (req, res) => {
+    const { newPassword } = req.body;
+    if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json(Respuesta.fail('La nueva contraseña debe tener al menos 6 caracteres.'));
     }
-};
+    await authService.changeUserPassword(req.user.id, newPassword);
+    res.json(Respuesta.ok(null, 'Tu contraseña se ha actualizado correctamente.'));
+});
 
 module.exports = {
     register,
     login,
     forgotPassword,
     verifyCode,
-    resetPassword
+    resetPassword,
+    validateEmail,
+    validateUsername,
+    changePassword
 };

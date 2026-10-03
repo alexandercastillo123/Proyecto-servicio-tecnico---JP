@@ -1,111 +1,943 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
-import '../../../technicians/domain/models/technician.dart';
+import '../../../../core/constants/api_constants.dart';
 import '../../../../core/theme/app_colors.dart';
 
-class ServiceLocationMap extends StatelessWidget {
-  final String? userAddress;
-  final List<Technician> technicians;
+/// Widget del mapa interactivo para clientes.
+///
+/// - Solicita permiso de GPS al iniciarse.
+/// - Muestra la ubicación actual del cliente (marcador azul).
+/// - Permite tocar el mapa para marcar el punto de servicio (marcador rojo).
+/// - El botón "Buscar Técnicos" consulta /api/technicians/nearby (radio 5 km)
+///   y muestra los técnicos con coords reales.
+class ServiceLocationMap extends StatefulWidget {
+  final bool isActive;
+  final Function(bool)? onLoadingChanged;
 
-  const ServiceLocationMap({
-    super.key,
-    this.userAddress,
-    this.technicians = const [],
-  });
+  const ServiceLocationMap({super.key, this.isActive = true, this.onLoadingChanged});
+
+  @override
+  State<ServiceLocationMap> createState() => _ServiceLocationMapState();
+}
+
+class _ServiceLocationMapState extends State<ServiceLocationMap> {
+  final MapController _mapController = MapController();
+
+  LatLng? _clientLocation; // GPS real del cliente
+  LatLng? _servicePoint; // Punto de servicio marcado por el cliente
+  List<dynamic> _nearbyTechs = [];
+  dynamic _selectedTech; // Técnico seleccionado para vista previa
+  bool _loadingLocation = true;
+  bool _loadingTechs = false;
+  String? _locationError;
+  double _radius = 5.0; // km
+  Timer? _searchTimer;
+  int _searchSeconds = 0;
+  DateTime? _lastTapTime; // Para detectar doble clic
+  static const int _expansionThreshold =
+      15; // 15 segundos para pruebas, cambiar a 120 para 2 min
+
+  static const LatLng _defaultLocation = LatLng(
+    -12.0453,
+    -77.0428,
+  ); // Plaza Dos de Mayo
+
+  @override
+  void initState() {
+    super.initState();
+    _initLocation();
+  }
+
+  // ─── Ubicación GPS ────────────────────────────────────────────────────────
+
+  Future<void> _initLocation() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        setState(() {
+          _locationError = 'El servicio de ubicación está desactivado.';
+          _clientLocation = _defaultLocation;
+          _loadingLocation = false;
+        });
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() {
+            _locationError = 'Permiso de ubicación denegado.';
+            _clientLocation = _defaultLocation;
+            _loadingLocation = false;
+          });
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        setState(() {
+          _locationError =
+              'Permiso denegado permanentemente. Habilítalo en ajustes.';
+          _clientLocation = _defaultLocation;
+          _loadingLocation = false;
+        });
+        return;
+      }
+
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
+
+      if (mounted) {
+        setState(() {
+          _clientLocation = LatLng(pos.latitude, pos.longitude);
+          _loadingLocation = false;
+        });
+        _mapController.move(_clientLocation!, 15.0);
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _locationError = 'No se pudo obtener la ubicación: $e';
+          _clientLocation = _defaultLocation;
+          _loadingLocation = false;
+        });
+      }
+    }
+  }
+
+  // ─── Buscar Técnicos ──────────────────────────────────────────────────────
+
+  bool _isSearchActive = false; // bandera para evitar expansiones múltiples
+
+  Future<void> _searchNearbyTechnicians({bool isManual = true}) async {
+    // Si es búsqueda manual del usuario, siempre reseteamos todo
+    if (isManual) {
+      _stopSearchTimer();
+      _radius = 5.0; // Reiniciar radio en búsqueda manual
+      _isSearchActive = true;
+    }
+
+    final point = _servicePoint ?? _mapController.camera.center;
+    
+    if (isManual && _servicePoint == null) {
+      setState(() => _servicePoint = point);
+    }
+
+    if (mounted) {
+      setState(() {
+        _loadingTechs = true;
+        _nearbyTechs = [];
+        _selectedTech = null;
+        _searchSeconds = 0;
+      });
+    }
+
+    if (mounted && widget.onLoadingChanged != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onLoadingChanged!(true);
+      });
+    }
+
+    // Solo inicia el timer de expansión si es búsqueda activa
+    if (_isSearchActive && isManual) {
+      _startSearchTimer();
+    }
+
+    try {
+      await Future.delayed(const Duration(milliseconds: 1200));
+
+      final uri = Uri.parse(
+        '${ApiConstants.baseUrl}/technicians/nearby'
+        '?lat=${point.latitude}&lng=${point.longitude}&radius=$_radius',
+      );
+      final response = await http.get(uri).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        final body = jsonDecode(response.body);
+        final techs = body['resultado'] as List<dynamic>? ?? [];
+
+        techs.sort((a, b) {
+          final distA =
+              double.tryParse(a['distance_km']?.toString() ?? '999') ?? 999.0;
+          final distB =
+              double.tryParse(b['distance_km']?.toString() ?? '999') ?? 999.0;
+          return distA.compareTo(distB);
+        });
+
+        if (mounted) {
+          final filtered = techs.where((t) {
+            final lat = t['latitude'];
+            final lng = t['longitude'];
+            return lat != null && lng != null;
+          }).toList();
+
+          setState(() {
+            _nearbyTechs = filtered;
+            _loadingTechs = false;
+          });
+
+          if (mounted && widget.onLoadingChanged != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              widget.onLoadingChanged!(false);
+            });
+          }
+
+          if (filtered.isEmpty) {
+            // No encontró - el timer sigue corriendo para expandir automáticamente
+            _showSnack(
+              'No se hallaron técnicos a ${_radius.toInt()} km. Esperando expansión...',
+              Colors.orange,
+            );
+          } else {
+            // Encontró técnicos: detener todo
+            _stopSearchTimer();
+            _isSearchActive = false;
+          }
+        }
+      } else {
+        if (mounted) {
+          setState(() => _loadingTechs = false);
+          if (mounted && widget.onLoadingChanged != null) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              widget.onLoadingChanged!(false);
+            });
+          }
+          _stopSearchTimer();
+          _isSearchActive = false;
+          _showSnack(
+            'Error al buscar técnicos (${response.statusCode})',
+            Colors.red,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _loadingTechs = false);
+        if (mounted && widget.onLoadingChanged != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            widget.onLoadingChanged!(false);
+          });
+        }
+        _stopSearchTimer();
+        _isSearchActive = false;
+        _showSnack('Sin conexión al servidor', Colors.red);
+      }
+    }
+  }
+
+  void _startSearchTimer() {
+    _searchTimer?.cancel();
+    _searchTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() => _searchSeconds++);
+
+      // Solo expandir si aún estamos en búsqueda activa y sin resultados
+      if (_searchSeconds >= _expansionThreshold &&
+          _nearbyTechs.isEmpty &&
+          !_loadingTechs) {
+        _expandSearch();
+      }
+    });
+  }
+
+  void _stopSearchTimer() {
+    _searchTimer?.cancel();
+    _searchTimer = null;
+    if (mounted) setState(() => _searchSeconds = 0);
+  }
+
+  void _expandSearch() {
+    if (!_isSearchActive) return; // No expandir si ya se canceló la búsqueda
+    setState(() {
+      _radius += 5.0;
+      _searchSeconds = 0; // Resetear contador para el próximo ciclo
+    });
+    _showSnack(
+      '🔍 Expandiendo radio a ${_radius.toInt()} km...',
+      AppColors.primary,
+    );
+    // Búsqueda automática - no reinicia el timer, el timer ya está corriendo
+    _searchNearbyTechnicians(isManual: false);
+  }
+
+  void _cancelSearch() {
+    _stopSearchTimer();
+    _isSearchActive = false;
+    if (mounted) {
+      setState(() => _loadingTechs = false);
+      if (mounted && widget.onLoadingChanged != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          widget.onLoadingChanged!(false);
+        });
+      }
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant ServiceLocationMap oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.isActive && !widget.isActive) {
+      _cancelSearch();
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchTimer?.cancel();
+    // Ensure parent stops showing loading if we are disposed suddenly
+    if (widget.onLoadingChanged != null) {
+      // Use a microtask or similar to avoid calling during dispose if needed,
+      // but postFrameCallback is generally safer to ensure parent state doesn't break.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        widget.onLoadingChanged!(false);
+      });
+    }
+    super.dispose();
+  }
+
+  void _showSnack(String msg, Color color) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: color,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
+
+  // ─── Nombre del técnico ───────────────────────────────────────────────────
+
+  String _techName(dynamic tech) {
+    final username = tech['username']?.toString().trim();
+    if (username != null && username.isNotEmpty) return username;
+    final company = tech['company_name']?.toString().trim();
+    if (company != null && company.isNotEmpty) return company;
+    final names = '${tech['names'] ?? ''} ${tech['surnames'] ?? ''}'.trim();
+    return names.isNotEmpty ? names : 'Técnico';
+  }
+
+  String _formatDist(dynamic tech) {
+    final dist = double.tryParse(tech['distance_km']?.toString() ?? '');
+    if (dist == null) return '';
+    if (dist < 1.0) return '${(dist * 1000).toInt()} m';
+    return '${dist.toStringAsFixed(1)} km';
+  }
+
+  // ─── Mostrar Lista de Técnicos ──────────────────────────────────────────
+
+  void _showTechsList() {
+    if (_nearbyTechs.isEmpty) return;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Técnicos cercanos',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                  itemCount: _nearbyTechs.length,
+                  separatorBuilder: (c, i) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final tech = _nearbyTechs[index];
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
+                      leading: CircleAvatar(
+                        backgroundColor: AppColors.primary.withOpacity(0.1),
+                        child: const Icon(
+                          Icons.person,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      title: Text(
+                        _techName(tech),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                      subtitle: Text('A ${_formatDist(tech)} de distancia'),
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: AppColors.primary,
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        final point = _servicePoint ?? _clientLocation;
+                        context.push(
+                          '/technician-profile',
+                          extra: {
+                            'techId': tech['id'],
+                            'serviceLat': point?.latitude,
+                            'serviceLng': point?.longitude,
+                            'serviceAddress': _addressName ??
+                                (point != null
+                                    ? 'Lat: ${point.latitude.toStringAsFixed(5)}, Lng: ${point.longitude.toStringAsFixed(5)}'
+                                    : null),
+                          },
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ─── Build ────────────────────────────────────────────────────────────────
+
+    // ─── Reverse Geocoding ──────────────────────────────────────────────────
+  String? _addressName;
+
+  Future<void> _fetchAddressName(LatLng point) async {
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?format=json&lat=${point.latitude}&lon=${point.longitude}&zoom=18&addressdetails=1',
+      );
+      final response = await http.get(url, headers: {
+        'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
+      });
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _addressName = data['display_name'] ??
+              'Lat: ${point.latitude.toStringAsFixed(5)}, Lng: ${point.longitude.toStringAsFixed(5)}';
+        });
+      }
+    } catch (e) {
+      debugPrint('Error reverse geocoding: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Initial position in Lima (Jesús María)
-    const center = LatLng(-12.0711, -77.0494);
-
-    return FlutterMap(
-      options: const MapOptions(initialCenter: center, initialZoom: 15.0),
-      children: [
-        // Layer derived from OpenStreetMap - 100% Free
-        TileLayer(
-          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.servicio_tecnico.app',
+    if (_loadingLocation) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 12),
+            Text('Obteniendo tu ubicación...'),
+          ],
         ),
+      );
+    }
 
-        // Markers Layer
-        MarkerLayer(
-          markers: [
-            // User Location Marker
-            const Marker(
-              point: center,
-              width: 80,
-              height: 80,
-              child: Icon(
-                Icons.location_on,
-                color: AppColors.primary,
-                size: 45,
-              ),
+    return Stack(
+      children: [
+        // ── Mapa ──────────────────────────────────────────────────────────
+        FlutterMap(
+          mapController: _mapController,
+          options: MapOptions(
+            initialCenter: _clientLocation ?? _defaultLocation,
+            initialZoom: 14.0,
+            onTap: (tapPos, point) {
+              final now = DateTime.now();
+              if (_lastTapTime != null &&
+                  now.difference(_lastTapTime!) <
+                      const Duration(milliseconds: 400)) {
+                // Es un doble clic
+                setState(() {
+                  _servicePoint = point;
+                  _selectedTech = null;
+                });
+                _fetchAddressName(point); // Fetch address name
+                _showSnack(
+                  'Ubicación marcada correctamente',
+                  AppColors.primary,
+                );
+              }
+              _lastTapTime = now;
+            },
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName:
+                  'com.jp.serviciotecnico.servicio_tecnico_app',
             ),
 
-            // Dynamically generate Technician Markers if we had coords in the model
-            // For now, we'll keep some mock markers around the user or use the tech list
-            ...technicians.map((tech) {
-              // Note: Since we don't have lat/lng in the DB yet, we generate random ones near center
-              // In a real app, we would use the tech's address or stored coords
-              final index = technicians.indexOf(tech);
-              final point = LatLng(
-                center.latitude +
-                    (index + 1) * 0.002 * (index % 2 == 0 ? 1 : -1),
-                center.longitude +
-                    (index + 1) * 0.002 * (index % 3 == 0 ? 1 : -1),
-              );
-
-              return Marker(
-                point: point,
-                width: 50,
-                height: 50,
-                child: GestureDetector(
-                  onTap: () {
-                    // Show a tooltip or navigate
-                  },
-                  child: _buildSimpleMarker(Icons.handyman, AppColors.primary),
-                ),
-              );
-            }),
-
-            // If tech list is empty, show original mocks
-            if (technicians.isEmpty) ...[
-              Marker(
-                point: const LatLng(-12.0730, -77.0510),
-                width: 50,
-                height: 50,
-                child: _buildSimpleMarker(Icons.handyman, AppColors.primary),
+            if (_servicePoint != null)
+              CircleLayer(
+                circles: [
+                  CircleMarker(
+                    point: _servicePoint!,
+                    radius: _radius * 1000,
+                    useRadiusInMeter: true,
+                    color: AppColors.primary.withOpacity(0.1),
+                    borderColor: AppColors.primary,
+                    borderStrokeWidth: 1.5,
+                  ),
+                ],
               ),
-              Marker(
-                point: const LatLng(-12.0690, -77.0470),
-                width: 50,
-                height: 50,
-                child: _buildSimpleMarker(Icons.handyman, AppColors.primary),
-              ),
-            ],
+
+            MarkerLayer(
+              markers: [
+                if (_clientLocation != null)
+                  Marker(
+                    point: _clientLocation!,
+                    width: 50,
+                    height: 50,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade600,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 4),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.my_location,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                if (_servicePoint != null)
+                  Marker(
+                    point: _servicePoint!,
+                    width: 50,
+                    height: 50,
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade600,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: const [
+                            BoxShadow(color: Colors.black26, blurRadius: 4),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.location_on,
+                          color: Colors.white,
+                          size: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                ..._nearbyTechs.map((tech) {
+                  final lat = double.tryParse(tech['latitude'].toString());
+                  final lng = double.tryParse(tech['longitude'].toString());
+                  if (lat == null || lng == null)
+                    return const Marker(point: LatLng(0, 0), child: SizedBox());
+
+                  final isSelected =
+                      _selectedTech != null &&
+                      _selectedTech['id'] == tech['id'];
+
+                  return Marker(
+                    point: LatLng(lat, lng),
+                    width: 60,
+                    height: 60,
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(
+                          () => _selectedTech = isSelected ? null : tech,
+                        );
+                        _mapController.move(
+                          LatLng(lat, lng),
+                          _mapController.camera.zoom,
+                        );
+                      },
+                      child: Center(
+                        child: AnimatedScale(
+                          scale: isSelected ? 1.3 : 1.0,
+                          duration: const Duration(milliseconds: 200),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Colors.orange
+                                  : AppColors.primary,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white, width: 2),
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black26, blurRadius: 6),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.handyman,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ),
           ],
+        ),
+
+        // ── Vista Previa Técnico (Callout) ──────────────────────────────
+        if (_selectedTech != null)
+          Positioned(
+            bottom: 100,
+            left: 20,
+            right: 20,
+            child: FadeInUp(
+              duration: const Duration(milliseconds: 300),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                      child: const Icon(
+                        Icons.person,
+                        size: 35,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _techName(_selectedTech),
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: AppColors.primary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'A ${_formatDist(_selectedTech)} de distancia',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.star,
+                                color: Colors.amber[700],
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${_selectedTech['rating'] ?? '5.0'} (${_selectedTech['reviews_count'] ?? '0'})',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        final point = _servicePoint ?? _clientLocation;
+                        context.push(
+                          '/technician-profile',
+                          extra: {
+                            'techId': _selectedTech['id'],
+                            'serviceLat': point?.latitude,
+                            'serviceLng': point?.longitude,
+                            'serviceAddress': _addressName ??
+                                (point != null
+                                    ? 'Lat: ${point.latitude.toStringAsFixed(5)}, Lng: ${point.longitude.toStringAsFixed(5)}'
+                                    : null),
+                          },
+                        );
+                      },
+                      child: const Text('Ver Perfil'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+        // ── Error de ubicación ─────────────────────────────────────────────
+        if (_locationError != null)
+          Positioned(
+            top: 12,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade100,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.warning_amber,
+                    size: 14,
+                    color: Colors.orange,
+                  ),
+                  const SizedBox(width: 6),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 160),
+                    child: Text(
+                      _locationError!,
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // ── Leyenda y Botones ──────────────────────────────────────────
+        Positioned(
+          top: 12,
+          left: 12,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _legendChip(
+                Colors.blue.shade700,
+                Icons.my_location,
+                'Tu posición',
+              ),
+              const SizedBox(height: 6),
+              _legendChip(
+                Colors.red.shade600,
+                Icons.location_on,
+                'Punto de servicio (doble toque)',
+              ),
+              const SizedBox(height: 6),
+              _legendChip(AppColors.primary, Icons.handyman, 'Técnico'),
+            ],
+          ),
+        ),
+
+        // ── Botón Lista ────────────────────────────────────────────────
+        if (_nearbyTechs.isNotEmpty)
+          Positioned(
+            top: 12,
+            right: 12,
+            child: FloatingActionButton.small(
+              backgroundColor: Colors.white,
+              foregroundColor: AppColors.primary,
+              onPressed: _showTechsList,
+              child: const Icon(Icons.list),
+            ),
+          ),
+
+        // ── Botón Buscar ────────────────────────────────────────────────
+        Positioned(
+          bottom: 24,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: _isSearchActive && _loadingTechs
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: AppColors.softShadow,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Text(
+                              'Buscando en ${_radius.toInt()} km...',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: _cancelSearch,
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.stop,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                : Hero(
+                    tag: 'search_button',
+                    child: ElevatedButton.icon(
+                      onPressed: () => _searchNearbyTechnicians(isManual: true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 28,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 6,
+                      ),
+                      icon: const Icon(Icons.search),
+                      label: Text(
+                        _nearbyTechs.isEmpty
+                            ? 'Buscar técnicos cercanos'
+                            : '${_nearbyTechs.length} encontrados · Volver a buscar',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildSimpleMarker(IconData icon, Color color) {
+  Widget _legendChip(Color color, IconData icon, String label) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
+        color: Colors.white.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 14),
+          const SizedBox(width: 5),
+          Text(label, style: const TextStyle(fontSize: 11)),
         ],
       ),
-      child: Icon(icon, color: Colors.white, size: 20),
+    );
+  }
+}
+
+// Widget auxiliar para animación simple (si no estuviera animate_do instalado)
+class FadeInUp extends StatelessWidget {
+  final Widget child;
+  final Duration duration;
+  const FadeInUp({super.key, required this.child, required this.duration});
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: duration,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }

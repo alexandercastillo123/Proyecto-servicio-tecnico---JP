@@ -6,6 +6,14 @@ const { authenticate, authorizeRole } = require('../middleware/auth');
 const validate = require('../middleware/validation');
 
 /**
+ * @route   GET /api/technicians/nearby
+ * @desc    Get technicians near a location (Haversine)
+ * @access  Public
+ * @query   lat, lng, radius (km, default 5)
+ */
+router.get('/nearby', techniciansController.getNearbyTechnicians);
+
+/**
  * @route   GET /api/technicians
  * @desc    Get list of technicians with filters
  * @access  Public
@@ -13,18 +21,18 @@ const validate = require('../middleware/validation');
 router.get('/', techniciansController.getTechnicians);
 
 /**
- * @route   GET /api/technicians/:id
- * @desc    Get technician details with schedule
- * @access  Public
- */
-router.get('/:id', techniciansController.getTechnicianById);
-
-/**
  * @route   GET /api/technicians/:id/schedule
  * @desc    Get technician schedule
  * @access  Public
  */
 router.get('/:id/schedule', techniciansController.getTechnicianSchedule);
+
+/**
+ * @route   GET /api/technicians/:id
+ * @desc    Get technician details with schedule
+ * @access  Public
+ */
+router.get('/:id', techniciansController.getTechnicianById);
 
 /**
  * @route   POST /api/technicians/schedule

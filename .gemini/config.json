@@ -1,0 +1,14 @@
+{
+  "liteMode": true,
+  "autoLint": false,
+  "diagnostics": false,
+  "preview": false,
+  "autoDiagram": false,
+  "maxFileHistory": 20,
+  "heartbeatIntervalMs": 120000,
+  "maxTokens": 2500,
+  "temperature": 0.2,
+  "topP": 0.9,
+  "presencePenalty": 0,
+  "frequencyPenalty": 0
+}
