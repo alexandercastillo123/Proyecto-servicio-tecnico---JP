@@ -178,7 +178,7 @@ const AppointmentDetails = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-16" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="w-full space-y-8 pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="flex justify-between items-center p-6 sm:p-7 rounded-[32px] bg-gradient-to-r from-blue-900/20 via-slate-900/30 to-purple-900/20 border border-white/5 backdrop-blur-xl">
         <Link 
           to="/appointments" 

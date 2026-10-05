@@ -216,7 +216,7 @@ const ProfileEdit = () => {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto pb-20 space-y-6" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="max-w-3xl mx-auto pb-4 space-y-6" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* Hidden File Input for Avatar */}
       <input

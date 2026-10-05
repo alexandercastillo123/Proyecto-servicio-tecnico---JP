@@ -33,7 +33,7 @@ const StatCard = ({ icon: Icon, label, value, sublabel, color, delay }) => (
     initial={{ opacity: 0, y: 15 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay, duration: 0.35 }}
-    className="glass-card p-6 rounded-3xl flex items-center gap-4 relative overflow-hidden shadow-lg hover:shadow-xl transition-all"
+    className="glass-card p-7 rounded-3xl flex items-center gap-5 relative overflow-hidden shadow-lg hover:shadow-xl transition-all"
     style={{ border: `1px solid rgba(255, 255, 255, 0.08)` }}
   >
     <div
@@ -47,17 +47,17 @@ const StatCard = ({ icon: Icon, label, value, sublabel, color, delay }) => (
       <Icon size={24} />
     </div>
     <div className="min-w-0">
-      <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+      <p className="text-[11px] font-black uppercase tracking-wider text-slate-400">
         {label}
       </p>
       <p 
-        className="text-2xl sm:text-3xl font-black text-white leading-tight mt-0.5" 
+        className="text-2xl sm:text-3xl font-black text-white leading-tight mt-1" 
         style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}
       >
         {value}
       </p>
       {sublabel && (
-        <p className="text-[11px] font-medium text-slate-400 mt-1 truncate">
+        <p className="text-[11px] font-medium text-slate-400 mt-1.5 truncate">
           {sublabel}
         </p>
       )}
@@ -205,19 +205,19 @@ const TechDashboard = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10 pb-16" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="w-full space-y-10 pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* ── WORKSTATION HEADER ─────────────────────────────── */}
       <motion.header
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card p-8 sm:p-10 rounded-[32px] flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden shadow-2xl"
+        className="glass-card p-10 sm:p-12 rounded-[32px] flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative overflow-hidden shadow-2xl"
         style={{
           background: "linear-gradient(135deg, rgba(13, 22, 41, 0.85) 0%, rgba(6, 9, 19, 0.95) 100%)",
           border: "1px solid rgba(6, 182, 212, 0.25)"
         }}
       >
-        <div className="space-y-3">
+        <div className="space-y-4">
           <div className="flex items-center gap-2.5">
             <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
               Terminal Técnico
@@ -361,7 +361,7 @@ const TechDashboard = () => {
       {/* ── TELEMETRY & PERFORMANCE SECTION ────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Telemetry Chart */}
-        <div className="lg:col-span-2 glass-card p-8 rounded-[32px] space-y-5 shadow-xl">
+        <div className="lg:col-span-2 glass-card p-9 rounded-[32px] space-y-6 shadow-xl">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-2xl bg-blue-500/15 flex items-center justify-center text-blue-400">
@@ -413,7 +413,7 @@ const TechDashboard = () => {
         {/* Recent Client Messages */}
         <div className="glass-card p-8 rounded-[32px] space-y-5 flex flex-col justify-between shadow-xl">
           <div>
-            <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-cyan-500/15 flex items-center justify-center text-cyan-400">
                   <MessageSquare size={16} />

@@ -74,7 +74,7 @@ const TechnicianProfile = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-16">
+    <div className="w-full space-y-8 pb-4">
       {/* Back Button */}
       <Link 
         to="/technicians" 

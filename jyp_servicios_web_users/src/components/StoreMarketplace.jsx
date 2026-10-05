@@ -135,10 +135,10 @@ const StoreMarketplace = () => {
   });
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-20 animate-in fade-in duration-500">
+    <div className="w-full space-y-8 pb-4 animate-in fade-in duration-500">
       
       {/* Hero Banner with Stitch Cobalt & Emerald Glow */}
-      <div className="relative overflow-hidden rounded-[32px] p-8 sm:p-12 border border-white/10 bg-gradient-to-br from-[#0c1427] via-[#091020] to-[#060a14] shadow-2xl space-y-5">
+      <div className="relative overflow-hidden rounded-[32px] p-10 sm:p-14 border border-white/10 bg-gradient-to-br from-[#0c1427] via-[#091020] to-[#060a14] shadow-2xl space-y-6">
         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
         <div className="absolute bottom-0 left-1/3 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -177,7 +177,7 @@ const StoreMarketplace = () => {
       </div>
 
       {/* Search and Category Filter Toolbar */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-[#0e1424] p-5 rounded-2xl border border-white/10 shadow-lg">
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-[#0e1424] p-6 rounded-3xl border border-white/10 shadow-lg">
         {/* Search Input */}
         <div className="relative w-full md:w-96">
           <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -220,7 +220,7 @@ const StoreMarketplace = () => {
       {loading ? (
         <TechLoader title="Cargando Tienda" subtitle="Obteniendo catálogo de componentes certificados..." />
       ) : filteredProducts.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7">
           {filteredProducts.map((p) => {
             const price = parseFloat(p.price || 0).toFixed(2);
             const stock = p.stock ?? 10;
@@ -229,7 +229,7 @@ const StoreMarketplace = () => {
             return (
               <div
                 key={p.id}
-                className="group flex flex-col justify-between rounded-3xl bg-[#0e1424] border border-white/10 hover:border-blue-500/40 p-6 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-blue-500/10 relative overflow-hidden"
+                className="group flex flex-col justify-between rounded-3xl bg-[#0e1424] border border-white/10 hover:border-blue-500/40 p-7 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-blue-500/10 relative overflow-hidden"
               >
                 {/* Visual Header / Badge */}
                 <div className="space-y-4">

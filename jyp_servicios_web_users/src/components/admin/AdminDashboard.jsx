@@ -158,7 +158,7 @@ const AdminDashboard = () => {
   const recentAppts = appointments.slice(0, 8);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6 pb-16">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full space-y-6 pb-4">
       {/* Page title */}
       <div>
         <p className="text-[10px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5" style={{ color: 'var(--primary)' }}>

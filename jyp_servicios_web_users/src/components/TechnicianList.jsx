@@ -139,8 +139,8 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
 
   return (
     <div 
-      className="flex flex-col lg:flex-row gap-6 rounded-3xl" 
-      style={{ height: 720, fontFamily: "'Inter', sans-serif" }}
+      className="flex flex-col lg:flex-row gap-7 rounded-3xl min-h-[580px] lg:h-[calc(100vh-240px)] lg:min-h-[600px] lg:max-h-[820px]" 
+      style={{ fontFamily: "'Inter', sans-serif" }}
     >
       {/* ── Sidebar: Filter & Technician Cards ───────────────── */}
       <div className="w-full lg:w-[420px] flex flex-col gap-3.5 overflow-hidden">
@@ -157,16 +157,16 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="input-field"
-            style={{ paddingLeft: 44, height: 48, borderRadius: 18 }}
+            style={{ paddingLeft: 44, height: 52, borderRadius: 18 }}
           />
         </div>
 
         {/* Quick Filter Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <button
             type="button"
             onClick={() => setFilterAvailableOnly(!filterAvailableOnly)}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition-all border shadow-sm ${
+            className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all border shadow-sm ${
               filterAvailableOnly 
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
                 : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
@@ -177,7 +177,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
           <button
             type="button"
             onClick={() => setFilterMinRating(filterMinRating === 4.5 ? 0 : 4.5)}
-            className={`px-4 py-2 rounded-full text-xs font-bold transition-all border flex items-center gap-1.5 shadow-sm ${
+            className={`px-4 py-2.5 rounded-full text-xs font-bold transition-all border flex items-center gap-1.5 shadow-sm ${
               filterMinRating === 4.5 
                 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
                 : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
@@ -191,7 +191,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
         </div>
 
         {/* Card Scroll Area */}
-        <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 pr-1">
+        <div className="flex-1 overflow-y-auto no-scrollbar space-y-4 pr-1">
           {loading ? (
             <div className="space-y-3">
               {[...Array(3)].map((_, i) => (
@@ -241,7 +241,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
               return (
                 <div
                   key={tech.id}
-                  className="glass-card p-5 rounded-3xl cursor-pointer group hover:border-blue-500/50 transition-all duration-200 shadow-md"
+                  className="glass-card p-6 rounded-3xl cursor-pointer group hover:border-blue-500/50 transition-all duration-200 shadow-md"
                   onClick={() => {
                     const lat = parseFloat(tech.latitude);
                     const lng = parseFloat(tech.longitude);
@@ -313,7 +313,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
                   </div>
 
                   {/* Actions Bar */}
-                  <div className="flex items-center justify-between mt-4 pt-3.5 border-t border-white/5">
+                  <div className="flex items-center justify-between mt-5 pt-4 border-t border-white/5">
                     <span className={`text-[10px] font-bold uppercase tracking-wider ${isAvailable ? 'text-emerald-400' : 'text-slate-400'}`}>
                       {isAvailable ? 'En línea / Disponible' : 'Fuera de turno'}
                     </span>

@@ -84,12 +84,12 @@ const AppointmentList = () => {
   const counts = getCounts();
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-20" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="w-full space-y-10 pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 sm:p-8 rounded-[32px] bg-gradient-to-r from-blue-900/20 via-slate-900/30 to-purple-900/20 border border-white/5 backdrop-blur-xl">
-        <div>
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-8 sm:p-10 rounded-[32px] bg-gradient-to-r from-blue-900/20 via-slate-900/30 to-purple-900/20 border border-white/5 backdrop-blur-xl">
+        <div className="space-y-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-3">
             Gestión de Reparaciones
           </span>
           <h1 
@@ -98,7 +98,7 @@ const AppointmentList = () => {
           >
             Mis Citas Técnicas
           </h1>
-          <p className="text-sm text-slate-400 mt-1 max-w-xl">
+          <p className="text-sm text-slate-400 mt-2 max-w-xl leading-relaxed">
             Historial y seguimiento de diagnósticos y servicios de hardware certificados.
           </p>
         </div>
@@ -106,7 +106,7 @@ const AppointmentList = () => {
         {userRole === "client" && (
           <button
             onClick={() => navigate("/appointments/schedule")}
-            className="btn-primary py-3.5 px-6 text-xs font-bold uppercase tracking-wider rounded-2xl shadow-xl shadow-blue-600/20 self-start sm:self-auto flex items-center gap-2 hover:scale-[1.02] transition-transform"
+            className="btn-primary py-4 px-7 text-xs font-bold uppercase tracking-wider rounded-2xl shadow-xl shadow-blue-600/20 self-start sm:self-auto flex items-center gap-2 hover:scale-[1.02] transition-transform"
           >
             <Plus size={16} /> Nueva Solicitud
           </button>
@@ -114,7 +114,7 @@ const AppointmentList = () => {
       </div>
 
       {/* Search & Tabs Row */}
-      <div className="space-y-4">
+      <div className="space-y-5">
         <div className="relative">
           <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -122,18 +122,18 @@ const AppointmentList = () => {
             placeholder="Filtrar por tipo de servicio, técnico o cliente..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-slate-900/60 border border-white/10 rounded-2xl pl-12 pr-5 py-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner"
+            className="w-full bg-slate-900/60 border border-white/10 rounded-2xl pl-12 pr-5 py-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner"
           />
         </div>
 
         {/* Tab pills */}
-        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+        <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
           {TABS.map(tab => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`flex items-center gap-2.5 px-5 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
+              className={`flex items-center gap-2.5 px-5 py-3 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                 activeTab === tab 
                   ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-600/30 scale-[1.02]' 
                   : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
@@ -188,7 +188,7 @@ const AppointmentList = () => {
           )}
         </motion.div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-5">
           <AnimatePresence>
             {filtered.map((appt, i) => {
               const st = STATUS[appt.status] || { label: appt.status, cls: "status-badge" };
@@ -204,10 +204,10 @@ const AppointmentList = () => {
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ delay: i * 0.04 }}
                   onClick={() => navigate(`/appointments/${appt.id}`)}
-                  className="glass-card p-6 sm:p-7 rounded-3xl cursor-pointer group hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300"
+                  className="glass-card p-7 sm:p-8 rounded-3xl cursor-pointer group hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
-                    <div className="flex items-start gap-4 sm:gap-5">
+                    <div className="flex items-start gap-5">
                       <div
                         className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg"
                         style={{
@@ -225,20 +225,20 @@ const AppointmentList = () => {
                             {appt.serviceType || appt.service_type || "Mantenimiento Técnico"}
                           </h3>
                         </div>
-                        <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+                        <p className="text-xs sm:text-sm text-slate-400 mt-1.5">
                           {userRole === "client" ? "Especialista: " : "Cliente: "}
                           <span className="text-slate-200 font-semibold">{otherPerson}</span>
                         </p>
 
-                        <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-slate-400">
+                        <div className="flex flex-wrap items-center gap-3 mt-4 text-xs text-slate-400">
                           {appt.scheduled_at && (
-                            <span className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+                            <span className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
                               <Clock size={13} className="text-cyan-400" />
                               <span>{new Date(appt.scheduled_at).toLocaleDateString("es-PE", { dateStyle: "medium" })} · {new Date(appt.scheduled_at).toLocaleTimeString("es-PE", { timeStyle: "short" })}</span>
                             </span>
                           )}
                           {(appt.location_address || appt.address) && (
-                            <span className="flex items-center gap-1.5 truncate max-w-[260px] bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+                            <span className="flex items-center gap-1.5 truncate max-w-[260px] bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
                               <MapPin size={13} className="text-blue-400" />
                               <span>{appt.location_address || appt.address}</span>
                             </span>
