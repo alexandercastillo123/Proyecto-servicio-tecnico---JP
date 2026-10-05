@@ -1,115 +1,177 @@
-import React, { useState } from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Home, Search, Calendar, User, LogOut, 
-  Menu, X, Bell, LayoutDashboard, Package,
-  Settings, ChevronLeft, ChevronRight, Zap,
-  MessageSquare, ShoppingCart, MapPin, Store, Wifi, WifiOff
-} from 'lucide-react';
-import { useSocket } from '../context/SocketContext';
+﻿import React, { useState } from "react";
+import { Outlet, Link, useLocation } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  MapPin, Store, Calendar, ShoppingCart, MessageSquare,
+  User, LogOut, ChevronLeft, ChevronRight, Bell, Sun, Moon,
+  LayoutDashboard, Package, Wrench, Cpu, Zap, Signal, SignalHigh,
+  CircleDot, Menu
+} from "lucide-react";
+import { useSocket } from "../context/SocketContext";
+import { useTheme } from "../context/ThemeContext";
 
+/* ──── JyP Brand Icon (circuit tech mark) ──────────────────── */
+const JyPLogo = ({ collapsed }) => (
+  <div className="flex items-center gap-3 overflow-hidden">
+    <div
+      className="shrink-0 w-10 h-10 rounded-xl flex items-center justify-center shadow-lg"
+      style={{ background: "var(--primary)", boxShadow: "var(--shadow-primary)" }}
+    >
+      <Cpu size={20} color="white" strokeWidth={2.5} />
+    </div>
+    <AnimatePresence>
+      {!collapsed && (
+        <motion.div
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -10 }}
+          transition={{ duration: 0.22 }}
+        >
+          <span
+            className="font-black text-xl tracking-tight leading-none"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "var(--text-primary)" }}
+          >
+            JyP
+          </span>
+          <span
+            className="block text-[9px] font-bold uppercase tracking-[0.14em] leading-none mt-0.5"
+            style={{ color: "var(--primary)" }}
+          >
+            Servicios Técnicos
+          </span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
+);
+
+/* ──── Nav badge ────────────────────────────────────────────── */
+const Badge = ({ count }) =>
+  count > 0 ? (
+    <span
+      className="ml-auto text-[10px] font-black px-2 py-0.5 rounded-full animate-pulse"
+      style={{ background: "var(--error)", color: "#fff" }}
+    >
+      {count}
+    </span>
+  ) : null;
+
+/* ──── Main Layout ──────────────────────────────────────────── */
 const Layout = ({ user, onLogout }) => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const { isConnected, unreadCount, setUnreadCount } = useSocket();
+  const { theme, toggleTheme, isDark } = useTheme();
 
-  const menuItems = {
+  const SIDEBAR_W = collapsed ? 80 : 280;
+
+  const menus = {
     client: [
-      { path: '/', icon: MapPin, label: 'Explorar Técnicos' },
-      { path: '/stores', icon: Store, label: 'Tiendas Oficiales' },
-      { path: '/appointments', icon: Calendar, label: 'Mis Citas' },
-      { path: '/orders', icon: ShoppingCart, label: 'Mis Pedidos' },
-      { path: '/chat', icon: MessageSquare, label: 'Mensajes', badge: unreadCount },
-      { path: '/profile', icon: User, label: 'Mi Perfil' },
+      { path: "/", icon: MapPin, label: "Explorar Técnicos" },
+      { path: "/stores", icon: Store, label: "Tiendas Oficiales" },
+      { path: "/appointments", icon: Calendar, label: "Mis Citas" },
+      { path: "/orders", icon: ShoppingCart, label: "Mis Pedidos" },
+      { path: "/chat", icon: MessageSquare, label: "Mensajes", badge: unreadCount },
+      { path: "/profile", icon: User, label: "Mi Perfil" },
     ],
     tech: [
-      { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-      { path: '/chat', icon: MessageSquare, label: 'Mensajes', badge: unreadCount },
-      { path: '/appointments', icon: Calendar, label: 'Mis Citas' },
-      { path: '/profile', icon: User, label: 'Mi Perfil' },
+      { path: "/", icon: LayoutDashboard, label: "Dashboard" },
+      { path: "/chat", icon: MessageSquare, label: "Mensajes", badge: unreadCount },
+      { path: "/appointments", icon: Calendar, label: "Mis Citas" },
+      { path: "/profile", icon: User, label: "Mi Perfil" },
     ],
     store: [
-      { path: '/', icon: LayoutDashboard, label: 'Panel' },
-      { path: '/products', icon: Package, label: 'Catálogo' },
-      { path: '/orders', icon: ShoppingCart, label: 'Pedidos' },
-      { path: '/chat', icon: MessageSquare, label: 'Mensajes', badge: unreadCount },
-      { path: '/profile', icon: User, label: 'Perfil' },
+      { path: "/", icon: LayoutDashboard, label: "Panel" },
+      { path: "/products", icon: Package, label: "Catálogo" },
+      { path: "/orders", icon: ShoppingCart, label: "Pedidos" },
+      { path: "/chat", icon: MessageSquare, label: "Mensajes", badge: unreadCount },
+      { path: "/profile", icon: User, label: "Perfil" },
     ],
   };
 
-  const navItems = menuItems[user?.role] || [];
+  const navItems = menus[user?.role] || [];
 
   return (
-    <div className="flex min-h-screen bg-background text-white font-outfit overflow-hidden">
-      {/* Sidebar */}
-      <motion.aside 
+    <div
+      className="flex min-h-screen overflow-hidden"
+      style={{ background: "var(--bg)", color: "var(--text-primary)", fontFamily: "'Inter', sans-serif" }}
+    >
+      {/* ══════════ SIDEBAR ══════════════════════════════════════ */}
+      <motion.aside
         initial={false}
-        animate={{ width: isSidebarOpen ? '280px' : '90px' }}
-        className="fixed left-0 top-0 h-full glass-panel z-40 rounded-none border-y-0 border-l-0 border-white/5 flex flex-col transition-all duration-500 ease-in-out"
+        animate={{ width: SIDEBAR_W }}
+        transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
+        className="fixed left-0 top-0 h-full flex flex-col z-40"
+        style={{
+          background: isDark ? "rgba(5,7,15,0.97)" : "rgba(240,244,255,0.97)",
+          borderRight: "1px solid var(--border)",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          overflowX: "hidden",
+        }}
       >
-        <div className="p-8 flex items-center gap-4 overflow-hidden h-24">
-          <div className="bg-primary p-2.5 rounded-2xl shrink-0 shadow-[0_0_20px_rgba(59,40,255,0.3)]">
-            <Zap size={24} fill="white" stroke="white" />
-          </div>
-          <AnimatePresence>
-            {isSidebarOpen && (
-              <motion.span 
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                className="font-black text-2xl tracking-tighter"
-              >
-                JyP <span className="text-primary italic">Services</span>
-              </motion.span>
-            )}
-          </AnimatePresence>
+        {/* Brand */}
+        <div
+          className="flex items-center px-5 overflow-hidden"
+          style={{ height: 72, borderBottom: "1px solid var(--border)" }}
+        >
+          <JyPLogo collapsed={collapsed} />
         </div>
 
-        <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto no-scrollbar">
+        {/* Nav Items */}
+        <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto no-scrollbar">
           {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
+            const active = location.pathname === item.path;
             return (
-              <Link 
-                key={item.path} 
+              <Link
+                key={item.path}
                 to={item.path}
-                onClick={() => {
-                  if (item.path === '/chat') {
-                    setUnreadCount(0);
+                onClick={() => item.path === "/chat" && setUnreadCount?.(0)}
+                className="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 relative group"
+                style={{
+                  color: active ? "var(--text-primary)" : "var(--text-dim)",
+                  background: active ? "var(--primary-subtle)" : "transparent",
+                  boxShadow: active ? "inset 3px 0 0 var(--primary)" : "none",
+                  textDecoration: "none",
+                  fontSize: 14,
+                  fontWeight: 600,
+                }}
+                onMouseEnter={(e) => {
+                  if (!active) {
+                    e.currentTarget.style.background = "var(--bg-hover)";
+                    e.currentTarget.style.color = "var(--text-primary)";
                   }
                 }}
-                className={`flex items-center gap-4 p-4 rounded-xl transition-all duration-300 relative group ${
-                  isActive ? 'bg-primary text-white shadow-lg' : 'text-slate-500 hover:text-white hover:bg-white/5'
-                }`}
+                onMouseLeave={(e) => {
+                  if (!active) {
+                    e.currentTarget.style.background = "transparent";
+                    e.currentTarget.style.color = "var(--text-dim)";
+                  }
+                }}
               >
-                <div className="relative shrink-0">
-                  <item.icon size={22} className={isActive ? 'animate-pulse' : ''} />
-                  {item.badge > 0 && !isSidebarOpen && (
-                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full animate-ping" />
-                  )}
-                </div>
+                <item.icon
+                  size={20}
+                  strokeWidth={active ? 2.5 : 1.8}
+                  style={{ color: active ? "var(--primary)" : "inherit", flexShrink: 0 }}
+                />
                 <AnimatePresence>
-                  {isSidebarOpen && (
-                    <motion.div 
+                  {!collapsed && (
+                    <motion.div
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
-                      className="flex items-center justify-between flex-1"
+                      exit={{ opacity: 0 }}
+                      className="flex items-center justify-between flex-1 min-w-0"
                     >
-                      <span className="font-bold whitespace-nowrap">
-                        {item.label}
-                      </span>
-                      {item.badge > 0 && (
-                        <span className="px-2 py-0.5 bg-rose-500 text-white rounded-full text-[10px] font-black animate-pulse">
-                          {item.badge}
-                        </span>
-                      )}
+                      <span className="whitespace-nowrap truncate">{item.label}</span>
+                      {item.badge > 0 && <Badge count={item.badge} />}
                     </motion.div>
                   )}
                 </AnimatePresence>
-                {isActive && (
-                  <motion.div 
-                    layoutId="active-pill"
-                    className="absolute right-2 w-1.5 h-6 bg-white rounded-full"
+                {/* Badge when collapsed */}
+                {collapsed && item.badge > 0 && (
+                  <span
+                    className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+                    style={{ background: "var(--error)" }}
                   />
                 )}
               </Link>
@@ -117,73 +179,184 @@ const Layout = ({ user, onLogout }) => {
           })}
         </nav>
 
-        <div className="p-4 border-t border-white/5 space-y-2">
-          <button 
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="w-full flex items-center gap-4 p-4 text-slate-500 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+        {/* Bottom Controls */}
+        <div className="px-3 pb-5 space-y-1" style={{ borderTop: "1px solid var(--border)", paddingTop: 12 }}>
+          {/* Connection Status */}
+          <AnimatePresence>
+            {!collapsed && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl mb-1"
+                style={{ background: "var(--bg-hover)", fontSize: 11, fontWeight: 700 }}
+              >
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{
+                    background: isConnected ? "var(--success)" : "var(--warning)",
+                    boxShadow: isConnected ? "0 0 8px var(--secondary-glow)" : "none",
+                    animation: isConnected ? "pulse 2s infinite" : "none",
+                  }}
+                />
+                <span style={{ color: isConnected ? "var(--success)" : "var(--warning)" }}>
+                  {isConnected ? "En línea" : "Conectando..."}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Collapse Toggle */}
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl transition-all duration-200"
+            style={{ color: "var(--text-dim)", fontSize: 14, fontWeight: 600, background: "transparent" }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--bg-hover)";
+              e.currentTarget.style.color = "var(--text-primary)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.color = "var(--text-dim)";
+            }}
           >
-            {isSidebarOpen ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}
-            {isSidebarOpen && <span className="font-bold">Colapsar</span>}
+            {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+            {!collapsed && <span>Colapsar</span>}
           </button>
-          
-          <button 
+
+          {/* Logout */}
+          <button
             onClick={onLogout}
-            className="w-full flex items-center gap-4 p-4 text-red-500/70 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all"
+            className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl transition-all duration-200"
+            style={{ color: "var(--error)", fontSize: 14, fontWeight: 600, background: "transparent", opacity: 0.8 }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "var(--error-bg)";
+              e.currentTarget.style.opacity = "1";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "transparent";
+              e.currentTarget.style.opacity = "0.8";
+            }}
           >
-            <LogOut size={22} />
-            {isSidebarOpen && <span className="font-bold">Salir</span>}
+            <LogOut size={18} />
+            {!collapsed && <span>Cerrar Sesión</span>}
           </button>
         </div>
       </motion.aside>
 
-      {/* Main Content Container */}
-      <main 
-        className="flex-1 transition-all duration-500 ease-in-out"
-        style={{ marginLeft: isSidebarOpen ? '280px' : '90px' }}
+      {/* ══════════ MAIN AREA ════════════════════════════════════ */}
+      <main
+        className="flex-1 flex flex-col min-h-screen transition-all duration-300"
+        style={{ marginLeft: SIDEBAR_W }}
       >
-        {/* Navbar */}
-        <header className="h-24 px-8 md:px-12 flex items-center justify-between sticky top-0 z-30 bg-background/60 backdrop-blur-md border-b border-white/5">
-          <div className="flex items-center gap-4">
-            <h2 className="text-sm font-black text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
-              <MapPin size={14} className="text-primary" />
+        {/* ──── TOP HEADER ──────────────────────────────────── */}
+        <header
+          className="sticky top-0 z-30 flex items-center justify-between px-8"
+          style={{
+            height: 72,
+            background: isDark ? "rgba(5,7,15,0.85)" : "rgba(240,244,255,0.85)",
+            backdropFilter: "blur(20px)",
+            WebkitBackdropFilter: "blur(20px)",
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          {/* Left: location + status */}
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5" style={{ color: "var(--text-secondary)", fontSize: 13, fontWeight: 700 }}>
+              <MapPin size={13} style={{ color: "var(--primary)" }} />
               Lima, Perú
-            </h2>
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-wider">
-              <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)] animate-pulse' : 'bg-amber-400'}`} />
-              <span className={isConnected ? 'text-emerald-400' : 'text-amber-400'}>
-                {isConnected ? 'Socket en vivo' : 'Conectando...'}
+            </div>
+            <div
+              className="flex items-center gap-1.5 px-3 py-1 rounded-full"
+              style={{
+                background: "var(--bg-input)",
+                border: "1px solid var(--border)",
+                fontSize: 10,
+                fontWeight: 800,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+              }}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{
+                  background: isConnected ? "var(--success)" : "var(--warning)",
+                  boxShadow: isConnected ? "0 0 6px var(--secondary-glow)" : "none",
+                  animation: isConnected ? "pulse 2s infinite" : "none",
+                }}
+              />
+              <span style={{ color: isConnected ? "var(--success)" : "var(--warning)" }}>
+                {isConnected ? "Socket en vivo" : "Reconectando..."}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 bg-white/5 p-2 pr-4 rounded-xl border border-white/5">
-              <div className="bg-gradient-to-tr from-primary to-[#6E5FFF] w-10 h-10 rounded-lg flex items-center justify-center text-sm font-black shadow-lg">
-                {user?.names?.[0] || 'U'}
-              </div>
-              <div className="hidden md:block">
-                <p className="text-sm font-black tracking-tight leading-none">{user?.names || 'Usuario'}</p>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">{user?.role}</p>
-              </div>
+          {/* Right: actions */}
+          <div className="flex items-center gap-3">
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className="theme-toggle"
+              title={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            >
+              {isDark ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
+
+            {/* Notifications */}
+            <div className="relative">
+              <button
+                className="theme-toggle"
+                title="Notificaciones"
+              >
+                <Bell size={17} />
+              </button>
+              <span
+                className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+                style={{ background: "var(--primary)", border: "2px solid var(--bg)" }}
+              />
             </div>
-            <div className="relative cursor-pointer">
-              <div className="bg-white/5 hover:bg-white/10 p-3 rounded-xl border border-white/5 transition-all text-slate-400 hover:text-white">
-                <Bell size={20} />
+
+            {/* User chip */}
+            <div
+              className="flex items-center gap-2.5 px-3 py-2 rounded-xl"
+              style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+            >
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-black text-white shrink-0"
+                style={{
+                  background: "linear-gradient(135deg, var(--primary) 0%, var(--tertiary) 100%)",
+                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                }}
+              >
+                {user?.names?.[0]?.toUpperCase() || "U"}
               </div>
-              <span className="absolute top-2 right-2 w-2 h-2 bg-primary border border-background rounded-full" />
+              <div className="hidden md:block leading-none">
+                <p
+                  className="text-sm font-bold truncate max-w-[120px]"
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "var(--text-primary)" }}
+                >
+                  {user?.names || "Usuario"}
+                </p>
+                <p
+                  className="text-[10px] font-bold uppercase tracking-wider mt-0.5"
+                  style={{ color: "var(--primary)" }}
+                >
+                  {user?.role === "client" ? "Cliente" : user?.role === "tech" ? "Técnico" : user?.role === "store" ? "Tienda" : user?.role}
+                </p>
+              </div>
             </div>
           </div>
         </header>
 
-        {/* Dynamic Page Content */}
-        <div className="p-8 md:p-12 relative min-h-[calc(100vh-6rem)]">
+        {/* ──── PAGE CONTENT ────────────────────────────────── */}
+        <div className="flex-1 p-8 md:p-10" style={{ minHeight: "calc(100vh - 72px)" }}>
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3, ease: "easeOut" }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.28, ease: "easeOut" }}
             >
               <Outlet />
             </motion.div>

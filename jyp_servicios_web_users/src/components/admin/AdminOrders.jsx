@@ -18,25 +18,25 @@ const StatusBadge = ({ status }) => (
 const OrderModal = ({ order, onClose }) => {
   if (!order) return null;
   const InfoItem = ({ label, value }) => (
-    <div className="bg-white/4 rounded-xl px-4 py-3">
-      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">{label}</p>
-      <p className="font-bold text-sm text-white">{value || '—'}</p>
+    <div className="rounded-xl px-4 py-3" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+      <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
+      <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{value || '—'}</p>
     </div>
   );
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
       onClick={onClose}
     >
       <motion.div initial={{ scale: 0.93, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.93 }}
         className="w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl"
-        style={{ background: '#0D0F1A', border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="bg-gradient-to-r from-emerald-700 to-teal-700 px-8 py-6 flex items-center justify-between">
+        <div className="px-8 py-6 flex items-center justify-between" style={{ background: 'linear-gradient(135deg, #059669 0%, #0d9488 100%)' }}>
           <div>
-            <p className="text-emerald-200 text-xs font-black uppercase tracking-widest">Pedido #{order.id}</p>
+            <p className="text-emerald-100 text-xs font-black uppercase tracking-widest">Pedido #{order.id}</p>
             <h2 className="text-white font-black text-xl">{order.product_name}</h2>
           </div>
           <button onClick={onClose}
@@ -52,29 +52,29 @@ const OrderModal = ({ order, onClose }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-white/5 pb-2">Cliente</p>
+              <p className="text-[10px] font-black uppercase tracking-widest pb-2" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Cliente</p>
               <InfoItem label="Nombre completo" value={`${order.client_names} ${order.client_surnames}`} />
               <InfoItem label="Email"            value={order.client_email} />
               <InfoItem label="Teléfono"         value={order.client_phone} />
             </div>
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-white/5 pb-2">Tienda</p>
+              <p className="text-[10px] font-black uppercase tracking-widest pb-2" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Tienda</p>
               <InfoItem label="Sucursal"          value={order.store_name} />
               <InfoItem label="Dirección tienda"  value={order.store_address} />
             </div>
           </div>
 
           <div className="space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 border-b border-white/5 pb-2">Entrega</p>
+            <p className="text-[10px] font-black uppercase tracking-widest pb-2" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Entrega</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <InfoItem label="Dirección de envío" value={order.delivery_address || 'Recojo en tienda'} />
-              <div className="bg-white/4 rounded-xl px-4 py-3 flex items-center gap-3">
+              <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
                 <div className="w-9 h-9 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
                   <MapPin size={15} />
                 </div>
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-0.5">Coordenadas</p>
-                  <p className="text-xs font-bold font-mono text-white">{order.latitude}, {order.longitude}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-muted)' }}>Coordenadas</p>
+                  <p className="text-xs font-bold font-mono" style={{ color: 'var(--text-primary)' }}>{order.latitude}, {order.longitude}</p>
                 </div>
               </div>
             </div>
@@ -119,27 +119,27 @@ const AdminOrders = () => {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       {/* Header */}
       <div className="mb-8">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400 mb-2 flex items-center gap-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 flex items-center gap-2" style={{ color: 'var(--secondary)' }}>
           <Package size={12} /> Logística
         </p>
-        <h1 className="text-4xl font-black tracking-tighter text-white">
-          Gestión de <span className="text-emerald-400 italic">Pedidos</span>
+        <h1 className="text-4xl font-black tracking-tighter" style={{ color: 'var(--text-primary)' }}>
+          Gestión de <span className="italic" style={{ color: 'var(--secondary)' }}>Pedidos</span>
         </h1>
-        <p className="text-slate-500 text-sm mt-1 font-semibold">Control general de ventas y envíos de productos.</p>
+        <p className="text-sm mt-1 font-semibold" style={{ color: 'var(--text-secondary)' }}>Control general de ventas y envíos de productos.</p>
       </div>
 
       {/* Revenue mini-card */}
       {!loading && filtered.length > 0 && (
         <div className="mb-6 inline-flex items-center gap-3 px-5 py-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/5">
           <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Facturación filtrada</span>
-          <span className="text-xl font-black text-white">S/ {totalRevenue.toFixed(2)}</span>
+          <span className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>S/ {totalRevenue.toFixed(2)}</span>
         </div>
       )}
 
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-3 mb-6">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
           <input
             type="text"
             placeholder="Buscar por cliente, producto o tienda..."
@@ -165,11 +165,11 @@ const AdminOrders = () => {
         </div>
       ) : (
         <div className="glass-card overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
-            <span className="text-sm font-bold text-slate-500">
+          <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
+            <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
               {filtered.length} pedido{filtered.length !== 1 ? 's' : ''}
             </span>
-            <Filter size={14} className="text-slate-600" />
+            <Filter size={14} style={{ color: 'var(--text-muted)' }} />
           </div>
           <div className="overflow-x-auto">
             <table className="admin-table">
@@ -186,15 +186,15 @@ const AdminOrders = () => {
                   >
                     <td><span className="font-mono text-xs font-bold text-emerald-400">#{o.id}</span></td>
                     <td>
-                      <div className="font-bold text-sm text-white">{o.client_names} {o.client_surnames}</div>
+                      <div className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{o.client_names} {o.client_surnames}</div>
                     </td>
-                    <td className="text-sm font-medium text-slate-300">{o.store_name}</td>
+                    <td className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{o.store_name}</td>
                     <td>
-                      <div className="font-bold text-xs text-white">{o.product_name}</div>
-                      <div className="text-[10px] text-slate-500">Cant: {o.quantity}</div>
+                      <div className="font-bold text-xs" style={{ color: 'var(--text-primary)' }}>{o.product_name}</div>
+                      <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Cant: {o.quantity}</div>
                     </td>
                     <td>
-                      <div className="font-bold text-sm">{new Date(o.created_at).toLocaleDateString('es-PE')}</div>
+                      <div className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{new Date(o.created_at).toLocaleDateString('es-PE')}</div>
                     </td>
                     <td><span className="font-black text-emerald-400">S/ {parseFloat(o.total_price).toFixed(2)}</span></td>
                     <td><StatusBadge status={o.status} /></td>
@@ -208,7 +208,7 @@ const AdminOrders = () => {
               </tbody>
             </table>
             {filtered.length === 0 && (
-              <div className="py-16 text-center text-slate-600 font-bold text-sm">No se encontraron pedidos.</div>
+              <div className="py-16 text-center font-bold text-sm" style={{ color: 'var(--text-muted)' }}>No se encontraron pedidos.</div>
             )}
           </div>
         </div>

@@ -1,14 +1,113 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { 
-  Calendar, CheckCircle, Clock, AlertCircle, 
-  DollarSign, User, MapPin, Power, Bell, 
-  ChevronRight, MessageSquare, Star, ArrowRight, Zap
-} from 'lucide-react';
-import { techService, messageService, authService } from '../services/api';
-import { useNavigate } from 'react-router-dom';
-import { useSocket } from '../context/SocketContext';
+﻿import React, { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import {
+  Calendar, CheckCircle, Clock, AlertCircle,
+  DollarSign, User, MapPin, Power, Bell,
+  ChevronRight, MessageSquare, Star, ArrowRight, Cpu,
+  TrendingUp, Wrench, Activity
+} from "lucide-react";
+import { techService, messageService, authService } from "../services/api";
+import { useNavigate } from "react-router-dom";
+import { useSocket } from "../context/SocketContext";
 
+/* ── Status color map ──────────────────────────────────────────── */
+const STATUS = {
+  pending:    { label: "Pendiente",   cls: "status-badge status-pending" },
+  confirmed:  { label: "Confirmada",  cls: "status-badge status-confirmed" },
+  completed:  { label: "Completada",  cls: "status-badge status-completed" },
+  cancelled:  { label: "Cancelada",   cls: "status-badge status-cancelled" },
+  in_progress:{ label: "En progreso", cls: "status-badge status-in_progress" },
+  on_the_way: { label: "En camino",   cls: "status-badge status-on_the_way" },
+  arrived:    { label: "Llegó",       cls: "status-badge status-arrived" },
+  paid:       { label: "Pagada",      cls: "status-badge status-completed" },
+};
+
+/* ── Stat card ─────────────────────────────────────────────────── */
+const StatCard = ({ icon: Icon, label, value, color, delay }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 16 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay, duration: 0.4 }}
+    className="card card-hover"
+    style={{ display: "flex", alignItems: "center", gap: 16 }}
+  >
+    <div
+      style={{
+        width: 48, height: 48, borderRadius: 12,
+        background: `${color}18`,
+        border: `1px solid ${color}30`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      <Icon size={22} style={{ color }} />
+    </div>
+    <div>
+      <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-dim)" }}>
+        {label}
+      </p>
+      <p style={{ fontSize: 26, fontWeight: 800, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "var(--text-primary)", lineHeight: 1.2 }}>
+        {value}
+      </p>
+    </div>
+  </motion.div>
+);
+
+/* ── Appointment row ───────────────────────────────────────────── */
+const ApptRow = ({ appt, navigate }) => {
+  const st = STATUS[appt.status] || { label: appt.status, cls: "status-badge" };
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -12 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="glass-card p-4 cursor-pointer group"
+      style={{ borderRadius: 14 }}
+      onClick={() => navigate(`/appointments/${appt.id}`)}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div
+            style={{
+              width: 40, height: 40, borderRadius: 10,
+              background: "rgba(45,107,255,0.1)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Wrench size={18} style={{ color: "var(--primary)" }} />
+          </div>
+          <div className="min-w-0">
+            <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", fontFamily: "'Plus Jakarta Sans',sans-serif" }} className="truncate">
+              {appt.serviceType || appt.service_type || "Servicio Técnico"}
+            </p>
+            <p style={{ fontSize: 12, color: "var(--text-secondary)" }} className="truncate">
+              {appt.clientName || appt.client_name || "Cliente"}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className={st.cls}>{st.label}</span>
+          <ChevronRight size={16} style={{ color: "var(--text-dim)" }} className="group-hover:translate-x-1 transition-transform" />
+        </div>
+      </div>
+      {appt.scheduled_at && (
+        <div className="flex items-center gap-1.5 mt-2.5" style={{ fontSize: 11, color: "var(--text-dim)" }}>
+          <Clock size={12} />
+          {new Date(appt.scheduled_at).toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" })}
+          {appt.location_address && (
+            <>
+              <span style={{ margin: "0 4px" }}>·</span>
+              <MapPin size={12} />
+              <span className="truncate max-w-[160px]">{appt.location_address}</span>
+            </>
+          )}
+        </div>
+      )}
+    </motion.div>
+  );
+};
+
+/* ── TechDashboard ─────────────────────────────────────────────── */
 const TechDashboard = () => {
   const navigate = useNavigate();
   const { socketService } = useSocket();
@@ -17,36 +116,21 @@ const TechDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isAvailable, setIsAvailable] = useState(false);
   const [togglingAvailability, setTogglingAvailability] = useState(false);
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || '{}'));
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user") || "{}"));
   const [activeAppointment, setActiveAppointment] = useState(null);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  useEffect(() => { fetchDashboardData(); }, []);
 
-  // Listen to real-time events
   useEffect(() => {
     if (!socketService) return;
-
-    const unsubApptCreated = socketService.on('appointment_created', () => {
-      fetchDashboardData();
-    });
-
-    const unsubApptProgress = socketService.on('appointment_progress', () => {
-      fetchDashboardData();
-    });
-
-    const unsubMsg = socketService.on('receive_message', () => {
+    const u1 = socketService.on("appointment_created", fetchDashboardData);
+    const u2 = socketService.on("appointment_progress", fetchDashboardData);
+    const u3 = socketService.on("receive_message", () => {
       messageService.getConversations().then(r => {
         if (r.data.exito) setConversations(r.data.resultado || []);
       }).catch(() => {});
     });
-
-    return () => {
-      unsubApptCreated();
-      unsubApptProgress();
-      unsubMsg();
-    };
+    return () => { u1(); u2(); u3(); };
   }, [socketService]);
 
   const fetchDashboardData = async () => {
@@ -54,255 +138,221 @@ const TechDashboard = () => {
       const [apptsResp, convsResp, profileResp] = await Promise.all([
         techService.getAppointments(),
         messageService.getConversations(),
-        authService.getProfile()
+        authService.getProfile(),
       ]);
-      
       if (apptsResp.data.exito) {
         const appts = apptsResp.data.resultado || [];
         setAppointments(appts);
-        // Find active appointment (confirmed or paid)
-        const active = appts.find(a => a.status === 'confirmed' || a.status === 'paid');
-        setActiveAppointment(active);
+        setActiveAppointment(appts.find(a => a.status === "confirmed" || a.status === "paid"));
       }
       if (convsResp.data.exito) setConversations(convsResp.data.resultado || []);
       if (profileResp.data.exito) {
         setIsAvailable(profileResp.data.resultado.is_available === 1);
         setUser(profileResp.data.resultado);
       }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setIsLoading(false);
-    }
+    } catch (error) { console.error(error); }
+    finally { setIsLoading(false); }
   };
 
   const handleToggleAvailability = async () => {
     setTogglingAvailability(true);
     try {
-      const resp = await techService.toggleAvailability(!isAvailable);
-      if (resp.data.exito) {
-        setIsAvailable(!isAvailable);
-      }
-    } catch (error) {
-      console.error('Error toggling availability:', error);
-    } finally {
-      setTogglingAvailability(false);
-    }
+      const res = await techService.toggleAvailability(!isAvailable);
+      if (res.data.exito) setIsAvailable(!isAvailable);
+    } catch (err) { console.error(err); }
+    finally { setTogglingAvailability(false); }
   };
 
-  const pendingProposals = appointments.filter(a => a.status === 'pending');
-  const completedJobs = appointments.filter(a => a.status === 'completed');
-  const activeConsultations = conversations.filter(c => c.other_user_role === 'client');
-  const recentChat = activeConsultations[0];
+  const pending   = appointments.filter(a => a.status === "pending");
+  const confirmed = appointments.filter(a => a.status === "confirmed" || a.status === "paid");
+  const completed = appointments.filter(a => a.status === "completed");
+  const totalEarned = completed.reduce((s, a) => s + (parseFloat(a.price) || 0), 0);
+  const todayAppts = appointments.filter(a => {
+    if (!a.scheduled_at) return false;
+    const d = new Date(a.scheduled_at);
+    const today = new Date();
+    return d.toDateString() === today.toDateString();
+  });
+
+  if (isLoading) {
+    return (
+      <div className="max-w-5xl mx-auto space-y-5">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="skeleton" style={{ height: 72, borderRadius: 16 }} />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 font-outfit pb-20 animate-in fade-in duration-500">
-      
-      {/* ── MOBILE PARITY HEADER ──────────────────────────────────────────── */}
-      <header className="bg-surface p-6 rounded-[32px] border border-white/5 flex items-center justify-between shadow-xl">
-        <div className="flex items-center gap-4">
-           <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center">
-              <Zap size={24} className="text-primary" />
-           </div>
-           <div>
-              <p className="text-[10px] font-black text-text-dim uppercase tracking-widest">Dashboard</p>
-              <h1 className="text-xl font-black text-white">Hola, {user.names || 'Especialista'}</h1>
-           </div>
+    <div className="max-w-5xl mx-auto space-y-8 pb-20" style={{ fontFamily: "'Inter',sans-serif" }}>
+
+      {/* ── WELCOME HEADER ─────────────────────────────────── */}
+      <motion.header
+        initial={{ opacity: 0, y: -12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5"
+      >
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--primary)", marginBottom: 4 }}>
+            Dashboard Técnico
+          </p>
+          <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: "clamp(1.75rem,3vw,2.25rem)", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--text-primary)", lineHeight: 1.2 }}>
+            Hola, {user?.names?.split(" ")[0] || "Técnico"} 👋
+          </h1>
+          <p style={{ color: "var(--text-secondary)", marginTop: 4 }}>
+            {todayAppts.length > 0 ? `Tienes ${todayAppts.length} cita${todayAppts.length > 1 ? "s" : ""} hoy` : "Sin citas para hoy"}
+          </p>
         </div>
 
-        <div className="flex items-center gap-6">
-           {/* Availability Toggle - Mobile Design */}
-           <div className={`hidden md:flex items-center gap-4 px-5 py-3 rounded-2xl border transition-all ${isAvailable ? 'bg-green-500/5 border-green-500/20' : 'bg-red-500/5 border-red-500/20'}`}>
-              <div className="text-right">
-                 <p className={`text-[10px] font-black tracking-widest ${isAvailable ? 'text-green-500' : 'text-red-500'}`}>
-                    {isAvailable ? 'DISPONIBLE' : 'INACTIVO'}
-                 </p>
-                 <p className="text-[9px] text-text-dim font-bold">{isAvailable ? 'Visible en mapa' : 'Oculto del radar'}</p>
-              </div>
-              <button 
-                onClick={handleToggleAvailability}
-                disabled={togglingAvailability}
-                className={`relative w-12 h-6 rounded-full transition-colors ${isAvailable ? 'bg-green-500' : 'bg-slate-700'}`}
-              >
-                 <motion.div 
-                   animate={{ x: isAvailable ? 26 : 4 }}
-                   className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-lg"
-                 />
-              </button>
-           </div>
+        {/* Availability Toggle */}
+        <button
+          onClick={handleToggleAvailability}
+          disabled={togglingAvailability}
+          className="flex items-center gap-3 px-5 py-3 rounded-2xl font-bold text-sm transition-all"
+          style={{
+            background: isAvailable ? "rgba(0,229,160,0.12)" : "var(--bg-input)",
+            border: `1px solid ${isAvailable ? "rgba(0,229,160,0.3)" : "var(--border)"}`,
+            color: isAvailable ? "var(--success)" : "var(--text-secondary)",
+            fontFamily: "'Plus Jakarta Sans',sans-serif",
+          }}
+        >
+          <span
+            className="w-2.5 h-2.5 rounded-full"
+            style={{
+              background: isAvailable ? "var(--success)" : "var(--text-dim)",
+              boxShadow: isAvailable ? "0 0 8px var(--secondary-glow)" : "none",
+              animation: isAvailable ? "pulse 2s infinite" : "none",
+            }}
+          />
+          {togglingAvailability ? "Actualizando..." : isAvailable ? "Disponible" : "No disponible"}
+        </button>
+      </motion.header>
 
-           {/* Avatar */}
-           <div 
-             onClick={() => navigate('/profile')}
-             className="w-12 h-12 rounded-full border-2 border-primary p-0.5 cursor-pointer hover:scale-105 transition-transform"
-           >
-              <div className="w-full h-full bg-surface rounded-full flex items-center justify-center text-primary font-black overflow-hidden">
-                 {user.names?.[0] || <User size={20} />}
-              </div>
-           </div>
-        </div>
-      </header>
-
-      {/* ── ACTIVE SERVICE BANNER ─────────────────────────────────────────── */}
+      {/* ── ACTIVE APPOINTMENT ALERT ──────────────────────── */}
       {activeAppointment && (
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.95 }}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="bg-primary/10 border border-primary/20 p-6 rounded-[32px] flex items-center justify-between shadow-lg"
+          className="p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4"
+          style={{
+            background: "linear-gradient(135deg, rgba(45,107,255,0.15) 0%, rgba(45,107,255,0.05) 100%)",
+            border: "1px solid rgba(45,107,255,0.25)",
+          }}
         >
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20">
-              <Clock size={28} className="animate-pulse" />
+            <div style={{ width: 48, height: 48, borderRadius: 14, background: "var(--primary)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <Clock size={22} color="white" style={{ animation: "pulse 2s infinite" }} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-primary uppercase tracking-widest">Servicio en Curso</p>
-              <h3 className="text-lg font-black text-white">{activeAppointment.serviceType || 'Mantenimiento Técnico'}</h3>
-              <p className="text-xs text-text-dim">Cliente: <span className="text-white font-bold">{activeAppointment.clientName}</span></p>
+              <p style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--primary)", marginBottom: 2 }}>
+                Servicio activo
+              </p>
+              <p style={{ fontSize: 16, fontWeight: 800, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "var(--text-primary)" }}>
+                {activeAppointment.serviceType || activeAppointment.service_type || "Servicio Técnico"}
+              </p>
+              <p style={{ fontSize: 12, color: "var(--text-secondary)" }}>
+                Cliente: {activeAppointment.clientName || activeAppointment.client_name || "—"}
+              </p>
             </div>
           </div>
-          <button 
-            onClick={() => navigate(`/chat?user=${activeAppointment.clientId}`)}
-            className="bg-primary text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all"
+          <button
+            onClick={() => navigate(`/chat?user=${activeAppointment.clientId || activeAppointment.client_id}`)}
+            className="btn-primary btn-sm"
+            style={{ whiteSpace: "nowrap" }}
           >
-            Ir al Chat
+            <MessageSquare size={15} /> Ir al Chat
           </button>
         </motion.div>
       )}
 
-      {/* ── 1. CONSULTAS DE CLIENTES ──────────────────────────────────────── */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-black text-white px-2">Consultas de Clientes</h2>
-        <div className="bg-surface rounded-[32px] p-4 border border-white/5 shadow-lg space-y-2">
-          {isLoading ? (
-            <div className="h-20 animate-pulse bg-white/5 rounded-2xl" />
-          ) : activeConsultations.length === 0 ? (
-            <p className="p-8 text-center text-text-dim font-bold text-sm italic">No hay consultas nuevas</p>
+      {/* ── STATS GRID ────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard icon={AlertCircle} label="Pendientes"  value={pending.length}   color="#FFB020" delay={0.05} />
+        <StatCard icon={CheckCircle} label="Confirmadas" value={confirmed.length} color="#2D6BFF" delay={0.10} />
+        <StatCard icon={Calendar}    label="Hoy"         value={todayAppts.length} color="#00E5A0" delay={0.15} />
+        <StatCard icon={DollarSign}  label="Ganado"      value={`S/. ${totalEarned.toFixed(0)}`} color="#9B7FD4" delay={0.20} />
+      </div>
+
+      {/* ── APPOINTMENTS ──────────────────────────────────── */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 16, fontWeight: 700, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+            <Calendar size={18} style={{ color: "var(--primary)" }} />
+            Citas Recientes
+          </h2>
+          <button
+            onClick={() => navigate("/appointments")}
+            style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+          >
+            Ver todas <ArrowRight size={13} />
+          </button>
+        </div>
+        <div className="space-y-3">
+          {appointments.length === 0 ? (
+            <div className="card text-center py-10">
+              <Calendar size={32} style={{ color: "var(--text-dim)", margin: "0 auto 12px" }} />
+              <p style={{ color: "var(--text-secondary)", fontWeight: 600 }}>No tienes citas aún</p>
+              <p style={{ fontSize: 13, color: "var(--text-dim)", marginTop: 4 }}>Activa tu disponibilidad para recibir solicitudes</p>
+            </div>
           ) : (
-            activeConsultations.slice(0, 3).map((chat) => (
-              <div 
-                key={chat.other_user_id} 
-                onClick={() => navigate(`/chat?user=${chat.other_user_id}`)}
-                className="flex items-center justify-between p-4 hover:bg-white/5 rounded-2xl transition-all cursor-pointer group"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-black">
-                    {chat.username?.[0]}
-                  </div>
-                  <div>
-                    <h4 className="text-white font-bold text-sm">{chat.username}</h4>
-                    <div className="flex gap-1">
-                       {[...Array(5)].map((_, i) => <Star key={i} size={10} className="fill-yellow-500 text-yellow-500" />)}
-                    </div>
-                  </div>
-                </div>
-                {chat.unread_count > 0 ? (
-                  <div className="bg-error text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">
-                    {chat.unread_count}
-                  </div>
-                ) : <ChevronRight size={18} className="text-text-dim group-hover:translate-x-1 transition-transform" />}
-              </div>
+            appointments.slice(0, 5).map((appt, i) => (
+              <ApptRow key={appt.id} appt={appt} navigate={navigate} />
             ))
           )}
         </div>
-      </section>
+      </div>
 
-      {/* ── 2. PROPUESTAS DE CHAMBA ───────────────────────────────────────── */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-3 px-2">
-           <h2 className="text-lg font-black text-white">Propuestas de Chamba</h2>
-           {pendingProposals.length > 0 && (
-              <span className="bg-error text-white text-[10px] font-black px-2 py-0.5 rounded-full animate-bounce">
-                {pendingProposals.length} NUEVAS
-              </span>
-           )}
-        </div>
-        <div className="bg-surface rounded-[32px] p-4 border border-white/5 shadow-lg space-y-2">
-          {isLoading ? (
-             <div className="h-20 animate-pulse bg-white/5 rounded-2xl" />
-          ) : pendingProposals.length === 0 ? (
-            <p className="p-8 text-center text-text-dim font-bold text-sm italic">No hay propuestas pendientes</p>
-          ) : (
-            pendingProposals.map((appt) => (
-              <div key={appt.id} className="p-4 bg-white/[0.02] rounded-2xl border border-white/5 space-y-4">
-                 <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-3">
-                       <div className="w-10 h-10 bg-white/5 rounded-lg flex items-center justify-center text-text-secondary">
-                          <User size={18} />
-                       </div>
-                       <div>
-                          <p className="text-white font-bold text-sm">{appt.clientName || 'Cliente'}</p>
-                          <p className="text-[10px] text-text-dim font-black uppercase">{appt.serviceType}</p>
-                       </div>
-                    </div>
-                    <div className="text-right">
-                       <p className="text-primary font-black">S/.{appt.price}</p>
-                       <p className="text-[9px] text-text-dim font-bold">{appt.time}</p>
-                    </div>
-                 </div>
-                 <div className="flex gap-2">
-                    <button className="flex-1 py-3 bg-primary text-white text-xs font-black rounded-xl hover:scale-[1.02] transition-all">ACEPTAR</button>
-                    <button className="flex-1 py-3 bg-white/5 text-white text-xs font-black rounded-xl hover:bg-white/10 transition-all">RECHAZAR</button>
-                 </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* ── 3. TRABAJOS COMPLETADOS ───────────────────────────────────────── */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-black text-primary px-2">Trabajos Completados</h2>
-        <div className="bg-surface rounded-[32px] p-4 border border-white/5 shadow-lg space-y-2">
-          {isLoading ? (
-             <div className="h-20 animate-pulse bg-white/5 rounded-2xl" />
-          ) : completedJobs.length === 0 ? (
-            <p className="p-8 text-center text-text-dim font-bold text-sm italic">No hay trabajos completados</p>
-          ) : (
-            completedJobs.slice(0, 3).map((job) => (
-              <div key={job.id} className="flex items-center justify-between p-4 rounded-2xl">
-                 <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 border-2 border-primary/20 rounded-full flex items-center justify-center text-primary">
-                       <User size={18} />
-                    </div>
-                    <div>
-                       <h4 className="text-white font-bold text-sm">{job.clientName}</h4>
-                       <div className="flex gap-1">
-                          {[...Array(5)].map((_, i) => <Star key={i} size={10} className="fill-yellow-500 text-yellow-500" />)}
-                       </div>
-                    </div>
-                 </div>
-                 <ChevronRight size={18} className="text-text-dim" />
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* ── 4. RECENT CLIENT BANNER ───────────────────────────────────────── */}
-      {recentChat && (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          onClick={() => navigate(`/chat?user=${recentChat.other_user_id}`)}
-          className="bg-primary p-5 rounded-[28px] shadow-2xl shadow-primary/30 flex items-center justify-between cursor-pointer group hover:scale-[1.02] transition-all"
-        >
-          <div className="flex items-center gap-4">
-             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center text-white font-black text-xl border-2 border-white/10">
-                {recentChat.username?.[0]}
-             </div>
-             <div>
-                <h3 className="text-white font-black">{recentChat.username}</h3>
-                <p className="text-white/70 text-xs line-clamp-1">{recentChat.last_message}</p>
-             </div>
+      {/* ── RECENT MESSAGES ───────────────────────────────── */}
+      {conversations.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 16, fontWeight: 700, color: "var(--text-primary)", display: "flex", alignItems: "center", gap: 8 }}>
+              <MessageSquare size={18} style={{ color: "var(--primary)" }} />
+              Mensajes Recientes
+            </h2>
+            <button
+              onClick={() => navigate("/chat")}
+              style={{ fontSize: 12, fontWeight: 700, color: "var(--primary)", background: "none", border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4 }}
+            >
+              Abrir Chat <ArrowRight size={13} />
+            </button>
           </div>
-          {recentChat.unread_count > 0 ? (
-             <div className="bg-white text-primary w-6 h-6 rounded-full flex items-center justify-center font-black text-xs">
-                {recentChat.unread_count}
-             </div>
-          ) : <ArrowRight size={20} className="text-white group-hover:translate-x-1 transition-transform" />}
-        </motion.div>
+          <div className="space-y-2">
+            {conversations.slice(0, 3).map((conv, i) => (
+              <motion.div
+                key={conv.conversation_id || i}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.07 }}
+                className="glass-card p-4 cursor-pointer group flex items-center gap-3"
+                style={{ borderRadius: 14 }}
+                onClick={() => navigate(`/chat?user=${conv.other_user_id}`)}
+              >
+                <div
+                  style={{
+                    width: 40, height: 40, borderRadius: 10,
+                    background: "linear-gradient(135deg, var(--primary), var(--tertiary))",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: "'Plus Jakarta Sans',sans-serif", fontWeight: 800, color: "white", fontSize: 16, flexShrink: 0,
+                  }}
+                >
+                  {conv.username?.[0]?.toUpperCase() || "?"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                    {conv.username}
+                  </p>
+                  <p style={{ fontSize: 12, color: "var(--text-secondary)" }} className="truncate">
+                    {conv.last_message || "Sin mensajes"}
+                  </p>
+                </div>
+                <ChevronRight size={16} style={{ color: "var(--text-dim)" }} className="group-hover:translate-x-1 transition-transform shrink-0" />
+              </motion.div>
+            ))}
+          </div>
+        </div>
       )}
-
     </div>
   );
 };

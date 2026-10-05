@@ -456,17 +456,19 @@ const Chat = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] glass-panel overflow-hidden border border-white/5 shadow-2xl font-outfit">
+    <div className="flex h-[calc(100vh-12rem)] glass-panel overflow-hidden shadow-2xl font-outfit" style={{ border: '1px solid var(--border)' }}>
       {/* Sidebar - Conversations */}
-      <div className={`w-full md:w-80 lg:w-96 border-r border-white/5 flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-6 border-b border-white/5 space-y-4">
-          <h2 className="text-xl font-black text-white">Mensajes</h2>
+      <div className={`w-full md:w-80 lg:w-96 flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}
+        style={{ borderRight: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
+        <div className="p-6 space-y-4" style={{ borderBottom: '1px solid var(--border)' }}>
+          <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>Mensajes</h2>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-text-dim" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
             <input 
               type="text" 
               placeholder="Buscar conversaciones..." 
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+              className="w-full rounded-xl py-2.5 pl-10 pr-4 text-xs focus:outline-none transition-all"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
             />
           </div>
         </div>
@@ -474,67 +476,78 @@ const Chat = () => {
         <div className="flex-1 overflow-y-auto no-scrollbar">
           {loading ? (
              Array(5).fill(0).map((_, i) => (
-                <div key={i} className="p-4 border-b border-white/5 animate-pulse flex gap-3">
-                  <div className="w-12 h-12 bg-white/5 rounded-2xl shrink-0" />
+                <div key={i} className="p-4 animate-pulse flex gap-3" style={{ borderBottom: '1px solid var(--border)' }}>
+                  <div className="w-12 h-12 rounded-2xl shrink-0" style={{ background: 'var(--bg-card)' }} />
                   <div className="flex-1 space-y-2 mt-1">
-                    <div className="h-3 bg-white/5 rounded-full w-2/3" />
-                    <div className="h-2 bg-white/5 rounded-full w-1/2" />
+                    <div className="h-3 rounded-full w-2/3" style={{ background: 'var(--bg-card)' }} />
+                    <div className="h-2 rounded-full w-1/2" style={{ background: 'var(--bg-card)' }} />
                   </div>
                 </div>
              ))
           ) : conversations.length > 0 ? (
-            conversations.map((conv) => (
-              <div 
-                key={conv.other_user_id}
-                onClick={() => {
-                   setSelectedConversation(conv);
-                   fetchMessages(conv.other_user_id);
-                   // Update URL without full reload if possible, or just stay
-                }}
-                className={`p-4 border-b border-white/5 flex gap-4 cursor-pointer transition-all hover:bg-white/[0.03] ${String(selectedConversation?.other_user_id) === String(conv.other_user_id) ? 'bg-primary/10 border-r-2 border-r-primary' : ''}`}
-              >
-                <div className="relative shrink-0">
-                  <div className="w-12 h-12 bg-gradient-to-tr from-primary/50 to-primary rounded-2xl flex items-center justify-center text-white font-black">
-                    {(conv.username || conv.names)?.[0]}
-                  </div>
-                  {conv.unread_count > 0 && (
-                    <div className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-surface">
-                      {conv.unread_count}
+            conversations.map((conv) => {
+              const isSelected = String(selectedConversation?.other_user_id) === String(conv.other_user_id);
+              return (
+                <div 
+                  key={conv.other_user_id}
+                  onClick={() => {
+                     setSelectedConversation(conv);
+                     fetchMessages(conv.other_user_id);
+                  }}
+                  style={{
+                    borderBottom: '1px solid var(--border)',
+                    background: isSelected ? 'rgba(45, 107, 255, 0.08)' : 'transparent',
+                    borderRight: isSelected ? '3px solid var(--primary)' : 'none'
+                  }}
+                  className="p-4 flex gap-4 cursor-pointer transition-all hover:brightness-105"
+                >
+                  <div className="relative shrink-0">
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black shadow-md"
+                      style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%)' }}>
+                      {(conv.username || conv.names)?.[0]?.toUpperCase()}
                     </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-start mb-1">
-                    <h3 className="text-sm font-bold text-white truncate">{conv.username || `${conv.names} ${conv.surnames}`}</h3>
-                    <span className="text-[10px] text-text-dim whitespace-nowrap">
-                      {conv.last_message_time ? new Date(conv.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
-                    </span>
+                    {conv.unread_count > 0 && (
+                      <div className="absolute -top-1 -right-1 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 shadow-sm"
+                        style={{ background: 'var(--primary)', borderColor: 'var(--bg-surface)' }}>
+                        {conv.unread_count}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-[11px] text-text-dim truncate">
-                    {conv.last_message_text || 'Inicia una conversación...'}
-                  </p>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex justify-between items-start mb-1">
+                      <h3 className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>{conv.username || `${conv.names} ${conv.surnames}`}</h3>
+                      <span className="text-[10px] whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
+                        {conv.last_message_time ? new Date(conv.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                      </span>
+                    </div>
+                    <p className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>
+                      {conv.last_message_text || 'Inicia una conversación...'}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="p-12 text-center">
-               <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 text-text-dim">
+               <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--bg-card)', color: 'var(--text-muted)' }}>
                   <MessageSquare size={32} />
                </div>
-               <p className="text-text-dim text-xs italic">No tienes mensajes aún.</p>
+               <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>No tienes mensajes aún.</p>
             </div>
           )}
         </div>
       </div>
 
       {/* Main Chat Area */}
-      <div className={`flex-1 flex flex-col bg-background/30 backdrop-blur-sm ${!selectedConversation ? 'hidden md:flex items-center justify-center' : 'flex'}`}>
+      <div className={`flex-1 flex flex-col backdrop-blur-sm ${!selectedConversation ? 'hidden md:flex items-center justify-center' : 'flex'}`}
+        style={{ background: 'var(--bg-card)' }}>
         {selectedConversation ? (
           <>
             {/* Chat Header */}
-            <div className="h-20 px-6 flex items-center justify-between border-b border-white/5 bg-surface/50">
+            <div className="h-20 px-6 flex items-center justify-between"
+              style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
               <div 
-                className="flex items-center gap-4 cursor-pointer hover:bg-white/5 p-2 rounded-xl transition-all"
+                className="flex items-center gap-4 cursor-pointer p-2 rounded-xl transition-all hover:brightness-110"
                 onClick={() => {
                   const role = selectedConversation.other_user_role;
                   const id = selectedConversation.other_user_id;
@@ -550,18 +563,20 @@ const Chat = () => {
                     e.stopPropagation();
                     setSelectedConversation(null);
                   }}
-                  className="md:hidden text-text-dim hover:text-white"
+                  className="md:hidden"
+                  style={{ color: 'var(--text-muted)' }}
                 >
                   <ChevronLeft size={24} />
                 </button>
-                <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary font-black">
-                  {(selectedConversation.username || selectedConversation.names)?.[0]}
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center font-black shadow-sm"
+                  style={{ background: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}>
+                  {(selectedConversation.username || selectedConversation.names)?.[0]?.toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="text-sm font-black text-white">{selectedConversation.username || `${selectedConversation.names} ${selectedConversation.surnames}`}</h2>
+                  <h2 className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{selectedConversation.username || `${selectedConversation.names} ${selectedConversation.surnames}`}</h2>
                   <div className="flex items-center gap-1.5">
-                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-success animate-pulse' : 'bg-amber-400'}`} />
-                    <span className={`text-[10px] font-black uppercase tracking-wider ${isConnected ? 'text-success' : 'text-amber-400'}`}>
+                    <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
+                    <span className={`text-[10px] font-black uppercase tracking-wider ${isConnected ? 'text-emerald-500' : 'text-amber-400'}`}>
                       {isConnected ? 'En vivo' : 'Conectando...'}
                     </span>
                   </div>
@@ -572,13 +587,14 @@ const Chat = () => {
                 {currentUser?.role === 'tech' && (
                   <button 
                     onClick={() => setShowOfferModal(true)}
-                    className="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-xl text-primary text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
+                    style={{ background: 'rgba(45, 107, 255, 0.1)', border: '1px solid rgba(45, 107, 255, 0.2)', color: 'var(--primary)' }}
+                    className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-125 transition-all shadow-sm"
                   >
                     <DollarSign size={14} />
                     Enviar Presupuesto
                   </button>
                 )}
-                <button className="text-text-dim hover:text-white">
+                <button style={{ color: 'var(--text-muted)' }}>
                   <MoreVertical size={20} />
                 </button>
               </div>
@@ -588,10 +604,11 @@ const Chat = () => {
             <div className="flex-1 overflow-y-auto p-6 space-y-4 no-scrollbar">
               {messages.length === 0 ? (
                  <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
-                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center text-primary/30">
+                    <div className="w-16 h-16 rounded-full flex items-center justify-center"
+                      style={{ background: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}>
                        <Zap size={32} />
                     </div>
-                    <p className="text-text-dim text-xs">Di hola para iniciar la consulta técnica.</p>
+                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Di hola para iniciar la consulta técnica.</p>
                  </div>
               ) : (
                 messages.map((msg, index) => {
@@ -606,11 +623,14 @@ const Chat = () => {
                       className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
                     >
                       <div className={`max-w-[80%] ${isMine ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
-                        <div className={`p-4 rounded-2xl relative ${
-                          isMine 
-                          ? 'bg-primary text-white rounded-tr-none' 
-                          : 'bg-white/5 border border-white/10 text-white rounded-tl-none'
-                        }`}>
+                        <div 
+                          className={`p-4 rounded-2xl relative shadow-md ${isMine ? 'rounded-tr-none' : 'rounded-tl-none'}`}
+                          style={
+                            isMine 
+                              ? { background: 'linear-gradient(135deg, var(--primary) 0%, #1d4ed8 100%)', color: '#ffffff' }
+                              : { background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }
+                          }
+                        >
                           {isOffer ? (
                             <div className="space-y-4 min-w-[220px]">
                               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-80">
@@ -618,19 +638,20 @@ const Chat = () => {
                                 Presupuesto Propuesto
                               </div>
                               <div className="text-2xl font-black">S/.{msg.offer_price}</div>
-                              <p className="text-[11px] opacity-70 leading-relaxed">{msg.message_text}</p>
+                              <p className="text-[11px] opacity-80 leading-relaxed">{msg.message_text}</p>
                               
                               {!isMine && msg.offer_status === 'pending' && (
                                 <div className="flex gap-2 pt-2">
                                   <button 
                                     onClick={() => handleAcceptOffer(msg.id)}
-                                    className="flex-1 bg-white text-primary py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/90 shadow-lg"
+                                    className="flex-1 bg-white text-blue-700 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/90 shadow-lg"
                                   >
                                     Aceptar
                                   </button>
                                   <button 
                                     onClick={() => handleRejectOffer(msg.id)}
-                                    className="flex-1 bg-white/10 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/20"
+                                    className="flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                    style={{ background: 'rgba(255,255,255,0.1)', color: '#ffffff' }}
                                   >
                                     Rechazar
                                   </button>
@@ -638,13 +659,13 @@ const Chat = () => {
                               )}
                               
                               {msg.offer_status === 'accepted' && (
-                                <div className="flex items-center gap-2 bg-success/20 p-2 rounded-lg text-success text-[10px] font-black uppercase">
+                                <div className="flex items-center gap-2 bg-emerald-500/20 p-2 rounded-lg text-emerald-400 text-[10px] font-black uppercase">
                                   <CheckCircle2 size={12} />
                                   Presupuesto Aceptado
                                 </div>
                               )}
                               {msg.offer_status === 'rejected' && (
-                                <div className="flex items-center gap-2 bg-error/20 p-2 rounded-lg text-error text-[10px] font-black uppercase">
+                                <div className="flex items-center gap-2 bg-rose-500/20 p-2 rounded-lg text-rose-400 text-[10px] font-black uppercase">
                                   <X size={12} />
                                   Presupuesto Rechazado
                                 </div>
@@ -652,31 +673,38 @@ const Chat = () => {
                             </div>
                           ) : msg.message_type === 'appointment' ? (
                             <div className="space-y-4 min-w-[240px]">
-                               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-80">
-                                  <Calendar size={14} className="text-primary" />
+                               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                                 style={{ color: 'var(--text-muted)' }}>
+                                  <Calendar size={14} style={{ color: 'var(--primary)' }} />
                                   Detalles del Servicio
                                </div>
-                               <div className="bg-white/10 p-4 rounded-2xl border border-white/5 space-y-3">
+                               <div className="p-4 rounded-2xl space-y-3"
+                                 style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                                   <div className="flex items-center justify-between">
-                                     <div className="flex items-center gap-2 text-white font-black text-xs">
-                                        <Clock size={14} className="text-primary" />
+                                     <div className="flex items-center gap-2 text-xs font-black"
+                                       style={{ color: 'var(--text-primary)' }}>
+                                        <Clock size={14} style={{ color: 'var(--primary)' }} />
                                         {msg.appointment_date || 'Fecha pendiente'}
                                      </div>
-                                     <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-md ${
-                                       msg.appointment_status === 'pending' ? 'bg-yellow-500/20 text-yellow-500' :
-                                       msg.appointment_status === 'confirmed' ? 'bg-primary/20 text-primary' :
-                                       msg.appointment_status === 'paid' ? 'bg-success/20 text-success' :
-                                       'bg-error/20 text-error'
-                                     }`}>
+                                     <span className="text-[9px] font-black uppercase px-2 py-1 rounded-md" style={{
+                                       background: msg.appointment_status === 'pending' ? 'rgba(234,179,8,0.15)' :
+                                                   msg.appointment_status === 'confirmed' ? 'rgba(45,107,255,0.15)' :
+                                                   msg.appointment_status === 'paid' ? 'rgba(16,185,129,0.15)' :
+                                                   'rgba(239,68,68,0.15)',
+                                       color: msg.appointment_status === 'pending' ? '#ca8a04' :
+                                              msg.appointment_status === 'confirmed' ? 'var(--primary)' :
+                                              msg.appointment_status === 'paid' ? '#10b981' : '#ef4444'
+                                     }}>
                                        {msg.appointment_status || 'Pendiente'}
                                      </span>
                                   </div>
-                                  <p className="text-[11px] text-white/70 leading-relaxed italic">"{msg.message_text}"</p>
+                                  <p className="text-[11px] leading-relaxed italic" style={{ color: 'var(--text-secondary)' }}>"{msg.message_text}"</p>
                                   
                                   {msg.appointment_price > 0 && (
-                                    <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                                      <span className="text-[10px] text-text-dim uppercase font-bold">Costo del servicio</span>
-                                      <span className="text-sm font-black text-white">S/.{msg.appointment_price}</span>
+                                    <div className="flex items-center justify-between pt-2"
+                                      style={{ borderTop: '1px solid var(--border)' }}>
+                                      <span className="text-[10px] uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Costo del servicio</span>
+                                      <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>S/.{msg.appointment_price}</span>
                                     </div>
                                   )}
                                </div>
@@ -687,7 +715,8 @@ const Chat = () => {
                                   {currentUser.role === 'tech' && msg.appointment_status === 'pending' && !msg.appointment_price && (
                                     <button 
                                       onClick={() => { setSelectedAppointment(msg); setShowPriceModal(true); }}
-                                      className="w-full bg-primary text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
+                                      className="w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-95 transition-all shadow-lg"
+                                      style={{ background: 'var(--primary)', color: '#fff' }}
                                     >
                                       Establecer Monto
                                     </button>
@@ -695,7 +724,8 @@ const Chat = () => {
                                   {currentUser.role === 'tech' && msg.appointment_status === 'paid' && (
                                     <button 
                                       onClick={() => handleConfirmPayment(msg.appointment_id)}
-                                      className="w-full bg-success text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-lg"
+                                      className="w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-lg"
+                                      style={{ background: '#10b981', color: '#fff' }}
                                     >
                                       Confirmar Pago Recibido
                                     </button>
@@ -705,7 +735,8 @@ const Chat = () => {
                                   {currentUser.role === 'client' && msg.appointment_status === 'confirmed' && msg.appointment_price > 0 && (
                                     <button 
                                       onClick={() => { setSelectedAppointment(msg); setShowPaymentModal(true); }}
-                                      className="w-full bg-primary text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-lg"
+                                      className="w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-lg"
+                                      style={{ background: 'var(--primary)', color: '#fff' }}
                                     >
                                       Pagar Servicio
                                     </button>
@@ -714,7 +745,10 @@ const Chat = () => {
                                   {msg.appointment_status !== 'completed' && msg.appointment_status !== 'cancelled' && msg.appointment_payment_status !== 'paid' && (
                                     <button 
                                       onClick={() => handleCancelAppointment(msg.appointment_id)}
-                                      className="w-full bg-white/5 text-white/50 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-error/10 hover:text-error transition-all"
+                                      className="w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
+                                      style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444'; }}
+                                      onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
                                     >
                                       Cancelar
                                     </button>
@@ -723,34 +757,39 @@ const Chat = () => {
                             </div>
                           ) : msg.message_type === 'order' ? (
                             <div className="space-y-4 min-w-[240px]">
-                               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest opacity-80">
-                                  <Package size={14} className="text-primary" />
+                               <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
+                                 style={{ color: 'var(--text-muted)' }}>
+                                  <Package size={14} style={{ color: 'var(--primary)' }} />
                                   Pedido de Producto
                                </div>
-                               <div className="bg-white/10 p-4 rounded-2xl border border-white/5 space-y-3">
+                               <div className="p-4 rounded-2xl space-y-3"
+                                 style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                                   <div className="flex items-center gap-3">
-                                     <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center text-primary">
+                                     <div className="w-10 h-10 rounded-lg flex items-center justify-center"
+                                       style={{ background: 'rgba(45,107,255,0.1)', color: 'var(--primary)' }}>
                                         <Package size={20} />
                                      </div>
                                      <div className="flex-1">
-                                        <h4 className="text-xs font-black text-white">{msg.product_name || 'Producto'}</h4>
-                                        <p className="text-[10px] text-text-dim">Cantidad: {msg.quantity || 1}</p>
+                                        <h4 className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>{msg.product_name || 'Producto'}</h4>
+                                        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Cantidad: {msg.quantity || 1}</p>
                                      </div>
                                   </div>
-                                  <div className="flex items-center justify-between text-[10px] pt-2 border-t border-white/5">
-                                     <span className="text-text-dim font-bold uppercase">Estado</span>
-                                     <span className="text-primary font-black uppercase">{msg.order_status || 'Pendiente'}</span>
+                                  <div className="flex items-center justify-between text-[10px] pt-2"
+                                    style={{ borderTop: '1px solid var(--border)' }}>
+                                     <span className="font-bold uppercase" style={{ color: 'var(--text-muted)' }}>Estado</span>
+                                     <span className="font-black uppercase" style={{ color: 'var(--primary)' }}>{msg.order_status || 'Pendiente'}</span>
                                   </div>
                                   {msg.delivery_address && (
                                     <div className="flex items-start gap-2 pt-1">
-                                      <MapPin size={12} className="text-text-dim shrink-0 mt-0.5" />
-                                      <p className="text-[10px] text-text-dim leading-tight">{msg.delivery_address}</p>
+                                      <MapPin size={12} className="shrink-0 mt-0.5" style={{ color: 'var(--text-muted)' }} />
+                                      <p className="text-[10px] leading-tight" style={{ color: 'var(--text-muted)' }}>{msg.delivery_address}</p>
                                     </div>
                                   )}
                                </div>
                                <button 
                                  onClick={() => navigate('/orders')}
-                                 className="w-full bg-white/5 text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+                                 className="w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all hover:brightness-110"
+                                 style={{ background: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
                                >
                                  Ver detalles del pedido
                                </button>
@@ -765,7 +804,8 @@ const Chat = () => {
                                 <img 
                                   src={msg.message_text?.startsWith('http') ? msg.message_text : `http://localhost:3000/uploads/${msg.message_text}`} 
                                   alt="Adjunto" 
-                                  className="rounded-2xl max-h-60 w-full object-cover shadow-lg hover:opacity-90 transition-opacity border border-white/10" 
+                                  className="rounded-2xl max-h-60 w-full object-cover shadow-lg hover:opacity-90 transition-opacity"
+                                  style={{ border: '1px solid var(--border)' }}
                                 />
                               </a>
                             </div>
@@ -783,22 +823,25 @@ const Chat = () => {
                             <div className="space-y-2 max-w-[280px]">
                               <video 
                                 controls 
-                                className="rounded-2xl w-full max-h-60 shadow-lg border border-white/10" 
+                                className="rounded-2xl w-full max-h-60 shadow-lg"
+                                style={{ border: '1px solid var(--border)' }}
                                 src={msg.message_text?.startsWith('http') ? msg.message_text : `http://localhost:3000/uploads/${msg.message_text}`}
                               >
                                 Tu navegador no soporta el reproductor de video.
                               </video>
                             </div>
                           ) : msg.message_type === 'file' ? (
-                            <div className="flex items-center gap-3 p-3 bg-white/10 rounded-2xl border border-white/5 min-w-[220px]">
-                              <FileText className="text-primary shrink-0" size={24} />
+                            <div className="flex items-center gap-3 p-3 rounded-2xl min-w-[220px]"
+                              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+                              <FileText size={24} style={{ color: 'var(--primary)' }} className="shrink-0" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-bold text-white truncate">{msg.message_text?.split('/').pop() || 'Documento adjunto'}</p>
+                                <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>{msg.message_text?.split('/').pop() || 'Documento adjunto'}</p>
                                 <a 
                                   href={msg.message_text?.startsWith('http') ? msg.message_text : `http://localhost:3000/uploads/${msg.message_text}`} 
                                   target="_blank" 
                                   rel="noopener noreferrer" 
-                                  className="text-[10px] text-primary hover:underline font-bold uppercase tracking-wider block mt-1"
+                                  className="text-[10px] font-bold uppercase tracking-wider block mt-1 hover:underline"
+                                  style={{ color: 'var(--primary)' }}
                                 >
                                   Descargar archivo
                                 </a>
@@ -833,12 +876,13 @@ const Chat = () => {
                   initial={{ opacity: 0, y: 5 }} 
                   animate={{ opacity: 1, y: 0 }} 
                   exit={{ opacity: 0, y: 5 }}
-                  className="px-6 py-1 bg-surface/20 flex items-center gap-2 text-xs text-primary font-bold"
+                  className="px-6 py-2 flex items-center gap-2 text-xs font-bold"
+                  style={{ background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', color: 'var(--primary)' }}
                 >
                   <div className="flex gap-1 items-center">
-                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <span className="w-1.5 h-1.5 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--primary)', animationDelay: '0ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--primary)', animationDelay: '150ms' }} />
+                    <span className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ background: 'var(--primary)', animationDelay: '300ms' }} />
                   </div>
                   <span>{selectedConversation?.username || 'El usuario'} está escribiendo...</span>
                 </motion.div>
@@ -846,7 +890,7 @@ const Chat = () => {
             </AnimatePresence>
 
             {/* Input Area */}
-            <div className="p-6 bg-surface/30 backdrop-blur-md border-t border-white/5">
+            <div className="p-4 backdrop-blur-md" style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
               <input 
                 type="file" 
                 ref={fileInputRef} 
@@ -854,21 +898,27 @@ const Chat = () => {
                 accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" 
                 className="hidden" 
               />
-               <form onSubmit={handleSendMessage} className="flex gap-4">
+               <form onSubmit={handleSendMessage} className="flex gap-3 items-center">
                  <button 
                    type="button" 
                    disabled={isUploading}
                    onClick={() => fileInputRef.current?.click()}
-                   className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-text-dim transition-all cursor-pointer disabled:opacity-50"
+                   className="p-3 rounded-xl transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                   style={{ background: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
                    title="Adjuntar imagen, audio, video o documento"
                  >
-                   <Paperclip size={20} className={isUploading ? 'animate-spin' : ''} />
+                   <Paperclip size={18} className={isUploading ? 'animate-spin' : ''} />
                  </button>
                  <div className="flex-1 relative">
                    <input 
                      type="text" 
                      placeholder={isUploading ? "Subiendo archivo..." : "Escribe tu mensaje aquí..."} 
-                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 px-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all"
+                     className="w-full rounded-xl py-3 px-4 text-sm focus:outline-none transition-all"
+                     style={{ 
+                       background: 'var(--bg-card)', 
+                       border: '1px solid var(--border)', 
+                       color: 'var(--text-primary)'
+                     }}
                      value={newMessage}
                      onChange={handleInputChange}
                      disabled={isUploading || isRecording}
@@ -882,19 +932,21 @@ const Chat = () => {
                       onMouseLeave={stopRecording}
                       onTouchStart={startRecording}
                       onTouchEnd={stopRecording}
-                      className="p-3 bg-red-500/20 hover:bg-red-500/30 rounded-xl text-red-400 transition-all cursor-pointer shadow-lg shadow-red-500/20 flex items-center gap-2"
+                      className="p-3 rounded-xl transition-all cursor-pointer flex items-center gap-2 shrink-0"
+                      style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
                       title="Grabando... suelta para enviar"
                     >
-                      <Mic size={20} className="animate-pulse" />
-                      <span className="text-xs font-bold">Grabando</span>
+                      <Mic size={18} className="animate-pulse" />
+                      <span className="text-xs font-bold hidden sm:block">Grabando</span>
                     </button>
                   ) : newMessage.trim() ? (
                     <button 
                       type="submit" 
                       disabled={isUploading}
-                      className="p-3 bg-primary hover:bg-primary-dark rounded-xl text-white shadow-lg shadow-primary/30 transition-all cursor-pointer disabled:opacity-50"
+                      className="p-3 rounded-xl transition-all cursor-pointer disabled:opacity-50 shrink-0 shadow-lg"
+                      style={{ background: 'var(--primary)', color: '#fff' }}
                     >
-                      <Send size={20} />
+                      <Send size={18} />
                     </button>
                   ) : (
                     <button 
@@ -904,10 +956,11 @@ const Chat = () => {
                       onTouchStart={startRecording}
                       onTouchEnd={stopRecording}
                       disabled={isUploading}
-                      className="p-3 bg-white/5 hover:bg-white/10 rounded-xl text-text-dim transition-all cursor-pointer disabled:opacity-50"
+                      className="p-3 rounded-xl transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                      style={{ background: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
                       title="Grabar mensaje de voz"
                     >
-                      <Mic size={20} />
+                      <Mic size={18} />
                     </button>
                   )}
                </form>
@@ -915,11 +968,12 @@ const Chat = () => {
           </>
         ) : (
           <div className="text-center p-12">
-            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center text-primary mx-auto mb-6 shadow-2xl">
+            <div className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl"
+              style={{ background: 'rgba(45,107,255,0.1)', color: 'var(--primary)' }}>
               <MessageSquare size={48} className="animate-pulse" />
             </div>
-            <h3 className="text-2xl font-black text-white mb-2">Tus Conversaciones</h3>
-            <p className="text-text-dim text-sm max-w-xs mx-auto">Selecciona una conversación a la izquierda para empezar a chatear.</p>
+            <h3 className="text-2xl font-black mb-2" style={{ color: 'var(--text-primary)' }}>Tus Conversaciones</h3>
+            <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--text-muted)' }}>Selecciona una conversación a la izquierda para empezar a chatear.</p>
           </div>
         )}
       </div>
@@ -927,32 +981,42 @@ const Chat = () => {
       {/* Price Modal */}
       <AnimatePresence>
         {showPriceModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md"
+            style={{ background: 'rgba(0,0,0,0.6)' }}>
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="glass-panel w-full max-w-sm p-8 relative"
+              className="w-full max-w-sm p-8 relative rounded-2xl shadow-2xl"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
             >
-              <button onClick={() => setShowPriceModal(false)} className="absolute top-6 right-6 text-text-dim hover:text-white">
+              <button 
+                onClick={() => setShowPriceModal(false)} 
+                className="absolute top-6 right-6 transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+              >
                 <X size={24} />
               </button>
               <div className="flex flex-col items-center text-center space-y-4 mb-8">
-                <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center text-primary">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(45,107,255,0.1)', color: 'var(--primary)' }}>
                   <DollarSign size={32} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-white">Costo del Servicio</h3>
-                  <p className="text-text-dim text-xs">Indica el monto a cobrar por este trabajo.</p>
+                  <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>Costo del Servicio</h3>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Indica el monto a cobrar por este trabajo.</p>
                 </div>
               </div>
               <div className="space-y-6">
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-primary">S/.</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black" style={{ color: 'var(--primary)' }}>S/.</span>
                   <input 
                     type="number" 
                     placeholder="0.00" 
-                    className="input-field w-full text-2xl font-black pl-14 pr-6 py-4"
+                    className="w-full rounded-xl text-2xl font-black pl-14 pr-6 py-4 focus:outline-none transition-all"
+                    style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                     value={tempPrice}
                     onChange={(e) => setTempPrice(e.target.value)}
                   />
@@ -960,7 +1024,8 @@ const Chat = () => {
                 <button 
                   onClick={handleSetAppointmentPrice}
                   disabled={processing}
-                  className="btn-primary w-full py-4 font-black text-sm"
+                  className="w-full py-4 font-black text-sm rounded-xl transition-all hover:brightness-110 disabled:opacity-60 shadow-lg"
+                  style={{ background: 'var(--primary)', color: '#fff' }}
                 >
                   {processing ? 'Procesando...' : 'Establecer y Notificar'}
                 </button>
@@ -973,54 +1038,68 @@ const Chat = () => {
       {/* Payment Modal */}
       <AnimatePresence>
         {showPaymentModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md"
+            style={{ background: 'rgba(0,0,0,0.6)' }}>
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="glass-panel w-full max-w-md p-8 relative"
+              className="w-full max-w-md p-8 relative rounded-2xl shadow-2xl"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
             >
-              <button onClick={() => setShowPaymentModal(false)} className="absolute top-6 right-6 text-text-dim hover:text-white">
+              <button 
+                onClick={() => setShowPaymentModal(false)} 
+                className="absolute top-6 right-6 transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+              >
                 <X size={24} />
               </button>
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-14 h-14 bg-success/20 rounded-2xl flex items-center justify-center text-success">
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                  style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>
                   <Wallet size={28} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-white">Pagar Servicio</h3>
-                  <p className="text-text-dim text-xs">Monto a pagar: <span className="text-white font-black">S/.{selectedAppointment?.appointment_price}</span></p>
+                  <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>Pagar Servicio</h3>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Monto a pagar: <span className="font-black" style={{ color: 'var(--text-primary)' }}>S/.{selectedAppointment?.appointment_price}</span></p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 gap-3">
                 {[
-                  { id: 'yape', name: 'Yape', icon: Smartphone, color: 'bg-[#742284]' },
-                  { id: 'plin', name: 'Plin', icon: Smartphone, color: 'bg-[#00d0c3]' },
-                  { id: 'transfer', name: 'Transferencia', icon: Banknote, color: 'bg-primary' },
-                  { id: 'cash', name: 'Efectivo', icon: Banknote, color: 'bg-success' }
+                  { id: 'yape', name: 'Yape', icon: Smartphone, bg: '#742284' },
+                  { id: 'plin', name: 'Plin', icon: Smartphone, bg: '#00c3b8' },
+                  { id: 'transfer', name: 'Transferencia', icon: Banknote, bg: 'var(--primary)' },
+                  { id: 'cash', name: 'Efectivo', icon: Banknote, bg: '#10b981' }
                 ].map((method) => (
                   <button 
                     key={method.id}
                     onClick={() => handlePayAppointment(method.id)}
                     disabled={processing}
-                    className="flex items-center gap-4 p-4 bg-white/5 border border-white/10 rounded-2xl hover:bg-white/10 hover:border-primary/50 transition-all group"
+                    className="flex items-center gap-4 p-4 rounded-2xl transition-all group"
+                    style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--primary)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}
                   >
-                    <div className={`w-12 h-12 ${method.color} rounded-xl flex items-center justify-center text-white`}>
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-white shrink-0"
+                      style={{ background: method.bg }}>
                       <method.icon size={24} />
                     </div>
                     <div className="flex-1 text-left">
-                      <span className="text-sm font-black text-white block">{method.name}</span>
-                      <span className="text-[10px] text-text-dim uppercase tracking-widest">Pago inmediato</span>
+                      <span className="text-sm font-black block" style={{ color: 'var(--text-primary)' }}>{method.name}</span>
+                      <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Pago inmediato</span>
                     </div>
-                    <ArrowRight size={18} className="text-text-dim group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-all" style={{ color: 'var(--text-muted)' }} />
                   </button>
                 ))}
               </div>
 
-              <div className="mt-6 p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-xl flex gap-3">
-                <AlertCircle size={20} className="text-yellow-500 shrink-0" />
-                <p className="text-[10px] text-yellow-500/80 leading-relaxed italic">
+              <div className="mt-6 p-4 rounded-xl flex gap-3"
+                style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)' }}>
+                <AlertCircle size={20} className="shrink-0" style={{ color: '#ca8a04' }} />
+                <p className="text-[10px] leading-relaxed italic" style={{ color: '#ca8a04' }}>
                   Una vez realizado el pago por el medio seleccionado, el técnico deberá confirmar la recepción para finalizar el servicio oficialmente.
                 </p>
               </div>
@@ -1032,51 +1111,60 @@ const Chat = () => {
       {/* Offer Modal */}
       <AnimatePresence>
         {showOfferModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 backdrop-blur-md"
+            style={{ background: 'rgba(0,0,0,0.6)' }}>
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="glass-panel w-full max-w-md p-8 relative"
+              className="w-full max-w-md p-8 relative rounded-2xl shadow-2xl"
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
             >
               <button 
                 onClick={() => setShowOfferModal(false)}
-                className="absolute top-6 right-6 text-text-dim hover:text-white"
+                className="absolute top-6 right-6 transition-colors"
+                style={{ color: 'var(--text-muted)' }}
+                onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
               >
                 <X size={24} />
               </button>
               
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(45,107,255,0.1)', color: 'var(--primary)' }}>
                   <DollarSign size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-white">Enviar Presupuesto</h3>
-                  <p className="text-text-dim text-xs">Propón una tarifa para este servicio.</p>
+                  <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>Enviar Presupuesto</h3>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Propón una tarifa para este servicio.</p>
                 </div>
               </div>
               
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-text-dim uppercase tracking-widest pl-1">Monto en Soles (S/.)</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest pl-1" style={{ color: 'var(--text-muted)' }}>Monto en Soles (S/.)</label>
                   <input 
                     type="number" 
                     placeholder="0.00" 
-                    className="input-field w-full text-2xl font-black px-6 py-4"
+                    className="w-full rounded-xl text-2xl font-black px-6 py-4 focus:outline-none transition-all"
+                    style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                     value={offerPrice}
                     onChange={(e) => setOfferPrice(e.target.value)}
                   />
                 </div>
 
-                <div className="p-4 bg-primary/5 border border-primary/20 rounded-xl">
-                  <p className="text-[10px] text-text-secondary leading-relaxed italic">
+                <div className="p-4 rounded-xl"
+                  style={{ background: 'rgba(45,107,255,0.05)', border: '1px solid rgba(45,107,255,0.15)' }}>
+                  <p className="text-[10px] leading-relaxed italic" style={{ color: 'var(--text-secondary)' }}>
                     * El cliente recibirá una notificación y podrá aceptar o rechazar tu oferta de inmediato. Una vez aceptada, el servicio quedará confirmado con este precio.
                   </p>
                 </div>
 
                 <button 
                   onClick={handleSendOffer}
-                  className="btn-primary w-full py-5 font-black text-base shadow-xl"
+                  className="w-full py-5 font-black text-base rounded-xl shadow-xl transition-all hover:brightness-110"
+                  style={{ background: 'var(--primary)', color: '#fff' }}
                 >
                   Confirmar y Enviar
                 </button>

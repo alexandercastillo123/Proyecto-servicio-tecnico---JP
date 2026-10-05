@@ -119,29 +119,42 @@ const ClientDashboard = () => {
   const recentTechChat = conversations.find(c => c.other_user_role === 'tech' || c.other_user_role === 'technician');
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10 font-outfit pb-20 animate-in fade-in duration-700">
+    <div className="max-w-6xl mx-auto space-y-8 pb-20" style={{ fontFamily: "'Inter',sans-serif" }}>
       
-      {/* ── PREMIUM HEADER (EXPLORAR TÉCNICOS) ────────────────────────────── */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 px-4">
+      {/* ── HEADER ───────────────────────────────────────────── */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="space-y-2">
-          <div className="flex items-center gap-3">
-             <button 
-                onClick={() => setShowLocationModal(true)}
-                className="px-4 py-2 bg-primary/10 border border-primary/20 rounded-full text-primary hover:bg-primary hover:text-white text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 transition-all shadow-lg shadow-primary/10"
-              >
-                <Target size={12} className="animate-pulse" />
-                {userLocation.address.split(',')[0]}
-              </button>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">
-            Explorar <span className="text-primary">Técnicos</span>
+          <button 
+            onClick={() => setShowLocationModal(true)}
+            className="flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-[0.12em] transition-all"
+            style={{
+              background: 'rgba(45,107,255,0.1)',
+              border: '1px solid rgba(45,107,255,0.25)',
+              color: 'var(--primary)'
+            }}
+          >
+            <Target size={11} style={{ animation: 'pulse 2s infinite' }} />
+            {userLocation.address.split(',')[0]}
+          </button>
+          <h1
+            className="text-4xl md:text-5xl font-black tracking-tight leading-tight"
+            style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: 'var(--text-primary)' }}
+          >
+            Explorar <span style={{ color: 'var(--primary)' }}>Técnicos</span>
           </h1>
-          <p className="text-slate-500 font-medium max-w-lg">
-            Estamos buscando expertos cerca de tu zona actual para brindarte soporte inmediato.
+          <p style={{ color: 'var(--text-secondary)', maxWidth: 480, lineHeight: 1.6 }}>
+            Encuentra expertos certificados cerca de tu zona para soporte técnico inmediato.
           </p>
         </div>
-        <div className="p-6 bg-primary/10 rounded-3xl text-primary shadow-xl border border-primary/20">
-           <Zap size={40} />
+        <div
+          className="p-5 rounded-3xl"
+          style={{
+            background: 'rgba(45,107,255,0.1)',
+            border: '1px solid rgba(45,107,255,0.2)',
+            color: 'var(--primary)',
+          }}
+        >
+          <Zap size={36} />
         </div>
       </header>
 
