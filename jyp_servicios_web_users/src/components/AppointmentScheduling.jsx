@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar as CalendarIcon, Clock, ChevronRight, 
   ChevronLeft, FileText, AlertCircle, CheckCircle2,
-  ArrowRight, MapPin
+  ArrowRight, MapPin, Check
 } from 'lucide-react';
 import { clientService, storeService } from '../services/api';
 
@@ -30,12 +30,10 @@ const AppointmentScheduling = () => {
 
   const fetchProviderDetails = async () => {
     try {
-      // First try as tech
       const techResp = await clientService.getTechnicianDetails(providerId).catch(() => null);
       if (techResp?.data?.exito) {
         setProvider(techResp.data.resultado);
       } else {
-        // Then try as branch
         const branchResp = await storeService.getBranchDetails(providerId).catch(() => null);
         if (branchResp?.data?.exito) {
           const b = branchResp.data.resultado;
@@ -63,9 +61,6 @@ const AppointmentScheduling = () => {
     const now = new Date();
     const resultDate = new Date();
     resultDate.setDate(now.getDate() + (targetDayIndex + 7 - now.getDay()) % 7);
-    
-    // If it's today but time might have passed, or just always pick next week if it's today
-    // For simplicity, let's just return the YYYY-MM-DD
     return resultDate.toISOString().split('T')[0];
   };
 
@@ -75,16 +70,16 @@ const AppointmentScheduling = () => {
     try {
       const scheduledDate = getNextDateForDay(selectedDay);
       const data = {
-        technicianId: provider.user_id || provider.id, // backend expects user_id for technicians, but let's check
+        technicianId: provider.user_id || provider.id,
         scheduledDate: scheduledDate,
         scheduledTime: selectedSlot,
         description,
-        serviceType: 'local' // Stores usually local
+        serviceType: 'local'
       };
       
       const response = await clientService.createAppointment(data);
       if (response.data.exito) {
-        setStep(4); // Success step
+        setStep(4);
       } else {
         setError(response.data.mensaje || 'Error al procesar la cita');
       }
@@ -97,9 +92,14 @@ const AppointmentScheduling = () => {
   };
 
   if (loading) return (
-    <div className="h-screen bg-[#020306] flex flex-col items-center justify-center">
-      <div className="w-12 h-12 border-4 border-[#3B28FF] border-t-transparent rounded-full animate-spin mb-4" />
-      <p className="text-[#3B28FF] font-black text-xs uppercase tracking-widest">Cargando Agenda...</p>
+    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+      <div 
+        className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin"
+        style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}
+      />
+      <p className="font-bold text-xs uppercase tracking-wider animate-pulse" style={{ color: 'var(--primary)' }}>
+        Cargando Agenda...
+      </p>
     </div>
   );
 
@@ -107,22 +107,43 @@ const AppointmentScheduling = () => {
   const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-4 font-outfit">
+    <div className="max-w-4xl mx-auto py-8 px-4">
       {/* Progress Stepper */}
-      <div className="flex items-center justify-between mb-16 px-4 md:px-20 relative">
+      <div className="flex items-center justify-between mb-12 px-6 md:px-20 relative">
         {[1, 2, 3].map((s) => (
-          <div key={s} className="flex flex-col items-center gap-3 relative z-10">
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-base transition-all duration-500 ${step >= s ? 'bg-primary text-white shadow-2xl shadow-primary/40 rotate-12' : 'bg-white/5 text-text-dim border border-white/10'}`}>
-              {s}
+          <div key={s} className="flex flex-col items-center gap-2 relative z-10">
+            <div 
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-md ${
+                step > s ? 'text-white' : step === s ? 'text-white shadow-lg' : ''
+              }`}
+              style={{
+                backgroundColor: step >= s ? 'var(--primary)' : 'var(--bg-card)',
+                color: step >= s ? '#fff' : 'var(--text-muted)',
+                border: step >= s ? 'none' : '1px solid var(--border)'
+              }}
+            >
+              {step > s ? <Check size={18} /> : s}
             </div>
-            <span className={`text-[10px] font-black uppercase tracking-widest ${step >= s ? 'text-white' : 'text-text-dim'}`}>
-              {s === 1 ? 'Agenda' : s === 2 ? 'Detalles' : 'Confirmar'}
+            <span 
+              className="text-[11px] font-bold uppercase tracking-wider"
+              style={{ color: step >= s ? 'var(--text-primary)' : 'var(--text-muted)' }}
+            >
+              {s === 1 ? 'Horario' : s === 2 ? 'Falla' : 'Confirmar'}
             </span>
           </div>
         ))}
-        {/* Connector lines */}
-        <div className="absolute top-6 left-1/4 right-1/4 h-[2px] bg-white/5 -z-0">
-          <div className={`h-full bg-primary transition-all duration-700 shadow-[0_0_10px_#3B28FF]`} style={{ width: `${(step-1) * 50}%` }} />
+        {/* Connector line */}
+        <div 
+          className="absolute top-5 left-1/4 right-1/4 h-[2px] -z-0"
+          style={{ backgroundColor: 'var(--border)' }}
+        >
+          <div 
+            className="h-full transition-all duration-500" 
+            style={{ 
+              width: `${(step - 1) * 50}%`,
+              backgroundColor: 'var(--primary)'
+            }} 
+          />
         </div>
       </div>
 
@@ -130,66 +151,92 @@ const AppointmentScheduling = () => {
         {step === 1 && (
           <motion.div 
             key="step1"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="glass-panel p-8 md:p-12 relative overflow-hidden"
+            exit={{ opacity: 0, y: -15 }}
+            className="p-8 md:p-10 rounded-2xl border shadow-xl relative overflow-hidden"
+            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
-            <div className="absolute -top-24 -right-24 w-64 h-64 bg-primary/10 rounded-full blur-3xl" />
-            
-            <div className="flex items-center gap-5 mb-10 relative z-10">
-              <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center text-primary border border-primary/20">
-                <CalendarIcon size={32} />
+            <div className="flex items-center gap-4 mb-8">
+              <div 
+                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
+              >
+                <CalendarIcon size={28} />
               </div>
               <div>
-                <h2 className="text-3xl font-black text-white">Selecciona Horario</h2>
-                <p className="text-text-dim text-sm">Reserva una cita con {provider?.names || 'el experto'}.</p>
+                <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                  Selecciona Horario
+                </h2>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  Reserva una cita técnica con {provider?.names || 'el especialista'}.
+                </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10">
-              <div className="space-y-6">
-                <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em] pl-1">Día de la semana</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {days.map((day) => (
-                    <button
-                      key={day}
-                      onClick={() => setSelectedDay(day)}
-                      className={`p-5 rounded-2xl border-2 text-sm font-black transition-all ${selectedDay === day ? 'bg-primary border-primary text-white shadow-xl scale-95' : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'}`}
-                    >
-                      {day}
-                    </button>
-                  ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <label className="text-xs font-bold uppercase tracking-wider block" style={{ color: 'var(--primary)' }}>
+                  Día de la semana
+                </label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {days.map((day) => {
+                    const isSelected = selectedDay === day;
+                    return (
+                      <button
+                        key={day}
+                        onClick={() => setSelectedDay(day)}
+                        className="p-4 rounded-xl border text-sm font-bold transition-all text-center"
+                        style={{
+                          backgroundColor: isSelected ? 'var(--primary)' : 'var(--bg)',
+                          borderColor: isSelected ? 'var(--primary)' : 'var(--border)',
+                          color: isSelected ? '#FFFFFF' : 'var(--text-primary)',
+                          boxShadow: isSelected ? '0 4px 14px rgba(45, 107, 255, 0.3)' : 'none'
+                        }}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              <div className="space-y-6">
-                <label className="text-[10px] font-black text-primary uppercase tracking-[0.2em] pl-1">Hora disponible</label>
-                <div className="grid grid-cols-2 gap-3">
-                  {times.map((time) => (
-                    <button
-                      key={time}
-                      onClick={() => setSelectedSlot(time)}
-                      className={`p-5 rounded-2xl border-2 text-sm font-black transition-all ${selectedSlot === time ? 'bg-primary border-primary text-white shadow-xl scale-95' : 'bg-white/5 border-white/5 text-slate-400 hover:border-white/20'}`}
-                    >
-                      <div className="flex items-center justify-center gap-2">
+              <div className="space-y-4">
+                <label className="text-xs font-bold uppercase tracking-wider block" style={{ color: 'var(--primary)' }}>
+                  Hora disponible
+                </label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {times.map((time) => {
+                    const isSelected = selectedSlot === time;
+                    return (
+                      <button
+                        key={time}
+                        onClick={() => setSelectedSlot(time)}
+                        className="p-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2"
+                        style={{
+                          backgroundColor: isSelected ? 'var(--primary)' : 'var(--bg)',
+                          borderColor: isSelected ? 'var(--primary)' : 'var(--border)',
+                          color: isSelected ? '#FFFFFF' : 'var(--text-primary)',
+                          boxShadow: isSelected ? '0 4px 14px rgba(45, 107, 255, 0.3)' : 'none'
+                        }}
+                      >
                         <Clock size={16} />
-                        {time}
-                      </div>
-                    </button>
-                  ))}
+                        <span>{time}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
 
-            <div className="mt-12 pt-8 border-t border-white/5 flex justify-end">
+            <div className="mt-10 pt-6 border-t flex justify-end" style={{ borderColor: 'var(--border)' }}>
               <button 
                 disabled={!selectedDay || !selectedSlot}
                 onClick={() => setStep(2)}
-                className="btn-primary px-10 py-5 disabled:opacity-30"
+                className="btn-primary px-8 py-3.5 text-sm flex items-center gap-2 rounded-xl font-bold shadow-lg disabled:opacity-40"
               >
-                Continuar
-                <ChevronRight size={20} />
+                <span>Continuar</span>
+                <ChevronRight size={18} />
               </button>
             </div>
           </motion.div>
@@ -198,53 +245,74 @@ const AppointmentScheduling = () => {
         {step === 2 && (
           <motion.div 
             key="step2"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="glass-panel p-8 md:p-12"
+            exit={{ opacity: 0, y: -15 }}
+            className="p-8 md:p-10 rounded-2xl border shadow-xl"
+            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
-            <div className="flex items-center gap-5 mb-10">
-              <div className="w-16 h-16 bg-primary/20 rounded-2xl flex items-center justify-center text-primary border border-primary/20">
-                <FileText size={32} />
+            <div className="flex items-center gap-4 mb-8">
+              <div 
+                className="w-14 h-14 rounded-2xl flex items-center justify-center"
+                style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
+              >
+                <FileText size={28} />
               </div>
               <div>
-                <h2 className="text-3xl font-black text-white">¿Qué problema tienes?</h2>
-                <p className="text-text-dim text-sm">Describe brevemente la falla de tu equipo.</p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <textarea 
-                rows="8"
-                placeholder="Ej. Mi laptop no enciende, el ventilador hace mucho ruido, necesito mantenimiento general..."
-                className="w-full bg-white/5 border border-white/10 rounded-3xl p-8 text-white text-lg focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-slate-700"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-              
-              <div className="p-5 bg-primary/5 border border-primary/20 rounded-2xl flex items-start gap-4">
-                <AlertCircle size={24} className="text-primary shrink-0 mt-0.5" />
-                <p className="text-xs text-slate-400 leading-relaxed font-medium">
-                  Información importante: Esta es una solicitud de cita. El técnico revisará tu descripción y podrá enviarte un presupuesto inicial a través del chat antes de confirmar la visita.
+                <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                  ¿Qué problema presenta tu equipo?
+                </h2>
+                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  Describe detalladamente el síntoma o motivo de la visita.
                 </p>
               </div>
             </div>
 
-            <div className="mt-12 flex justify-between items-center">
+            <div className="space-y-5">
+              <textarea 
+                rows="6"
+                placeholder="Ej. Mi laptop no enciende, el ventilador hace mucho ruido, la pantalla parpadea, requiero mantenimiento general preventivo..."
+                className="w-full rounded-2xl p-5 text-sm outline-none border transition-all"
+                style={{
+                  backgroundColor: 'var(--bg)',
+                  borderColor: 'var(--border)',
+                  color: 'var(--text-primary)'
+                }}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+              
+              <div 
+                className="p-4 rounded-xl border flex items-start gap-3 text-xs leading-relaxed"
+                style={{ 
+                  backgroundColor: 'rgba(45, 107, 255, 0.05)', 
+                  borderColor: 'rgba(45, 107, 255, 0.2)',
+                  color: 'var(--text-secondary)'
+                }}
+              >
+                <AlertCircle size={20} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
+                <span>
+                  Información: Esta es una solicitud de cita técnica. El profesional revisará tu caso y podrá comunicarse vía chat para brindarte orientación o coordinar la visita.
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-8 flex justify-between items-center">
               <button 
                 onClick={() => setStep(1)}
-                className="flex items-center gap-2 text-slate-500 font-black hover:text-white transition-all uppercase tracking-widest text-[10px]"
+                className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider transition-colors hover:opacity-80"
+                style={{ color: 'var(--text-secondary)' }}
               >
-                <ChevronLeft size={18} />
-                Regresar
+                <ChevronLeft size={16} />
+                <span>Regresar</span>
               </button>
               <button 
                 disabled={!description.trim()}
                 onClick={() => setStep(3)}
-                className="btn-primary px-10 py-5 disabled:opacity-30"
+                className="btn-primary px-8 py-3.5 text-sm flex items-center gap-2 rounded-xl font-bold shadow-lg disabled:opacity-40"
               >
-                Ver Resumen
-                <ChevronRight size={20} />
+                <span>Ver Resumen</span>
+                <ChevronRight size={18} />
               </button>
             </div>
           </motion.div>
@@ -253,86 +321,113 @@ const AppointmentScheduling = () => {
         {step === 3 && (
           <motion.div 
             key="step3"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="glass-panel p-8 md:p-12"
+            exit={{ opacity: 0, y: -15 }}
+            className="p-8 md:p-10 rounded-2xl border shadow-xl"
+            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-black text-white mb-2">Resumen de Cita</h2>
-              <p className="text-text-dim text-sm">Confirma los detalles para agendar con el experto.</p>
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
+                Confirmación de Cita
+              </h2>
+              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+                Revisa los datos antes de registrar tu cita técnica.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
-              <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
-                <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Profesional</p>
-                <div 
-                  className="flex items-center gap-4 cursor-pointer hover:bg-white/5 p-2 rounded-2xl transition-all"
-                  onClick={() => {
-                    const techId = searchParams.get('tech');
-                    const storeId = searchParams.get('store');
-                    if (techId) navigate(`/technician/${techId}`);
-                    else if (storeId) navigate(`/store/${storeId}`);
-                  }}
-                >
-                   <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary font-black text-2xl">
-                     {provider?.names?.[0]}
-                   </div>
-                   <div>
-                     <p className="text-white font-black text-lg group-hover:text-primary transition-colors">{provider?.names} {provider?.surnames}</p>
-                     <div className="flex items-center gap-1.5 text-slate-500 text-xs">
-                        <MapPin size={14} className="text-primary" />
-                        {provider?.city}
-                     </div>
-                   </div>
-                </div>
-              </div>
-
-              <div className="p-6 bg-white/5 rounded-3xl border border-white/10">
-                <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Fecha y Hora</p>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-3 text-white font-black text-lg">
-                    <CalendarIcon size={20} className="text-primary" />
-                    {selectedDay}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+              <div 
+                className="p-5 rounded-xl border"
+                style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
+              >
+                <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--primary)' }}>
+                  Especialista Seleccionado
+                </p>
+                <div className="flex items-center gap-3">
+                  <div 
+                    className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg text-white"
+                    style={{ backgroundColor: 'var(--primary)' }}
+                  >
+                    {provider?.names?.[0] || 'T'}
                   </div>
-                  <div className="flex items-center gap-3 text-white font-black text-lg">
-                    <Clock size={20} className="text-primary" />
-                    {selectedSlot} hrs
+                  <div>
+                    <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                      {provider?.names} {provider?.surnames}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                      <MapPin size={13} style={{ color: 'var(--primary)' }} />
+                      <span>{provider?.city || 'Trujillo, Perú'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="md:col-span-2 p-8 bg-white/5 rounded-3xl border border-white/10">
-                <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-4">Problema Reportado</p>
-                <p className="text-slate-300 text-lg italic leading-relaxed">"{description}"</p>
+              <div 
+                className="p-5 rounded-xl border"
+                style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
+              >
+                <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--primary)' }}>
+                  Fecha y Hora
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2.5 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                    <CalendarIcon size={16} style={{ color: 'var(--primary)' }} />
+                    <span>{selectedDay}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                    <Clock size={16} style={{ color: 'var(--primary)' }} />
+                    <span>{selectedSlot} hrs</span>
+                  </div>
+                </div>
+              </div>
+
+              <div 
+                className="md:col-span-2 p-5 rounded-xl border"
+                style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
+              >
+                <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--primary)' }}>
+                  Motivo de la Cita
+                </p>
+                <p className="text-sm italic leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+                  "{description}"
+                </p>
               </div>
             </div>
 
             {error && (
-              <div className="mb-8 p-4 bg-error/10 border border-error/20 rounded-xl flex items-center gap-3 text-error text-sm font-bold animate-in shake duration-500">
-                <AlertCircle size={20} />
-                {error}
+              <div 
+                className="mb-6 p-4 rounded-xl flex items-center gap-3 text-sm font-semibold"
+                style={{ 
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)', 
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  color: '#EF4444' 
+                }}
+              >
+                <AlertCircle size={18} />
+                <span>{error}</span>
               </div>
             )}
 
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-3">
               <button 
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="btn-primary w-full py-6 text-lg shadow-2xl shadow-primary/30"
+                className="btn-primary w-full py-4 text-sm font-bold flex items-center justify-center gap-2 rounded-xl shadow-lg"
               >
                 {submitting ? (
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Agendando...
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Agendando...</span>
                   </div>
                 ) : (
-                  'Confirmar y Agendar'
+                  <span>Confirmar y Agendar Cita</span>
                 )}
               </button>
               <button 
                 onClick={() => setStep(2)}
-                className="text-slate-500 font-black text-[10px] hover:text-white transition-all uppercase tracking-[0.3em] text-center"
+                className="text-xs font-bold uppercase tracking-wider py-2 transition-colors hover:opacity-80"
+                style={{ color: 'var(--text-muted)' }}
               >
                 Modificar Detalles
               </button>
@@ -343,23 +438,40 @@ const AppointmentScheduling = () => {
         {step === 4 && (
           <motion.div 
             key="success"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="glass-panel p-12 text-center"
+            className="p-10 text-center rounded-2xl border shadow-xl"
+            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
-            <div className="w-24 h-24 bg-success/20 rounded-full flex items-center justify-center text-success mx-auto mb-10 shadow-[0_0_50px_rgba(34,197,94,0.3)]">
-              <CheckCircle2 size={56} />
+            <div 
+              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+              style={{ backgroundColor: 'rgba(0, 229, 160, 0.15)', color: 'var(--secondary)' }}
+            >
+              <CheckCircle2 size={48} />
             </div>
-            <h2 className="text-4xl font-black text-white mb-4 tracking-tight">¡Reserva Exitosa!</h2>
-            <p className="text-slate-400 max-w-md mx-auto mb-12 text-lg leading-relaxed">
-              Tu solicitud ha sido enviada a {provider?.names}. Te notificaremos vía chat en cuanto el profesional revise tu caso.
+            <h2 className="text-3xl font-bold mb-3 tracking-tight" style={{ color: 'var(--text-primary)' }}>
+              ¡Cita Agendada con Éxito!
+            </h2>
+            <p className="max-w-md mx-auto mb-8 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              Tu solicitud ha sido remitida a {provider?.names}. Podrás revisar el estado y comunicarte con el técnico desde tu panel.
             </p>
             
-            <div className="flex flex-col md:flex-row gap-4 justify-center">
-              <Link to="/appointments" className="btn-primary px-12 py-5 text-lg">
-                Mis Citas
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link 
+                to="/appointments" 
+                className="btn-primary px-8 py-3.5 text-sm font-bold rounded-xl shadow-lg"
+              >
+                Ver Mis Citas
               </Link>
-              <Link to="/" className="bg-white/5 px-12 py-5 rounded-2xl text-white font-black hover:bg-white/10 transition-all border border-white/5">
+              <Link 
+                to="/" 
+                className="px-8 py-3.5 rounded-xl font-bold text-sm border transition-colors hover:opacity-80"
+                style={{ 
+                  backgroundColor: 'var(--bg)', 
+                  borderColor: 'var(--border)',
+                  color: 'var(--text-primary)' 
+                }}
+              >
                 Volver al Inicio
               </Link>
             </div>

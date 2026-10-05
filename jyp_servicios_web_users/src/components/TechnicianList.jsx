@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Search, Filter, Star, MapPin, Phone, MessageSquare, Calendar, ChevronRight, Target, Zap, ShieldCheck, RefreshCw, Navigation, User, ArrowRight } from 'lucide-react';
+import { Search, Filter, Star, MapPin, MessageSquare, Calendar, ChevronRight, Target, Wrench, RefreshCw, Navigation, User, ArrowRight, Cpu, Shield, Clock } from 'lucide-react';
 import { clientService } from '../services/api.js';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -106,7 +106,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
       const newLoc = {
         lat: tempMarker[0],
         lng: tempMarker[1],
-        address: data.display_name || 'Ubicación Seleccionada'
+        address: data.display_name || 'UbicaciÃ³n Seleccionada'
       };
 
       if (onLocationUpdate) onLocationUpdate(newLoc);
@@ -120,102 +120,170 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row h-[700px] gap-6 font-outfit">
+    <div className="flex flex-col lg:flex-row gap-6" style={{ height: 680, fontFamily: "'Inter',sans-serif" }}>
       
-      {/* Sidebar List */}
-      <div className="w-full lg:w-[400px] flex flex-col gap-6 overflow-hidden">
-        <div className="glass-panel p-4 border-white/5 shadow-xl">
-           <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-              <input 
-                type="text" 
-                placeholder="Filtrar resultados..." 
-                className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-                onChange={(e) => setFilters({ ...filters, city: e.target.value })}
-              />
-           </div>
+      {/* â”€â”€ Sidebar: Tech Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <div className="w-full lg:w-[380px] flex flex-col gap-4 overflow-hidden">
+        {/* Search */}
+        <div className="relative">
+          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-dim)', pointerEvents: 'none' }} />
+          <input
+            type="text"
+            placeholder="Filtrar tÃ©cnicos..."
+            className="input-field"
+            style={{ paddingLeft: 40, height: 44 }}
+            onChange={(e) => setFilters({ ...filters, city: e.target.value })}
+          />
         </div>
 
-        <div className="flex-1 overflow-y-auto pr-2 no-scrollbar space-y-4">
+        <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
           {!hasSearched ? (
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center glass-panel border-dashed border-white/10">
-               <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-6 animate-pulse">
-                  <Navigation size={40} />
-               </div>
-               <h3 className="text-white font-black text-lg mb-2">Comienza la búsqueda</h3>
-               <p className="text-slate-500 text-sm leading-relaxed">
-                  Haz doble click en el mapa para marcar tu zona y presiona el botón <span className="text-primary font-bold">Buscar</span> para ver expertos disponibles.
-               </p>
+            <div
+              className="h-full flex flex-col items-center justify-center p-8 text-center rounded-2xl"
+              style={{ border: '2px dashed var(--border)', background: 'var(--bg-input)' }}
+            >
+              <div
+                className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+                style={{ background: 'rgba(45,107,255,0.1)', border: '1px solid rgba(45,107,255,0.2)' }}
+              >
+                <Navigation size={28} style={{ color: 'var(--primary)', animation: 'pulse 2s infinite' }} />
+              </div>
+              <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8 }}>
+                Comienza la bÃºsqueda
+              </h3>
+              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Haz doble click en el mapa para marcar tu zona y presiona{' '}
+                <span style={{ color: 'var(--primary)', fontWeight: 700 }}>Buscar</span>{' '}
+                para ver expertos disponibles.
+              </p>
             </div>
           ) : loading ? (
-            Array(4).fill(0).map((_, i) => (
-              <div key={i} className="glass-panel p-6 animate-pulse h-40" />
-            ))
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="skeleton" style={{ height: 130, borderRadius: 16 }} />
+              ))}
+            </div>
           ) : technicians.length > 0 ? (
-            technicians.map((tech) => (
-              <div 
-                key={tech.id} 
-                className="glass-panel p-5 flex flex-col gap-4 cursor-pointer group hover:bg-white/[0.03] hover:border-primary/30 transition-all border border-white/5 shadow-xl animate-in slide-in-from-bottom-4 duration-500"
+            technicians.map((tech, idx) => (
+              <div
+                key={tech.id}
+                className="glass-card p-4 cursor-pointer group"
+                style={{ animation: `slide-up 0.4s ${idx * 0.06}s both` }}
                 onClick={() => {
                   const lat = parseFloat(tech.latitude);
                   const lng = parseFloat(tech.longitude);
-                  if (!isNaN(lat) && !isNaN(lng)) {
-                    setMapCenter([lat, lng]);
-                  }
+                  if (!isNaN(lat) && !isNaN(lng)) setMapCenter([lat, lng]);
                 }}
               >
-                <div className="flex gap-4">
-                  <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shrink-0">
-                    <User size={28} />
+                <div className="flex items-start gap-3">
+                  {/* Avatar */}
+                  <div
+                    className="shrink-0 flex items-center justify-center font-black text-white text-lg rounded-2xl"
+                    style={{
+                      width: 52, height: 52,
+                      background: 'linear-gradient(135deg, var(--primary), var(--tertiary))',
+                      fontFamily: "'Plus Jakarta Sans',sans-serif",
+                      position: 'relative',
+                    }}
+                  >
+                    {tech.names?.[0]?.[0]?.toUpperCase() || 'T'}
+                    {/* Availability dot */}
+                    {tech.is_available === 1 && (
+                      <span
+                        className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full"
+                        style={{ background: 'var(--success)', border: '2px solid var(--bg)', boxShadow: '0 0 8px var(--secondary-glow)' }}
+                      />
+                    )}
                   </div>
+
+                  {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start">
-                      <h3 className="font-black text-white text-base truncate group-hover:text-primary transition-colors">
-                        {tech.names?.[0] || 'Técnico'} {tech.surnames?.[0] || ''}
+                    <div className="flex items-center justify-between gap-2">
+                      <h3
+                        className="truncate text-sm font-bold group-hover:text-blue-400 transition-colors"
+                        style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: 'var(--text-primary)' }}
+                      >
+                        {tech.names?.[0] || 'TÃ©cnico'} {tech.surnames?.[0] || ''}
                       </h3>
-                      <div className="flex items-center gap-1 bg-yellow-500/10 px-2 py-0.5 rounded-lg border border-yellow-500/20">
-                        <Star size={10} className="text-yellow-500 fill-yellow-500" />
-                        <span className="text-yellow-500 text-[10px] font-black">{tech.rating || '5.0'}</span>
+                      {/* Rating */}
+                      <div
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-lg shrink-0"
+                        style={{ background: 'rgba(255,176,32,0.12)', border: '1px solid rgba(255,176,32,0.2)' }}
+                      >
+                        <Star size={10} style={{ color: '#FFB020', fill: '#FFB020' }} />
+                        <span style={{ fontSize: 11, fontWeight: 800, color: '#FFB020' }}>
+                          {tech.rating ? parseFloat(tech.rating).toFixed(1) : '5.0'}
+                        </span>
                       </div>
                     </div>
-                    <p className="text-slate-500 text-[10px] font-black uppercase mt-1">
-                      <MapPin size={12} className="text-primary inline mr-1" />
-                      {tech.city || 'Lima'}
-                    </p>
+
+                    {/* Location & specialty */}
+                    <div className="flex items-center gap-1 mt-1" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                      <MapPin size={10} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+                      <span className="truncate">{tech.city || 'Lima'}</span>
+                    </div>
+
+                    {/* Skills tags */}
+                    {tech.specialties && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {String(tech.specialties).split(',').slice(0, 2).map((sp, i) => (
+                          <span
+                            key={i}
+                            className="px-2 py-0.5 rounded-full text-[10px] font-bold"
+                            style={{ background: 'rgba(45,107,255,0.1)', color: 'var(--info)', border: '1px solid rgba(45,107,255,0.15)' }}
+                          >
+                            {sp.trim()}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
-                
-                <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                   <div className="flex flex-col">
-                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Experiencia</span>
-                      <span className="text-white text-xs font-black">5+ Años</span>
-                   </div>
-                   <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/technician/${tech.id}`);
-                    }}
-                    className="bg-white/5 hover:bg-primary text-white p-2.5 rounded-xl transition-all group/btn"
-                   >
-                     <ArrowRight size={18} className="group-hover/btn:translate-x-1 transition-transform" />
-                   </button>
+
+                {/* Footer */}
+                <div
+                  className="flex items-center justify-between mt-3 pt-3"
+                  style={{ borderTop: '1px solid var(--border)' }}
+                >
+                  <div className="flex items-center gap-3">
+                    {tech.is_available === 1 ? (
+                      <span className="status-badge status-completed">Disponible</span>
+                    ) : (
+                      <span className="status-badge status-expired">No disponible</span>
+                    )}
+                    <span style={{ fontSize: 11, color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <Clock size={10} /> 5+ aÃ±os
+                    </span>
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); navigate(`/technician/${tech.id}`); }}
+                    className="btn-primary btn-sm"
+                    style={{ height: 32, padding: '0 12px', fontSize: 12 }}
+                  >
+                    Ver Perfil <ArrowRight size={12} />
+                  </button>
                 </div>
               </div>
             ))
           ) : (
-            <div className="glass-panel p-12 text-center text-slate-500 text-sm">
-               No hay técnicos encontrados en esta zona.
+            <div className="card text-center py-10">
+              <Wrench size={28} style={{ color: 'var(--text-dim)', margin: '0 auto 12px' }} />
+              <p style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Sin tÃ©cnicos en esta zona</p>
+              <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>Prueba ampliar el radio de bÃºsqueda</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Map Area */}
-      <div className="flex-1 min-h-[400px] lg:min-h-0 rounded-[40px] overflow-hidden border border-white/5 relative shadow-3xl bg-slate-900">
+      {/* â”€â”€ Map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      <div
+        className="flex-1 min-h-[380px] lg:min-h-0 relative overflow-hidden"
+        style={{ borderRadius: 24, border: '1px solid var(--border)' }}
+      >
         {mapReady && (
-          <MapContainer 
-            center={mapCenter} 
-            zoom={13} 
+          <MapContainer
+            center={mapCenter}
+            zoom={13}
             doubleClickZoom={false}
             style={{ height: '100%', width: '100%' }}
             zoomControl={false}
@@ -223,13 +291,13 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
             <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution="&copy; CARTO" />
             <MapEvents onDblClick={(lat, lng) => setTempMarker([lat, lng])} />
             <RecenterMap coords={mapCenter} />
-            
+
             {tempMarker && (
               <>
-                <Circle 
-                  center={tempMarker} 
-                  radius={10000} // 10km circle to match the search radius
-                  pathOptions={{ color: '#3B28FF', fillOpacity: 0.05, weight: 1, dashArray: '5, 10' }} 
+                <Circle
+                  center={tempMarker}
+                  radius={10000}
+                  pathOptions={{ color: '#2D6BFF', fillOpacity: 0.05, weight: 1.5, dashArray: '6,10' }}
                 />
                 <Marker position={tempMarker} icon={userIcon} />
               </>
@@ -240,17 +308,15 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
               const lng = parseFloat(tech.longitude);
               if (isNaN(lat) || isNaN(lng)) return null;
               return (
-                <Marker 
-                  key={tech.id} 
-                  position={[lat, lng]} 
-                  icon={techIcon}
-                >
-                  <Popup className="custom-popup">
-                    <div className="p-3 font-outfit text-center">
-                      <h4 className="font-black text-sm mb-2">{tech.names?.[0] || 'Técnico'} {tech.surnames?.[0] || ''}</h4>
-                      <button 
+                <Marker key={tech.id} position={[lat, lng]} icon={techIcon}>
+                  <Popup>
+                    <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", textAlign: 'center', padding: 8 }}>
+                      <h4 style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>
+                        {tech.names?.[0] || 'TÃ©cnico'} {tech.surnames?.[0] || ''}
+                      </h4>
+                      <button
                         onClick={() => navigate(`/technician/${tech.id}`)}
-                        className="bg-primary text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase cursor-pointer hover:bg-primary-dark transition-all"
+                        style={{ background: '#2D6BFF', color: 'white', border: 'none', padding: '6px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
                       >
                         Ver Perfil
                       </button>
@@ -261,36 +327,50 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
             })}
           </MapContainer>
         )}
-        
-        {/* MANUAL SEARCH TRIGGER */}
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[1000]">
-           <button 
-             type="button"
-             onClick={handleManualSearch}
-             disabled={isSearching}
-             className="flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-full font-black uppercase tracking-widest text-xs shadow-[0_15px_35px_rgba(59,40,255,0.4)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
-           >
-             <span className="shrink-0 inline-flex items-center justify-center w-5 h-5">
-               {isSearching ? <RefreshCw className="animate-spin" size={18} /> : <Search size={18} />}
-             </span>
-             <span className="whitespace-nowrap">
-               {isSearching ? 'Buscando técnicos...' : 'Buscar Técnicos aquí'}
-             </span>
-           </button>
+
+        {/* Search trigger button */}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000]">
+          <button
+            type="button"
+            onClick={handleManualSearch}
+            disabled={isSearching}
+            className="flex items-center gap-2.5 btn-primary"
+            style={{
+              height: 48, padding: '0 24px', borderRadius: 999,
+              fontSize: 13, letterSpacing: '0.04em', fontWeight: 700,
+              boxShadow: '0 16px 40px rgba(45,107,255,0.4)',
+            }}
+          >
+            {isSearching
+              ? <><RefreshCw size={16} style={{ animation: 'spin-loader 0.75s linear infinite' }} /> Buscando...</>
+              : <><Search size={16} /> Buscar TÃ©cnicos aquÃ­</>
+            }
+          </button>
         </div>
 
-        <div className="absolute top-8 left-8 z-[1000] bg-background/80 backdrop-blur-md px-6 py-4 rounded-[24px] border border-white/10 shadow-2xl">
-           <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20">
-                 <MapPin size={20} />
-              </div>
-              <div className="max-w-[200px]">
-                 <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Zona Seleccionada</p>
-                 <p className="text-sm font-black text-white leading-tight truncate">
-                    {userLocation?.address?.split(',')[0]}
-                 </p>
-              </div>
-           </div>
+        {/* Location overlay */}
+        <div
+          className="absolute top-5 left-5 z-[1000] flex items-center gap-3 px-4 py-3 rounded-2xl"
+          style={{
+            background: 'rgba(5,7,15,0.85)',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid var(--border)',
+            boxShadow: 'var(--shadow-lg)',
+          }}
+        >
+          <div
+            style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(45,107,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <MapPin size={18} style={{ color: 'var(--primary)' }} />
+          </div>
+          <div>
+            <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 2 }}>
+              Zona seleccionada
+            </p>
+            <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', maxWidth: 180, fontFamily: "'Plus Jakarta Sans',sans-serif" }} className="truncate">
+              {userLocation?.address?.split(',')[0] || 'Lima'}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -298,3 +378,4 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
 };
 
 export default TechnicianList;
+

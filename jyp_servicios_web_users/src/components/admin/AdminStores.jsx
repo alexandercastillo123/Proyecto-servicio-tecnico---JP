@@ -23,21 +23,23 @@ L.Icon.Default.mergeOptions({
 /* ─── Helpers ────────────────────────────────────────── */
 const getImageUrl = (url) => url ? (url.startsWith('http') ? url : `/uploads/${url}`) : null;
 
-const Spinner = ({ color = 'border-[#3B28FF]' }) => (
+const Spinner = ({ color = 'border-primary' }) => (
   <div className="flex items-center justify-center py-24">
-    <div className={`w-10 h-10 border-4 ${color} border-t-transparent rounded-full animate-spin`} />
+    <div className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin"
+      style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
   </div>
 );
 
 const SectionLabel = ({ children, color = 'primary', icon }) => {
   const cls = {
-    primary: 'text-[#3B28FF] border-[#3B28FF]/20',
+    primary: 'border-blue-500/20',
     indigo:  'text-indigo-400 border-indigo-500/20',
     rose:    'text-rose-400 border-rose-500/20',
     emerald: 'text-emerald-400 border-emerald-500/20',
-  }[color] || 'text-slate-400 border-white/10';
+  }[color] || 'border-white/10';
+  const textStyle = color === 'primary' ? { color: 'var(--primary)' } : {};
   return (
-    <h4 className={`text-[11px] font-black uppercase tracking-[0.3em] flex items-center gap-2 pb-3 border-b ${cls}`}>
+    <h4 style={textStyle} className={`text-[11px] font-black uppercase tracking-[0.3em] flex items-center gap-2 pb-3 border-b ${cls}`}>
       <span className="opacity-70">{icon}</span> {children}
     </h4>
   );
@@ -45,21 +47,22 @@ const SectionLabel = ({ children, color = 'primary', icon }) => {
 
 const InfoRow = ({ icon, label, value }) => (
   <div className="flex items-center gap-4 group">
-    <div className="w-10 h-10 rounded-xl bg-[#3B28FF]/10 text-[#3B28FF] flex items-center justify-center shrink-0 group-hover:bg-[#3B28FF] group-hover:text-white transition-all duration-300">
+    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 group-hover:brightness-125 transition-all duration-300"
+      style={{ background: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}>
       {icon}
     </div>
     <div>
-      <p className="text-[9px] font-black uppercase tracking-widest text-slate-600 mb-0.5">{label}</p>
-      <p className="font-bold text-sm text-white">{value || '—'}</p>
+      <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-muted)' }}>{label}</p>
+      <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{value || '—'}</p>
     </div>
   </div>
 );
 
 const AdminInput = ({ label, value, onChange, type = 'text', required, icon, onBlur, placeholder }) => (
   <div className="space-y-1.5">
-    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{label}</label>
+    <label className="block text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>{label}</label>
     <div className="relative">
-      {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">{icon}</div>}
+      {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>{icon}</div>}
       <input
         type={type} required={required} value={value} placeholder={placeholder}
         onChange={e => onChange(e.target.value)} onBlur={onBlur}
@@ -71,7 +74,7 @@ const AdminInput = ({ label, value, onChange, type = 'text', required, icon, onB
 
 const AdminTextarea = ({ label, value, onChange }) => (
   <div className="space-y-1.5">
-    <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{label}</label>
+    <label className="block text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>{label}</label>
     <textarea
       value={value} onChange={e => onChange(e.target.value)} rows={3}
       className="admin-input resize-none"
@@ -110,19 +113,19 @@ const OverviewTab = ({ store }) => (
     </div>
     <div className="glass-card p-8 space-y-6">
       <SectionLabel color="indigo" icon={<ShieldCheck size={13} />}>Estado de la Unidad</SectionLabel>
-      <div className="flex items-center justify-between p-5 rounded-2xl border border-white/5 bg-white/3">
+      <div className="flex items-center justify-between p-5 rounded-2xl" style={{ border: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
         <div className="flex items-center gap-3">
           <div className={`w-3 h-3 rounded-full ${store.status === 'active' ? 'bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.8)]' : 'bg-rose-400 shadow-[0_0_12px_rgba(251,113,113,0.8)]'} animate-pulse`} />
-          <span className="font-black text-white">{store.status === 'active' ? 'Operativo' : 'Inactivo'}</span>
+          <span className="font-black" style={{ color: 'var(--text-primary)' }}>{store.status === 'active' ? 'Operativo' : 'Inactivo'}</span>
         </div>
         <span className={`status-badge ${store.status === 'active' ? 'status-completed' : 'status-cancelled'}`}>
           {store.status === 'active' ? 'Activo' : 'Inactivo'}
         </span>
       </div>
       {store.description && (
-        <div className="bg-white/3 p-5 rounded-2xl border border-white/5">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Descripción</p>
-          <p className="text-sm text-slate-300 font-medium italic leading-relaxed">"{store.description}"</p>
+        <div className="p-5 rounded-2xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+          <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Descripción</p>
+          <p className="text-sm font-medium italic leading-relaxed" style={{ color: 'var(--text-secondary)' }}>"{store.description}"</p>
         </div>
       )}
     </div>
@@ -175,15 +178,15 @@ const ProductsTab = ({ storeId }) => {
     await adminStoreService.deleteProduct(id); fetchProducts();
   };
 
-  if (loading) return <Spinner color="border-[#3B28FF]" />;
+  if (loading) return <Spinner />;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h3 className="font-black text-xl text-white">Catálogo de Productos</h3>
+        <h3 className="font-black text-xl" style={{ color: 'var(--text-primary)' }}>Catálogo de Productos</h3>
         <button
           onClick={() => setShowForm(!showForm)}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all ${showForm ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500 hover:text-white' : 'bg-[#3B28FF]/10 text-[#3B28FF] border border-[#3B28FF]/20 hover:bg-[#3B28FF] hover:text-white'}`}
+          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-black transition-all ${showForm ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500 hover:text-white' : 'btn-primary'}`}
         >
           {showForm ? <><X size={16} /> Cancelar</> : <><Plus size={16} /> Agregar Producto</>}
         </button>
@@ -193,34 +196,35 @@ const ProductsTab = ({ storeId }) => {
         {showForm && (
           <motion.form initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
             onSubmit={handleSubmit} className="glass-card p-8 space-y-6">
-            <h4 className="font-black text-white">{editingId ? 'Editar Producto' : 'Nuevo Producto'}</h4>
+            <h4 className="font-black text-lg" style={{ color: 'var(--text-primary)' }}>{editingId ? 'Editar Producto' : 'Nuevo Producto'}</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               <AdminInput label="Nombre *" value={form.name} onChange={v => setForm(f => ({...f, name: v}))} required />
               <AdminInput label="Categoría" value={form.category} onChange={v => setForm(f => ({...f, category: v}))} />
               <AdminInput label="Precio (S/) *" type="number" value={form.price} onChange={v => setForm(f => ({...f, price: v}))} required />
               <AdminInput label="Marca" value={form.brand} onChange={v => setForm(f => ({...f, brand: v}))} />
               <AdminInput label="SKU" value={form.sku} onChange={v => setForm(f => ({...f, sku: v}))} />
-              <div className="flex items-center gap-3 p-4 rounded-xl border border-white/8 bg-white/3">
-                <label className="text-sm font-bold text-slate-300 flex-1">Disponible</label>
+              <div className="flex items-center gap-3 p-4 rounded-xl" style={{ border: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
+                <label className="text-sm font-bold flex-1" style={{ color: 'var(--text-secondary)' }}>Disponible</label>
                 <input type="checkbox" checked={form.is_available} onChange={e => setForm(f => ({...f, is_available: e.target.checked}))}
-                  className="w-5 h-5 accent-[#3B28FF]" />
+                  className="w-5 h-5 accent-blue-600" />
               </div>
             </div>
             <AdminTextarea label="Descripción" value={form.description} onChange={v => setForm(f => ({...f, description: v}))} />
             <div className="flex items-center gap-4">
               <input type="file" accept="image/*" onChange={handleImage} className="hidden" id="prod-img" />
-              <label htmlFor="prod-img" className="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-slate-300 cursor-pointer hover:bg-white/10 transition-all flex items-center gap-2">
+              <label htmlFor="prod-img" className="px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer transition-all flex items-center gap-2"
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                 <ImageIcon size={15} /> {uploading ? 'Subiendo...' : (form.image_url ? 'Cambiar imagen' : 'Subir imagen')}
               </label>
               {form.image_url && <span className="text-xs text-emerald-400 font-bold">✓ Imagen lista</span>}
             </div>
             <div className="flex gap-3">
               <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyForm); }}
-                className="px-5 py-2.5 rounded-xl bg-white/5 text-slate-400 font-bold text-sm hover:bg-white/10 transition-all">
+                className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all"
+                style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)' }}>
                 Cancelar
               </button>
-              <button type="submit"
-                className="px-6 py-2.5 rounded-xl bg-[#3B28FF] text-white font-black text-sm hover:bg-indigo-600 transition-all shadow-lg shadow-[#3B28FF]/30">
+              <button type="submit" className="btn-primary">
                 {editingId ? 'Guardar Cambios' : 'Agregar Producto'}
               </button>
             </div>
@@ -232,12 +236,12 @@ const ProductsTab = ({ storeId }) => {
         {products.map((p, i) => (
           <motion.div key={p.id} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
             className="glass-card !p-0 overflow-hidden group hover:-translate-y-2 hover:shadow-2xl transition-all duration-400">
-            <div className="h-44 bg-white/3 relative overflow-hidden flex items-center justify-center">
+            <div className="h-44 relative overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-surface)' }}>
               {p.image_url
                 ? <img src={getImageUrl(p.image_url)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={p.name} />
-                : <ImageIcon size={40} className="text-slate-700" />}
+                : <ImageIcon size={40} style={{ color: 'var(--text-muted)' }} />}
               <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => handleEdit(p)} className="p-2 rounded-lg bg-white/90 text-[#3B28FF] hover:scale-110 transition-all shadow-lg"><Edit2 size={12} /></button>
+                <button onClick={() => handleEdit(p)} className="p-2 rounded-lg bg-white/90 text-blue-600 hover:scale-110 transition-all shadow-lg"><Edit2 size={12} /></button>
                 <button onClick={() => handleDelete(p.id)} className="p-2 rounded-lg bg-rose-500 text-white hover:scale-110 transition-all shadow-lg"><Trash2 size={12} /></button>
               </div>
               <div className="absolute bottom-3 left-3">
@@ -247,10 +251,10 @@ const ProductsTab = ({ storeId }) => {
               </div>
             </div>
             <div className="p-5 space-y-3">
-              <h4 className="font-black text-white line-clamp-1 group-hover:text-[#3B28FF] transition-colors">{p.name}</h4>
-              <p className="text-xs text-slate-500 line-clamp-2">{p.description || 'Sin descripción.'}</p>
-              <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                <span className="text-xl font-black text-[#3B28FF]">S/ {parseFloat(p.price).toFixed(2)}</span>
+              <h4 className="font-black line-clamp-1 transition-colors" style={{ color: 'var(--text-primary)' }}>{p.name}</h4>
+              <p className="text-xs line-clamp-2" style={{ color: 'var(--text-muted)' }}>{p.description || 'Sin descripción.'}</p>
+              <div className="flex items-center justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+                <span className="text-xl font-black" style={{ color: 'var(--primary)' }}>S/ {parseFloat(p.price).toFixed(2)}</span>
                 <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${p.is_available ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
                   {p.is_available ? 'Disponible' : 'No disponible'}
                 </span>
@@ -260,9 +264,9 @@ const ProductsTab = ({ storeId }) => {
         ))}
       </div>
       {products.length === 0 && !showForm && (
-        <div className="py-20 text-center glass-card border-dashed border-white/10">
-          <Package size={40} className="text-slate-700 mx-auto mb-4" />
-          <p className="text-slate-500 font-bold">Sin productos registrados.</p>
+        <div className="py-20 text-center glass-card border-dashed" style={{ borderColor: 'var(--border)' }}>
+          <Package size={40} className="mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
+          <p className="font-bold" style={{ color: 'var(--text-muted)' }}>Sin productos registrados.</p>
         </div>
       )}
     </div>
@@ -293,20 +297,20 @@ const OrdersTab = ({ storeId }) => {
         <motion.div key={o.id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
           className="glass-card p-6 flex flex-col lg:flex-row gap-6 lg:items-center">
           <div className="shrink-0">
-            <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest mb-1">Pedido</p>
-            <span className="font-mono text-sm font-black text-[#3B28FF]">#ORD-{o.id}</span>
-            <p className="text-[10px] text-slate-600 mt-1">{new Date(o.created_at).toLocaleDateString('es-PE')}</p>
+            <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Pedido</p>
+            <span className="font-mono text-sm font-black" style={{ color: 'var(--primary)' }}>#ORD-{o.id}</span>
+            <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>{new Date(o.created_at).toLocaleDateString('es-PE')}</p>
           </div>
           <div className="flex-1">
-            <h4 className="font-black text-white mb-2">{o.product_name} <span className="text-[#3B28FF] text-sm">×{o.quantity}</span></h4>
-            <div className="flex flex-wrap gap-4 text-sm text-slate-400">
+            <h4 className="font-black mb-2" style={{ color: 'var(--text-primary)' }}>{o.product_name} <span className="text-sm" style={{ color: 'var(--primary)' }}>×{o.quantity}</span></h4>
+            <div className="flex flex-wrap gap-4 text-sm" style={{ color: 'var(--text-secondary)' }}>
               <span className="flex items-center gap-1.5"><User size={12} /> {o.client_names} {o.client_surnames}</span>
               <span className="flex items-center gap-1.5"><Phone size={12} /> {o.client_phone}</span>
               {o.delivery_address && <span className="flex items-center gap-1.5"><MapPin size={12} /> {o.delivery_address}</span>}
             </div>
           </div>
           <div className="text-right shrink-0">
-            <p className="text-2xl font-black text-white">S/ {parseFloat(o.total_price).toFixed(2)}</p>
+            <p className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>S/ {parseFloat(o.total_price).toFixed(2)}</p>
           </div>
           <div className="shrink-0 relative">
             <select value={o.status} onChange={e => handleStatus(o.id, e.target.value)} className="admin-select appearance-none pr-8">
@@ -317,14 +321,14 @@ const OrdersTab = ({ storeId }) => {
               <option value="completed">Completado</option>
               <option value="cancelled">Cancelado</option>
             </select>
-            <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
           </div>
         </motion.div>
       ))}
       {orders.length === 0 && (
-        <div className="py-20 text-center glass-card border-dashed border-white/10">
-          <ShoppingBag size={40} className="text-slate-700 mx-auto mb-4" />
-          <p className="text-slate-500 font-bold">Sin pedidos registrados.</p>
+        <div className="py-20 text-center glass-card border-dashed" style={{ borderColor: 'var(--border)' }}>
+          <ShoppingBag size={40} className="mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
+          <p className="font-bold" style={{ color: 'var(--text-muted)' }}>Sin pedidos registrados.</p>
         </div>
       )}
     </div>
@@ -352,18 +356,18 @@ const AppointmentsTab = ({ storeId }) => {
           <tbody>
             {appts.map((a, i) => (
               <motion.tr key={a.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }}>
-                <td><span className="font-mono text-xs font-bold text-[#3B28FF]">#{a.id}</span></td>
-                <td><div className="font-bold text-sm">{a.client_names} {a.client_surnames}</div></td>
-                <td className="text-sm text-slate-400">{a.tech_names || '—'}</td>
-                <td><div className="text-sm font-bold">{new Date(a.scheduled_date).toLocaleDateString('es-PE')}</div><div className="text-xs text-slate-500">{a.scheduled_time}</div></td>
+                <td><span className="font-mono text-xs font-bold" style={{ color: 'var(--primary)' }}>#{a.id}</span></td>
+                <td><div className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{a.client_names} {a.client_surnames}</div></td>
+                <td className="text-sm" style={{ color: 'var(--text-secondary)' }}>{a.tech_names || '—'}</td>
+                <td><div className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{new Date(a.scheduled_date).toLocaleDateString('es-PE')}</div><div className="text-xs" style={{ color: 'var(--text-muted)' }}>{a.scheduled_time}</div></td>
                 <td><span className={`status-badge status-${a.status}`}>{a.status}</span></td>
-                <td>{a.price ? <span className="font-black text-[#3B28FF]">S/ {parseFloat(a.price).toFixed(2)}</span> : <span className="text-slate-600">—</span>}</td>
+                <td>{a.price ? <span className="font-black" style={{ color: 'var(--primary)' }}>S/ {parseFloat(a.price).toFixed(2)}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
               </motion.tr>
             ))}
           </tbody>
         </table>
         {appts.length === 0 && (
-          <div className="py-16 text-center text-slate-600 font-bold text-sm">Sin citas registradas para esta sucursal.</div>
+          <div className="py-16 text-center font-bold text-sm" style={{ color: 'var(--text-muted)' }}>Sin citas registradas para esta sucursal.</div>
         )}
       </div>
     </div>
@@ -385,19 +389,21 @@ const StoreDetail = ({ store, onBack }) => {
     <div className="space-y-8">
       {/* Back + Header */}
       <div>
-        <button onClick={onBack} className="flex items-center gap-2 text-slate-500 hover:text-white text-sm font-bold mb-6 transition-colors">
+        <button onClick={onBack} className="flex items-center gap-2 text-sm font-bold mb-6 transition-colors"
+          style={{ color: 'var(--text-secondary)' }}>
           <ArrowLeft size={16} /> Volver a Sucursales
         </button>
         <div className="flex items-start gap-6">
-          <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center overflow-hidden shrink-0"
+            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
             {store.image_url
               ? <img src={getImageUrl(store.image_url)} className="w-full h-full object-cover" alt={store.name} />
-              : <StoreIcon size={32} className="text-slate-600" />}
+              : <StoreIcon size={32} style={{ color: 'var(--text-muted)' }} />}
           </div>
           <div>
-            <p className="text-[10px] text-[#3B28FF] font-black uppercase tracking-[0.3em] mb-1">Sucursal #ST-{store.id}</p>
-            <h1 className="text-3xl font-black text-white tracking-tight">{store.name}</h1>
-            <p className="text-slate-400 text-sm mt-1 flex items-center gap-1.5"><MapPin size={12} /> {store.address}, {store.city}</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-1" style={{ color: 'var(--primary)' }}>Sucursal #ST-{store.id}</p>
+            <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>{store.name}</h1>
+            <p className="text-sm mt-1 flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}><MapPin size={12} /> {store.address}, {store.city}</p>
           </div>
           <div className="ml-auto">
             <div className={`flex items-center gap-2 px-4 py-2 rounded-full border text-xs font-black uppercase tracking-widest ${store.status === 'active' ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400' : 'border-rose-500/30 bg-rose-500/10 text-rose-400'}`}>
@@ -409,10 +415,14 @@ const StoreDetail = ({ store, onBack }) => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 p-1 rounded-xl bg-white/3 border border-white/5 w-fit">
+      <div className="flex gap-1 p-1 rounded-xl w-fit" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === tab.id ? 'bg-[#3B28FF] text-white shadow-lg' : 'text-slate-500 hover:text-white'}`}>
+            style={{
+              background: activeTab === tab.id ? 'var(--primary)' : 'transparent',
+              color: activeTab === tab.id ? '#ffffff' : 'var(--text-secondary)'
+            }}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === tab.id ? 'shadow-lg shadow-blue-500/25' : 'hover:brightness-125'}`}>
             <tab.icon size={15} /> {tab.label}
           </button>
         ))}
@@ -485,7 +495,7 @@ const AdminStores = () => {
   // Show detail view if an id is in the URL
   if (selectedId) {
     const store = stores.find(s => String(s.id) === selectedId);
-    if (!store && !loading) return <div className="text-slate-500 py-20 text-center">Sucursal no encontrada.</div>;
+    if (!store && !loading) return <div className="py-20 text-center" style={{ color: 'var(--text-muted)' }}>Sucursal no encontrada.</div>;
     if (!store) return <Spinner />;
     return <StoreDetail store={store} onBack={() => navigate('/admin/sucursales')} />;
   }
@@ -498,13 +508,13 @@ const AdminStores = () => {
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-rose-400 mb-2 flex items-center gap-2">
             <Layers size={12} /> Red de Sucursales
           </p>
-          <h1 className="text-4xl font-black tracking-tighter text-white">
+          <h1 className="text-4xl font-black tracking-tighter" style={{ color: 'var(--text-primary)' }}>
             Sucursales <span className="text-rose-400 italic">J&P</span>
           </h1>
-          <p className="text-slate-500 text-sm mt-1 font-semibold">Gestión avanzada de puntos de atención.</p>
+          <p className="text-sm mt-1 font-semibold" style={{ color: 'var(--text-secondary)' }}>Gestión avanzada de puntos de atención.</p>
         </div>
         <button onClick={() => setShowForm(!showForm)}
-          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-sm transition-all ${showForm ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500 hover:text-white' : 'bg-[#3B28FF]/10 text-[#3B28FF] border border-[#3B28FF]/20 hover:bg-[#3B28FF] hover:text-white'}`}>
+          className={`flex items-center gap-2 px-6 py-3 rounded-xl font-black text-sm transition-all ${showForm ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500 hover:text-white' : 'btn-primary'}`}>
           {showForm ? <><X size={18} /> Cancelar</> : <><Plus size={18} /> Nueva Sucursal</>}
         </button>
       </div>
@@ -514,7 +524,7 @@ const AdminStores = () => {
         {showForm && (
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
             <form onSubmit={handleSubmit} className="glass-card p-8 space-y-8">
-              <h3 className="font-black text-xl text-white">Nueva Unidad</h3>
+              <h3 className="font-black text-xl" style={{ color: 'var(--text-primary)' }}>Nueva Unidad</h3>
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Col 1: Credentials */}
                 <div className="space-y-5">
@@ -532,8 +542,8 @@ const AdminStores = () => {
                   <AdminInput label="Ciudad *" icon={<Globe size={14} />} {...f('city')} required />
                   <AdminInput label="Teléfono *" icon={<Phone size={14} />} {...f('phone')} required />
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Geolocalización (click para ajustar)</p>
-                    <div className="h-48 rounded-2xl overflow-hidden border border-white/10">
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Geolocalización (click para ajustar)</p>
+                    <div className="h-48 rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
                       <MapContainer center={[formData.latitude, formData.longitude]} zoom={14} style={{ height: '100%', width: '100%' }}>
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                         <LocationPickerMap
@@ -549,16 +559,18 @@ const AdminStores = () => {
                 <div className="space-y-5">
                   <SectionLabel color="rose" icon={<ImageIcon size={13} />}>Branding & Horario</SectionLabel>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3">Logo / Imagen</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Logo / Imagen</p>
                     <div className="flex gap-4 items-center">
-                      <div className="w-20 h-20 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                      <div className="w-20 h-20 rounded-xl flex items-center justify-center overflow-hidden shrink-0"
+                        style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
                         {formData.image_url
                           ? <img src={getImageUrl(formData.image_url)} className="w-full h-full object-cover" alt="preview" />
-                          : <StoreIcon size={28} className="text-slate-600" />}
+                          : <StoreIcon size={28} style={{ color: 'var(--text-muted)' }} />}
                       </div>
                       <div>
                         <input type="file" accept="image/*" onChange={handleImage} className="hidden" id="store-img" />
-                        <label htmlFor="store-img" className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm font-bold text-slate-300 cursor-pointer hover:bg-white/10 transition-all">
+                        <label htmlFor="store-img" className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer transition-all"
+                          style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                           <ImageIcon size={14} /> {uploading ? 'Subiendo...' : 'Cargar Logo'}
                         </label>
                       </div>
@@ -572,13 +584,13 @@ const AdminStores = () => {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4 border-t border-white/5">
+              <div className="flex gap-3 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
                 <button type="button" onClick={() => { setShowForm(false); setFormData(EMPTY); }}
-                  className="px-5 py-2.5 rounded-xl bg-white/5 text-slate-400 font-bold text-sm hover:bg-white/10 transition-all">
+                  className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all"
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)' }}>
                   Cancelar
                 </button>
-                <button type="submit"
-                  className="px-8 py-2.5 rounded-xl bg-[#3B28FF] text-white font-black text-sm hover:bg-indigo-600 transition-all shadow-lg shadow-[#3B28FF]/30">
+                <button type="submit" className="btn-primary">
                   Crear Sucursal
                 </button>
               </div>
@@ -594,12 +606,12 @@ const AdminStores = () => {
             <motion.div key={store.id}
               initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
               onClick={() => navigate(`/admin/sucursales/${store.id}`)}
-              className="glass-card !p-0 overflow-hidden cursor-pointer group hover:-translate-y-2 hover:shadow-2xl hover:border-[#3B28FF]/30 transition-all duration-400">
+              className="glass-card !p-0 overflow-hidden cursor-pointer group hover:-translate-y-2 hover:shadow-2xl transition-all duration-400">
               {/* Cover image */}
-              <div className="h-48 bg-white/3 relative overflow-hidden flex items-center justify-center">
+              <div className="h-48 relative overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-surface)' }}>
                 {store.image_url
                   ? <img src={getImageUrl(store.image_url)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={store.name} />
-                  : <StoreIcon size={48} className="text-slate-700 group-hover:rotate-6 transition-transform duration-500" />}
+                  : <StoreIcon size={48} className="group-hover:rotate-6 transition-transform duration-500" style={{ color: 'var(--text-muted)' }} />}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
                 <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/10">
                   <div className={`w-1.5 h-1.5 rounded-full ${store.status === 'active' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-rose-400'}`} />
@@ -609,16 +621,17 @@ const AdminStores = () => {
               {/* Info */}
               <div className="p-6 space-y-4">
                 <div className="flex justify-between items-start">
-                  <h3 className="font-black text-xl text-white group-hover:text-[#3B28FF] transition-colors leading-tight">{store.name}</h3>
-                  <span className="text-[9px] text-slate-600 font-black uppercase">#ST-{store.id}</span>
+                  <h3 className="font-black text-xl transition-colors leading-tight group-hover:text-blue-500" style={{ color: 'var(--text-primary)' }}>{store.name}</h3>
+                  <span className="text-[9px] font-black uppercase" style={{ color: 'var(--text-muted)' }}>#ST-{store.id}</span>
                 </div>
-                <div className="space-y-2 text-sm text-slate-500">
-                  <div className="flex items-center gap-2"><MapPin size={12} className="text-slate-600" /> <span className="truncate">{store.address}, {store.city}</span></div>
-                  <div className="flex items-center gap-2"><Phone size={12} className="text-slate-600" /> {store.phone}</div>
+                <div className="space-y-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
+                  <div className="flex items-center gap-2"><MapPin size={12} style={{ color: 'var(--text-muted)' }} /> <span className="truncate">{store.address}, {store.city}</span></div>
+                  <div className="flex items-center gap-2"><Phone size={12} style={{ color: 'var(--text-muted)' }} /> {store.phone}</div>
                 </div>
-                <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                  <span className="text-[9px] text-slate-600 font-black uppercase tracking-widest truncate max-w-[160px]">{store.email}</span>
-                  <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center text-slate-600 group-hover:bg-[#3B28FF] group-hover:text-white group-hover:translate-x-0.5 transition-all duration-400 shadow-sm">
+                <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid var(--border)' }}>
+                  <span className="text-[9px] font-black uppercase tracking-widest truncate max-w-[160px]" style={{ color: 'var(--text-muted)' }}>{store.email}</span>
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white group-hover:translate-x-0.5 transition-all duration-400 shadow-sm"
+                    style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)' }}>
                     <ChevronRight size={18} strokeWidth={2.5} />
                   </div>
                 </div>
@@ -629,10 +642,10 @@ const AdminStores = () => {
       )}
 
       {stores.length === 0 && !loading && !showForm && (
-        <div className="py-28 text-center glass-card border-dashed border-white/10 rounded-3xl">
-          <StoreIcon size={48} className="text-slate-700 mx-auto mb-5" />
-          <h3 className="text-xl font-black text-white mb-2">Red desconectada</h3>
-          <p className="text-slate-500 font-semibold">Registra tu primera sucursal para comenzar.</p>
+        <div className="py-28 text-center glass-card border-dashed rounded-3xl" style={{ borderColor: 'var(--border)' }}>
+          <StoreIcon size={48} className="mx-auto mb-5" style={{ color: 'var(--text-muted)' }} />
+          <h3 className="text-xl font-black mb-2" style={{ color: 'var(--text-primary)' }}>Red desconectada</h3>
+          <p className="font-semibold" style={{ color: 'var(--text-muted)' }}>Registra tu primera sucursal para comenzar.</p>
         </div>
       )}
     </motion.div>

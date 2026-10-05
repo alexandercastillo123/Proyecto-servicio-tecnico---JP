@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Store, MapPin, Search, Filter, ChevronRight, Phone, Clock, ShoppingCart, ArrowRight, X, Zap, Target, Star, ShieldCheck, RefreshCw, Navigation } from 'lucide-react';
+import { Store, MapPin, Search, ChevronRight, Phone, Clock, ShoppingCart, ArrowRight, X, Zap, Target, Star, ShieldCheck, RefreshCw, Navigation } from 'lucide-react';
 import { storeService } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
 
 // Fix Leaflet icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -26,7 +27,6 @@ const userIcon = new L.Icon({
   iconAnchor: [15, 15],
 });
 
-// Helper component to smoothly re-center the map without unmounting MapContainer
 const RecenterMap = ({ coords }) => {
   const map = useMap();
   useEffect(() => {
@@ -37,7 +37,6 @@ const RecenterMap = ({ coords }) => {
   return null;
 };
 
-// Helper component for map click/dblclick events
 const MapEvents = ({ onDblClick }) => {
   useMapEvents({
     dblclick(e) {
@@ -51,6 +50,7 @@ const MapEvents = ({ onDblClick }) => {
 
 const StoreList = () => {
   const navigate = useNavigate();
+  const { isDark } = useTheme();
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -127,46 +127,64 @@ const StoreList = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 font-outfit animate-in fade-in duration-700">
-
-      <header className="px-4">
-          <h1 className="text-4xl font-black text-white tracking-tight mb-2">
-            Tiendas <span className="text-primary">Oficiales</span>
-          </h1>
-          <p className="text-slate-500 text-sm font-medium">Busca sucursales autorizadas para repuestos y soporte técnico.</p>
+    <div className="max-w-7xl mx-auto space-y-6 pb-12">
+      <header className="px-2">
+        <h1 className="text-3xl font-extrabold tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>
+          Tiendas y <span style={{ color: 'var(--primary)' }}>Sucursales Oficiales</span>
+        </h1>
+        <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+          Busca locales autorizados para repuestos certificados, diagnóstico presencial y soporte técnico.
+        </p>
       </header>
 
-      <div className="flex flex-col lg:flex-row h-[700px] gap-6 px-4">
-
-        <div className="w-full lg:w-[400px] flex flex-col gap-6 overflow-hidden">
-          <div className="glass-panel p-4 border-white/5 shadow-xl">
-             <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-                <input
-                  type="text"
-                  placeholder="Filtrar tiendas..."
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-3.5 pl-12 pr-4 text-sm text-white focus:outline-none focus:ring-1 focus:ring-primary transition-all"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-             </div>
+      <div className="flex flex-col lg:flex-row h-[700px] gap-6">
+        <div className="w-full lg:w-[380px] flex flex-col gap-4 overflow-hidden">
+          <div 
+            className="p-3.5 rounded-2xl border shadow-sm"
+            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+          >
+            <div className="relative">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2" size={17} style={{ color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                placeholder="Filtrar por nombre o dirección..."
+                className="w-full rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none border transition-all"
+                style={{
+                  backgroundColor: 'var(--bg)',
+                  borderColor: 'var(--border)',
+                  color: 'var(--text-primary)'
+                }}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-2 no-scrollbar space-y-4">
+          <div className="flex-1 overflow-y-auto pr-1 space-y-3">
             {!hasSearched ? (
-               <div className="h-full flex flex-col items-center justify-center p-8 text-center glass-panel border-dashed border-white/10">
-                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-6 animate-pulse">
-                     <Store size={40} />
-                  </div>
-                  <h3 className="text-white font-black text-lg mb-2">Explora Sucursales</h3>
-                  <p className="text-slate-500 text-sm leading-relaxed">
-                     Marca tu zona en el mapa con doble click y presiona <span className="text-primary font-bold">Buscar</span> para ver las tiendas oficiales cercanas.
-                  </p>
-               </div>
+              <div 
+                className="h-full flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-dashed"
+                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+              >
+                <div 
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 animate-pulse"
+                  style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
+                >
+                  <Store size={32} />
+                </div>
+                <h3 className="font-bold text-base mb-2" style={{ color: 'var(--text-primary)' }}>Explora Sucursales</h3>
+                <p className="text-xs leading-relaxed max-w-xs" style={{ color: 'var(--text-secondary)' }}>
+                  Haz doble clic en el mapa para marcar tu zona y pulsa <span className="font-bold" style={{ color: 'var(--primary)' }}>Buscar Sucursales</span>.
+                </p>
+              </div>
             ) : loading ? (
-               Array(4).fill(0).map((_, i) => (
-                  <div key={i} className="glass-panel p-6 animate-pulse h-40" />
-               ))
+              Array(3).fill(0).map((_, i) => (
+                <div 
+                  key={i} 
+                  className="p-5 rounded-2xl border animate-pulse h-32"
+                  style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+                />
+              ))
             ) : filteredStores.length > 0 ? (
               filteredStores.map((store) => (
                 <div
@@ -178,17 +196,23 @@ const StoreList = () => {
                       setMapCenter([lat, lng]);
                     }
                   }}
-                  className="glass-panel p-5 flex flex-col gap-4 cursor-pointer group hover:bg-white/[0.03] hover:border-primary/30 transition-all border border-white/5 shadow-xl animate-in slide-in-from-bottom-4"
+                  className="p-4 rounded-2xl border shadow-sm transition-all hover:border-primary/40 cursor-pointer group"
+                  style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
                 >
-                  <div className="flex gap-4">
-                    <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shrink-0">
-                       <Store size={28} />
+                  <div className="flex gap-3.5 items-start">
+                    <div 
+                      className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
+                    >
+                      <Store size={22} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-black text-white text-base truncate group-hover:text-primary transition-colors">{store.name}</h3>
-                      <p className="text-slate-500 text-[10px] font-black uppercase mt-1">
-                         <MapPin size={12} className="text-primary inline mr-1" />
-                         {store.city || 'Lima'}
+                      <h3 className="font-bold text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                        {store.name}
+                      </h3>
+                      <p className="text-[11px] font-semibold mt-1 flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
+                        <MapPin size={12} style={{ color: 'var(--primary)' }} />
+                        <span className="truncate">{store.address || store.city || 'Trujillo'}</span>
                       </p>
                     </div>
                   </div>
@@ -197,21 +221,28 @@ const StoreList = () => {
                       e.stopPropagation();
                       navigate(`/store/${store.id}`);
                     }}
-                    className="w-full bg-primary text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-widest text-center hover:bg-primary-dark transition-all cursor-pointer"
+                    className="btn-primary w-full mt-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
                   >
-                    Ver Catálogo
+                    <span>Ver Catálogo y Servicios</span>
+                    <ChevronRight size={14} />
                   </button>
                 </div>
               ))
             ) : (
-               <div className="glass-panel p-12 text-center text-slate-500 text-sm">
-                  No hay sucursales encontradas en esta zona.
-               </div>
+              <div 
+                className="p-8 text-center rounded-2xl border text-xs"
+                style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+              >
+                No se encontraron sucursales en esta zona geográfica.
+              </div>
             )}
           </div>
         </div>
 
-        <div className="flex-1 min-h-[400px] lg:min-h-0 rounded-[40px] overflow-hidden border border-white/5 relative shadow-3xl bg-slate-900">
+        <div 
+          className="flex-1 min-h-[400px] lg:min-h-0 rounded-3xl overflow-hidden border relative shadow-xl"
+          style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg)' }}
+        >
           {mapReady && (
             <MapContainer 
               center={mapCenter} 
@@ -220,7 +251,13 @@ const StoreList = () => {
               style={{ height: '100%', width: '100%' }}
               zoomControl={false}
             >
-              <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution="&copy; CARTO" />
+              <TileLayer 
+                url={isDark 
+                  ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                  : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                } 
+                attribution="&copy; CARTO" 
+              />
               <MapEvents onDblClick={(lat, lng) => setTempMarker([lat, lng])} />
               <RecenterMap coords={mapCenter} />
               
@@ -229,7 +266,7 @@ const StoreList = () => {
                   <Circle 
                     center={tempMarker} 
                     radius={10000} 
-                    pathOptions={{ color: '#3B28FF', fillOpacity: 0.05, weight: 1, dashArray: '5, 10' }} 
+                    pathOptions={{ color: '#2D6BFF', fillOpacity: 0.08, weight: 1, dashArray: '5, 10' }} 
                   />
                   <Marker position={tempMarker} icon={userIcon} />
                 </>
@@ -246,11 +283,11 @@ const StoreList = () => {
                     icon={storeIcon}
                   >
                     <Popup className="custom-popup">
-                      <div className="p-3 font-outfit text-center">
-                        <h4 className="font-black text-sm mb-2">{store.name}</h4>
+                      <div className="p-3 text-center">
+                        <h4 className="font-bold text-sm mb-2">{store.name}</h4>
                         <button 
                           onClick={() => navigate(`/store/${store.id}`)} 
-                          className="bg-primary text-white px-4 py-1.5 rounded-lg text-[10px] font-black uppercase cursor-pointer hover:bg-primary-dark transition-all"
+                          className="btn-primary px-3.5 py-1 text-xs font-bold rounded-lg"
                         >
                           Ver Tienda
                         </button>
@@ -262,35 +299,40 @@ const StoreList = () => {
             </MapContainer>
           )}
 
-          {/* FLOATING BUSCAR BUTTON */}
-          <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-[1000]">
-             <button
-               type="button"
-               onClick={handleManualSearch}
-               disabled={isSearching}
-               className="flex items-center gap-3 bg-primary text-white px-8 py-4 rounded-full font-black uppercase tracking-widest text-xs shadow-[0_15px_35px_rgba(59,40,255,0.4)] hover:scale-105 active:scale-95 transition-all disabled:opacity-50 cursor-pointer"
-             >
-               <span className="shrink-0 inline-flex items-center justify-center w-5 h-5">
-                 {isSearching ? <RefreshCw className="animate-spin" size={18} /> : <Search size={18} />}
-               </span>
-               <span className="whitespace-nowrap">
-                 {isSearching ? 'Buscando sucursales...' : 'Buscar Sucursales aquí'}
-               </span>
-             </button>
+          {/* FLOATING SEARCH BUTTON */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-[1000]">
+            <button
+              type="button"
+              onClick={handleManualSearch}
+              disabled={isSearching}
+              className="btn-primary px-7 py-3 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2.5 shadow-2xl transition-transform hover:scale-105"
+            >
+              {isSearching ? <RefreshCw className="animate-spin" size={16} /> : <Search size={16} />}
+              <span>{isSearching ? 'Buscando locales...' : 'Buscar Sucursales Aquí'}</span>
+            </button>
           </div>
 
-          <div className="absolute top-8 left-8 z-[1000] bg-background/80 backdrop-blur-md px-6 py-4 rounded-[24px] border border-white/10 shadow-2xl">
-             <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary border border-primary/20">
-                   <MapPin size={20} />
-                </div>
-                <div>
-                   <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest leading-none mb-1">Zona Seleccionada</p>
-                   <p className="text-sm font-black text-white leading-tight">
-                      {userLocation.address ? userLocation.address.split(',')[0] : 'Lima'}
-                   </p>
-                </div>
-             </div>
+          <div 
+            className="absolute top-6 left-6 z-[1000] p-4 rounded-2xl border shadow-xl backdrop-blur-md flex items-center gap-3"
+            style={{ 
+              backgroundColor: 'var(--bg-card)', 
+              borderColor: 'var(--border)' 
+            }}
+          >
+            <div 
+              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
+            >
+              <MapPin size={18} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                Zona Seleccionada
+              </p>
+              <p className="text-xs font-bold truncate max-w-[200px]" style={{ color: 'var(--text-primary)' }}>
+                {userLocation.address ? userLocation.address.split(',')[0] : 'Trujillo'}
+              </p>
+            </div>
           </div>
         </div>
       </div>

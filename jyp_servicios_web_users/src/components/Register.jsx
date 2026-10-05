@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   User, Cog, Store, ChevronRight, Mail, 
-  Lock, ArrowLeft, CheckCircle, ShieldCheck 
+  Lock, ArrowLeft, CheckCircle, ShieldCheck, Cpu, Wrench, Eye, EyeOff, Sun, Moon
 } from 'lucide-react';
 import { authService } from '../services/api';
+import { useTheme } from '../context/ThemeContext';
 
 const Register = ({ onLogin }) => {
+  const { isDark, toggleTheme } = useTheme();
   const [step, setStep] = useState(1); // 1: Role, 2: Person Type, 3: Form
   const [formData, setFormData] = useState({
     email: '',
@@ -49,14 +51,23 @@ const Register = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#05060A] flex items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#3B28FF]/5 blur-[150px] rounded-full"></div>
+    <div
+      className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
+      style={{ background: 'var(--bg)', fontFamily: "'Inter',sans-serif" }}
+    >
+      {/* Background orbs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full" style={{ background: 'radial-gradient(circle, rgba(45,107,255,0.1) 0%, transparent 70%)', filter: 'blur(80px)' }} />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full" style={{ background: 'radial-gradient(circle, rgba(0,229,160,0.07) 0%, transparent 70%)', filter: 'blur(80px)' }} />
+      {/* Theme toggle */}
+      <button onClick={toggleTheme} className="theme-toggle absolute top-6 right-6 z-20">
+        {isDark ? <Sun size={16} /> : <Moon size={16} />}
+      </button>
       
       <motion.div
         layout
         className="w-full max-w-2xl z-10"
       >
-        <div className="glass-card p-10">
+        <div className="glass-card p-10" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
           <AnimatePresence mode="wait">
             {step === 1 && (
               <motion.div

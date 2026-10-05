@@ -6,10 +6,10 @@ import { adminService } from '../../services/api';
 /* ─── Role Config ────────────────────────────────────── */
 const ROLE_LABELS  = { client: 'Cliente', tech: 'Técnico', store: 'Tienda', admin: 'Admin' };
 const ROLE_COLORS  = {
-  admin:  'bg-[#3B28FF]/15 text-indigo-300 border border-[#3B28FF]/20',
-  tech:   'bg-orange-500/10 text-orange-300 border border-orange-500/15',
-  store:  'bg-pink-500/10 text-pink-300 border border-pink-500/15',
-  client: 'bg-sky-500/10 text-sky-300 border border-sky-500/15',
+  admin:  'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
+  tech:   'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+  store:  'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+  client: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
 };
 
 const RoleBadge = ({ role }) => (
@@ -22,24 +22,24 @@ const RoleBadge = ({ role }) => (
 const UserModal = ({ user, onClose }) => {
   if (!user) return null;
   const InfoItem = ({ label, value }) => (
-    <div className="bg-white/4 rounded-xl px-4 py-3">
-      <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">{label}</p>
-      <p className="font-bold text-sm text-white">{value || '—'}</p>
+    <div className="rounded-xl px-4 py-3" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
+      <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
+      <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{value || '—'}</p>
     </div>
   );
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }}
       onClick={onClose}
     >
       <motion.div initial={{ scale: 0.93, y: 16 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.93 }}
         className="w-full max-w-md rounded-3xl overflow-hidden shadow-2xl"
-        style={{ background: '#0D0F1A', border: '1px solid rgba(255,255,255,0.08)' }}
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header gradient */}
-        <div className="bg-gradient-to-r from-indigo-700 to-purple-700 px-8 py-8 text-center relative">
+        <div className="px-8 py-8 text-center relative" style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #4338ca 100%)' }}>
           <button onClick={onClose}
             className="absolute top-4 right-4 w-9 h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-white text-sm font-bold transition-all">
             ✕
@@ -50,7 +50,7 @@ const UserModal = ({ user, onClose }) => {
           <h2 className="text-white font-black text-xl">
             {user.names ? `${user.names} ${user.surnames || ''}` : user.username}
           </h2>
-          <p className="text-indigo-200 text-sm mt-1">{user.email}</p>
+          <p className="text-blue-100 text-sm mt-1">{user.email}</p>
         </div>
 
         {/* Body */}
@@ -101,19 +101,19 @@ const AdminUsers = () => {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       {/* Header */}
       <div className="mb-8">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400 mb-2 flex items-center gap-2">
+        <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 flex items-center gap-2" style={{ color: 'var(--primary)' }}>
           <Users size={12} /> Directorio
         </p>
-        <h1 className="text-4xl font-black tracking-tighter text-white">
-          Gestión de <span className="text-indigo-400 italic">Usuarios</span>
+        <h1 className="text-4xl font-black tracking-tighter" style={{ color: 'var(--text-primary)' }}>
+          Gestión de <span className="italic" style={{ color: 'var(--primary)' }}>Usuarios</span>
         </h1>
-        <p className="text-slate-500 text-sm mt-1 font-semibold">Administra clientes, técnicos, tiendas y administradores.</p>
+        <p className="text-sm mt-1 font-semibold" style={{ color: 'var(--text-secondary)' }}>Administra clientes, técnicos, tiendas y administradores.</p>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-3 mb-6">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
           <input
             type="text"
             placeholder="Buscar por nombre, email o username..."
@@ -133,15 +133,15 @@ const AdminUsers = () => {
 
       {loading ? (
         <div className="flex items-center justify-center py-32">
-          <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }} />
         </div>
       ) : (
         <div className="glass-card overflow-hidden">
-          <div className="px-6 py-4 border-b border-white/5 flex items-center justify-between">
-            <span className="text-sm font-bold text-slate-500">
+          <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
+            <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
               {filtered.length} usuario{filtered.length !== 1 ? 's' : ''}
             </span>
-            <Filter size={14} className="text-slate-600" />
+            <Filter size={14} style={{ color: 'var(--text-muted)' }} />
           </div>
           <div className="overflow-x-auto">
             <table className="admin-table">
@@ -158,32 +158,34 @@ const AdminUsers = () => {
                   >
                     <td>
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 flex items-center justify-center font-black text-sm shrink-0">
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center font-black text-sm shrink-0"
+                          style={{ background: 'rgba(45, 107, 255, 0.1)', border: '1px solid rgba(45, 107, 255, 0.2)', color: 'var(--primary)' }}>
                           {(u.names || u.username || '?')[0].toUpperCase()}
                         </div>
                         <div>
-                          <div className="font-black text-sm text-white">
+                          <div className="font-black text-sm" style={{ color: 'var(--text-primary)' }}>
                             {u.names ? `${u.names} ${u.surnames || ''}` : u.username}
                           </div>
-                          <div className="text-[10px] text-indigo-400 font-bold">{u.email}</div>
+                          <div className="text-[10px] font-bold" style={{ color: 'var(--primary)' }}>{u.email}</div>
                         </div>
                       </div>
                     </td>
                     <td><RoleBadge role={u.role} /></td>
-                    <td className="text-sm font-medium text-slate-400">
+                    <td className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
                       {u.person_type === 'natural' ? 'Natural' : 'Jurídica'}
                     </td>
                     <td>
-                      <div className="flex items-center gap-1.5 text-slate-400 font-medium text-sm">
-                        <MapPin size={11} className="text-slate-600" />
+                      <div className="flex items-center gap-1.5 font-medium text-sm" style={{ color: 'var(--text-secondary)' }}>
+                        <MapPin size={11} style={{ color: 'var(--text-muted)' }} />
                         {u.city || '—'}
                       </div>
                     </td>
-                    <td className="text-sm text-slate-500 font-medium">
+                    <td className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>
                       {new Date(u.created_at).toLocaleDateString('es-PE')}
                     </td>
                     <td>
-                      <button className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center hover:bg-indigo-500 hover:text-white transition-all">
+                      <button className="w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:brightness-125"
+                        style={{ background: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}>
                         <Eye size={13} />
                       </button>
                     </td>
@@ -192,7 +194,7 @@ const AdminUsers = () => {
               </tbody>
             </table>
             {filtered.length === 0 && (
-              <div className="py-16 text-center text-slate-600 font-bold text-sm">No se encontraron usuarios.</div>
+              <div className="py-16 text-center font-bold text-sm" style={{ color: 'var(--text-muted)' }}>No se encontraron usuarios.</div>
             )}
           </div>
         </div>

@@ -4,21 +4,23 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Calendar, Users, Package,
   Store, LogOut, ChevronLeft, ChevronRight,
-  Shield, Zap
+  Shield, Cpu, Sun, Moon
 } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
 
 const NAV_ITEMS = [
-  { to: '/admin',           label: 'Dashboard',        icon: LayoutDashboard, color: 'text-[#3B28FF]' },
-  { to: '/admin/citas',     label: 'Citas & Servicios',icon: Calendar,        color: 'text-blue-400' },
-  { to: '/admin/usuarios',  label: 'Usuarios',         icon: Users,           color: 'text-indigo-400' },
-  { to: '/admin/pedidos',   label: 'Pedidos',          icon: Package,         color: 'text-emerald-400' },
-  { to: '/admin/sucursales',label: 'Sucursales J&P',   icon: Store,           color: 'text-rose-400' },
+  { to: '/admin',           label: 'Dashboard',        icon: LayoutDashboard },
+  { to: '/admin/citas',     label: 'Citas & Servicios',icon: Calendar },
+  { to: '/admin/usuarios',  label: 'Usuarios',         icon: Users },
+  { to: '/admin/pedidos',   label: 'Pedidos',          icon: Package },
+  { to: '/admin/sucursales',label: 'Sucursales JyP',   icon: Store },
 ];
 
 const AdminLayout = ({ user, onLogout }) => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { isDark, toggleTheme } = useTheme();
 
   const isActive = (path) =>
     path === '/admin'
@@ -31,19 +33,29 @@ const AdminLayout = ({ user, onLogout }) => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#020306] text-white font-[Plus_Jakarta_Sans] overflow-hidden">
+    <div
+      className="flex min-h-screen overflow-hidden"
+      style={{ background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: "'Inter',sans-serif" }}
+    >
       {/* Sidebar */}
       <motion.aside
         initial={false}
         animate={{ width: collapsed ? 80 : 268 }}
-        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
-        className="fixed left-0 top-0 h-full z-40 flex flex-col border-r border-white/5 overflow-hidden"
-        style={{ background: 'rgba(6,6,18,0.97)', backdropFilter: 'blur(24px)' }}
+        transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
+        className="fixed left-0 top-0 h-full z-40 flex flex-col overflow-hidden"
+        style={{
+          background: isDark ? 'rgba(5,7,15,0.97)' : 'rgba(240,244,255,0.97)',
+          borderRight: '1px solid var(--border)',
+          backdropFilter: 'blur(24px)',
+        }}
       >
         {/* Logo */}
-        <div className="p-5 flex items-center gap-3 border-b border-white/5 h-20 shrink-0">
-          <div className="w-10 h-10 bg-[#3B28FF] rounded-xl flex items-center justify-center shrink-0 shadow-[0_0_20px_rgba(59,40,255,0.4)]">
-            <Shield size={20} fill="white" stroke="white" />
+        <div className="p-5 flex items-center gap-3 h-20 shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: 'var(--primary)', boxShadow: 'var(--shadow-primary)' }}
+          >
+            <Cpu size={20} color="white" strokeWidth={2.5} />
           </div>
           <AnimatePresence>
             {!collapsed && (

@@ -54,9 +54,51 @@ function App() {
 
   if (loading) {
     return (
-      <div className="h-screen bg-[#020306] flex flex-col items-center justify-center">
-        <div className="w-12 h-12 border-4 border-[#3B28FF] border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-[#3B28FF] font-black text-xs uppercase tracking-widest">Iniciando J&P...</p>
+      <div
+        style={{
+          height: '100vh',
+          background: '#05070F',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 16,
+          fontFamily: "'Inter', sans-serif",
+        }}
+      >
+        <div
+          style={{
+            width: 56,
+            height: 56,
+            borderRadius: 16,
+            background: 'rgba(45,107,255,0.12)',
+            border: '1px solid rgba(45,107,255,0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 8,
+            boxShadow: '0 0 32px rgba(45,107,255,0.2)',
+            animation: 'pulse 2s infinite',
+          }}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2D6BFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="7" y="7" width="10" height="10" rx="1"/><path d="M7 9H5a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2h2"/><path d="M17 9h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2"/><path d="M9 7V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"/><path d="M9 17v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2v-2"/>
+          </svg>
+        </div>
+        <div
+          style={{
+            width: 28,
+            height: 28,
+            border: '2.5px solid rgba(45,107,255,0.2)',
+            borderTopColor: '#2D6BFF',
+            borderRadius: '50%',
+            animation: 'spin 0.75s linear infinite',
+          }}
+        />
+        <p style={{ color: '#2D6BFF', fontSize: 11, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+          Iniciando JyP...
+        </p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
@@ -81,12 +123,14 @@ function App() {
     <Router>
       <Toaster position="top-right" toastOptions={{
         style: {
-          background: '#1A1C1E',
-          color: '#fff',
-          border: '1px solid rgba(255,255,255,0.1)',
-          fontFamily: 'Plus Jakarta Sans, sans-serif',
+          background: 'var(--bg-elevated, #131A26)',
+          color: 'var(--text-primary, #F0F4FF)',
+          border: '1px solid var(--border, rgba(255,255,255,0.07))',
+          fontFamily: "'Inter', sans-serif",
           fontSize: '14px',
-          fontWeight: '600'
+          fontWeight: '600',
+          borderRadius: '12px',
+          boxShadow: '0 16px 40px rgba(0,0,0,0.4)',
         }
       }} />
 
