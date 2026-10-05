@@ -10,6 +10,7 @@ import {
 import { storeService, messageService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
+import { TechLoader } from './common/TechLoader';
 
 const StoreDashboard = () => {
   const navigate = useNavigate();
@@ -144,6 +145,15 @@ const StoreDashboard = () => {
         return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ backgroundColor: 'rgba(148, 163, 184, 0.1)', color: '#94A3B8' }}>{status}</span>;
     }
   };
+
+  if (isLoading) {
+    return (
+      <TechLoader 
+        title="Iniciando Panel de Sucursal" 
+        subtitle="Sincronizando inventario de repuestos y órdenes..." 
+      />
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-16">

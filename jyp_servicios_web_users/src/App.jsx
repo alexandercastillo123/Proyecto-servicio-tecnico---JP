@@ -22,6 +22,7 @@ import StoreProfile from './components/StoreProfile';
 import OrderList from './components/OrderList';
 import { Toaster } from 'react-hot-toast';
 import { SocketProvider } from './context/SocketContext';
+import { TechLoader } from './components/common/TechLoader';
 
 // Admin
 import AdminLayout from './components/admin/AdminLayout';
@@ -54,52 +55,11 @@ function App() {
 
   if (loading) {
     return (
-      <div
-        style={{
-          height: '100vh',
-          background: '#05070F',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 16,
-          fontFamily: "'Inter', sans-serif",
-        }}
-      >
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: 16,
-            background: 'rgba(45,107,255,0.12)',
-            border: '1px solid rgba(45,107,255,0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            marginBottom: 8,
-            boxShadow: '0 0 32px rgba(45,107,255,0.2)',
-            animation: 'pulse 2s infinite',
-          }}
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2D6BFF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="7" y="7" width="10" height="10" rx="1"/><path d="M7 9H5a2 2 0 0 0-2 2v0a2 2 0 0 0 2 2h2"/><path d="M17 9h2a2 2 0 0 1 2 2v0a2 2 0 0 1-2 2h-2"/><path d="M9 7V5a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v2"/><path d="M9 17v2a2 2 0 0 0 2 2h0a2 2 0 0 0 2-2v-2"/>
-          </svg>
-        </div>
-        <div
-          style={{
-            width: 28,
-            height: 28,
-            border: '2.5px solid rgba(45,107,255,0.2)',
-            borderTopColor: '#2D6BFF',
-            borderRadius: '50%',
-            animation: 'spin 0.75s linear infinite',
-          }}
-        />
-        <p style={{ color: '#2D6BFF', fontSize: 11, fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
-          Iniciando JyP...
-        </p>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      </div>
+      <TechLoader 
+        fullscreen 
+        title="Inicializando Plataforma JyP" 
+        subtitle="Conectando al centro de servicios técnicos..." 
+      />
     );
   }
 

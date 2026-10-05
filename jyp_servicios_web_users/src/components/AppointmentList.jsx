@@ -1,11 +1,13 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar, Clock, MapPin, ChevronRight, Filter,
-  Wrench, MessageSquare, Star, ArrowRight, Plus, Search
+  Wrench, MessageSquare, Star, ArrowRight, Plus, Search,
+  ShieldCheck, AlertCircle, CheckCircle2
 } from "lucide-react";
 import { clientService, techService, authService } from "../services/api";
 import { useNavigate } from "react-router-dom";
+import { TechLoader } from "./common/TechLoader";
 
 const STATUS = {
   pending:    { label: "Pendiente",   cls: "status-badge status-pending" },
@@ -14,13 +16,19 @@ const STATUS = {
   cancelled:  { label: "Cancelada",   cls: "status-badge status-cancelled" },
   in_progress:{ label: "En progreso", cls: "status-badge status-in_progress" },
   on_the_way: { label: "En camino",   cls: "status-badge status-on_the_way" },
-  arrived:    { label: "Llegó",       cls: "status-badge status-arrived" },
+  arrived:    { label: "En sitio",    cls: "status-badge status-arrived" },
   paid:       { label: "Pagada",      cls: "status-badge status-completed" },
-  cancellation_pending: { label: "Cancelación pendiente", cls: "status-badge status-cancellation_pending" },
+  cancellation_pending: { label: "Por cancelar", cls: "status-badge status-cancellation_pending" },
 };
 
 const TABS = ["Todas", "Pendientes", "Confirmadas", "Completadas", "Canceladas"];
-const TAB_FILTER = { "Todas": null, "Pendientes": "pending", "Confirmadas": "confirmed", "Completadas": "completed", "Canceladas": "cancelled" };
+const TAB_FILTER = { 
+  "Todas": null, 
+  "Pendientes": "pending", 
+  "Confirmadas": "confirmed", 
+  "Completadas": "completed", 
+  "Canceladas": "cancelled" 
+};
 
 const AppointmentList = () => {
   const navigate = useNavigate();
@@ -42,9 +50,12 @@ const AppointmentList = () => {
       const res = role === "tech"
         ? await techService.getAppointments()
         : await clientService.getMyAppointments();
-      if (res.data.exito) setAppointments(res.data.resultado || []);
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+      if (res.data?.exito) setAppointments(res.data.resultado || []);
+    } catch (e) { 
+      console.error(e); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const filtered = appointments.filter(a => {
@@ -65,7 +76,7 @@ const AppointmentList = () => {
     return {
       Todas: appointments.length,
       Pendientes: appointments.filter(a => a.status === "pending").length,
-      Confirmadas: appointments.filter(a => a.status === "confirmed").length,
+      Confirmadas: appointments.filter(a => ["confirmed", "paid", "in_progress"].includes(a.status)).length,
       Completadas: appointments.filter(a => a.status === "completed").length,
       Canceladas: appointments.filter(a => a.status === "cancelled").length,
     };
@@ -73,194 +84,184 @@ const AppointmentList = () => {
   const counts = getCounts();
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-20" style={{ fontFamily: "'Inter',sans-serif" }}>
+    <div className="max-w-5xl mx-auto space-y-6 pb-20" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--primary)", marginBottom: 4 }}>
-            Historial
-          </p>
-          <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: "clamp(1.5rem,3vw,2rem)", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--text-primary)" }}>
-            Mis Citas
+          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-400 block mb-1">
+            Gestión de Reparaciones
+          </span>
+          <h1 
+            className="text-3xl font-black text-white tracking-tight"
+            style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}
+          >
+            Mis Citas Técnicas
           </h1>
+          <p className="text-xs text-slate-400 mt-1">
+            Historial y seguimiento de diagnósticos y servicios de hardware.
+          </p>
         </div>
+
         {userRole === "client" && (
           <button
             onClick={() => navigate("/appointments/schedule")}
-            className="btn-primary"
+            className="btn-primary py-3 px-5 text-xs font-bold uppercase tracking-wider rounded-xl shadow-lg self-start sm:self-auto"
           >
-            <Plus size={16} /> Nueva Cita
+            <Plus size={16} /> Nueva Solicitud
           </button>
         )}
       </div>
 
-      {/* Search + Filter row */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-dim)" }} />
+      {/* Search & Tabs Row */}
+      <div className="space-y-4">
+        <div className="relative">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Buscar por servicio, técnico o cliente..."
+            placeholder="Filtrar por tipo de servicio, nombre de técnico o cliente..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="input-field"
-            style={{ paddingLeft: 40, paddingRight: 16, height: 44 }}
+            style={{ paddingLeft: 42, paddingRight: 16, height: 46, borderRadius: 14 }}
           />
         </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar">
-        {TABS.map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all"
-            style={{
-              background: activeTab === tab ? "var(--primary)" : "var(--bg-input)",
-              color: activeTab === tab ? "#fff" : "var(--text-secondary)",
-              border: `1px solid ${activeTab === tab ? "var(--primary)" : "var(--border)"}`,
-              boxShadow: activeTab === tab ? "var(--shadow-primary)" : "none",
-            }}
-          >
-            {tab}
-            {counts[tab] > 0 && (
-              <span
-                className="text-[10px] font-black px-1.5 py-0.5 rounded-full"
-                style={{
-                  background: activeTab === tab ? "rgba(255,255,255,0.2)" : "var(--bg-elevated)",
-                  color: activeTab === tab ? "#fff" : "var(--text-secondary)",
-                }}
-              >
-                {counts[tab]}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* List */}
-      {loading ? (
-        <div className="space-y-3">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="skeleton" style={{ height: 96, borderRadius: 16 }} />
+        {/* Tab pills */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          {TABS.map(tab => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+                activeTab === tab 
+                  ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-600/30' 
+                  : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>{tab}</span>
+              {counts[tab] > 0 && (
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                  activeTab === tab ? 'bg-white/20 text-white' : 'bg-white/10 text-slate-400'
+                }`}>
+                  {counts[tab]}
+                </span>
+              )}
+            </button>
           ))}
         </div>
+      </div>
+
+      {/* Appointment Cards List */}
+      {loading ? (
+        <TechLoader 
+          compact 
+          title="Consultando Registro de Citas" 
+          subtitle="Obteniendo estado de servicios..." 
+        />
       ) : filtered.length === 0 ? (
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="card text-center py-16"
+          className="glass-card text-center py-16 px-6 rounded-3xl space-y-4"
         >
-          <Calendar size={40} style={{ color: "var(--text-dim)", margin: "0 auto 16px" }} />
-          <p style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>
-            No hay citas
-          </p>
-          <p style={{ fontSize: 14, color: "var(--text-secondary)", marginTop: 6 }}>
-            {activeTab !== "Todas" ? `No tienes citas ${activeTab.toLowerCase()}` : "Aún no tienes citas registradas"}
-          </p>
+          <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto text-slate-400">
+            <Calendar size={32} />
+          </div>
+          <div>
+            <h3 className="text-lg font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+              No se encontraron citas
+            </h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+              {activeTab !== "Todas" 
+                ? `No tienes citas con estado "${activeTab.toLowerCase()}".` 
+                : "Aún no registras ninguna orden técnica de soporte."}
+            </p>
+          </div>
           {userRole === "client" && (
             <button
               onClick={() => navigate("/appointments/schedule")}
-              className="btn-primary"
-              style={{ margin: "20px auto 0", display: "inline-flex" }}
+              className="btn-primary py-2.5 px-6 text-xs font-bold rounded-xl mt-2 inline-flex"
             >
-              <Plus size={16} /> Agendar mi primera cita
+              <Plus size={14} /> Solicitar mi primera reparación
             </button>
           )}
         </motion.div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           <AnimatePresence>
             {filtered.map((appt, i) => {
               const st = STATUS[appt.status] || { label: appt.status, cls: "status-badge" };
+              const otherPerson = userRole === "client" 
+                ? (appt.techName || appt.tech_name || "Técnico Especialista") 
+                : (appt.clientName || appt.client_name || "Cliente");
+
               return (
                 <motion.div
                   key={appt.id}
-                  initial={{ opacity: 0, y: 12 }}
+                  initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="glass-card p-5 cursor-pointer group"
-                  style={{
-                    borderLeft: `3px solid ${
-                      appt.status === "completed" ? "var(--success)" :
-                      appt.status === "confirmed" || appt.status === "paid" ? "var(--primary)" :
-                      appt.status === "pending" ? "var(--warning)" :
-                      appt.status === "cancelled" ? "var(--error)" : "var(--border)"
-                    }`,
-                    borderRadius: 16,
-                  }}
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ delay: i * 0.04 }}
                   onClick={() => navigate(`/appointments/${appt.id}`)}
+                  className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-blue-500/50 transition-all duration-200"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-start gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-4">
                       <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-md"
                         style={{
-                          width: 44, height: 44, borderRadius: 12,
-                          background: "rgba(45,107,255,0.1)",
-                          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                          background: 'linear-gradient(135deg, rgba(37,99,235,0.2) 0%, rgba(6,182,212,0.15) 100%)',
+                          color: '#38BDF8',
+                          border: '1px solid rgba(59,130,246,0.3)'
                         }}
                       >
-                        <Wrench size={20} style={{ color: "var(--primary)" }} />
+                        <Wrench size={22} />
                       </div>
-                      <div>
-                        <p style={{ fontSize: 15, fontWeight: 700, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "var(--text-primary)" }}>
-                          {appt.serviceType || appt.service_type || "Servicio Técnico"}
+
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-base text-white group-hover:text-blue-400 transition-colors">
+                            {appt.serviceType || appt.service_type || "Mantenimiento Técnico"}
+                          </h3>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {userRole === "client" ? "Especialista: " : "Cliente: "}
+                          <span className="text-slate-200 font-semibold">{otherPerson}</span>
                         </p>
-                        <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 2 }}>
-                          {userRole === "client"
-                            ? (appt.techName || appt.tech_name ? `Técnico: ${appt.techName || appt.tech_name}` : "")
-                            : (appt.clientName || appt.client_name ? `Cliente: ${appt.clientName || appt.client_name}` : "")}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-3 mt-2">
+
+                        <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-400">
                           {appt.scheduled_at && (
-                            <span className="flex items-center gap-1" style={{ fontSize: 11, color: "var(--text-dim)" }}>
-                              <Clock size={11} />
-                              {new Date(appt.scheduled_at).toLocaleDateString("es-PE", { dateStyle: "medium" })} ·{" "}
-                              {new Date(appt.scheduled_at).toLocaleTimeString("es-PE", { timeStyle: "short" })}
+                            <span className="flex items-center gap-1.5">
+                              <Clock size={12} className="text-cyan-400" />
+                              <span>{new Date(appt.scheduled_at).toLocaleDateString("es-PE", { dateStyle: "medium" })} · {new Date(appt.scheduled_at).toLocaleTimeString("es-PE", { timeStyle: "short" })}</span>
                             </span>
                           )}
                           {(appt.location_address || appt.address) && (
-                            <span className="flex items-center gap-1 truncate max-w-[200px]" style={{ fontSize: 11, color: "var(--text-dim)" }}>
-                              <MapPin size={11} />
-                              {appt.location_address || appt.address}
+                            <span className="flex items-center gap-1.5 truncate max-w-[220px]">
+                              <MapPin size={12} className="text-blue-400" />
+                              <span>{appt.location_address || appt.address}</span>
                             </span>
                           )}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3 shrink-0">
+
+                    {/* Status & Price */}
+                    <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-white/5">
                       {appt.price && (
-                        <span style={{ fontSize: 15, fontWeight: 800, fontFamily: "'Plus Jakarta Sans',sans-serif", color: "var(--text-primary)" }}>
-                          S/. {parseFloat(appt.price).toFixed(2)}
-                        </span>
+                        <div className="text-right">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Presupuesto</span>
+                          <span className="text-base font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                            S/. {parseFloat(appt.price).toFixed(2)}
+                          </span>
+                        </div>
                       )}
                       <span className={st.cls}>{st.label}</span>
-                      <ChevronRight size={16} style={{ color: "var(--text-dim)" }} className="group-hover:translate-x-1 transition-transform" />
+                      <ChevronRight size={18} className="text-slate-500 group-hover:translate-x-1 group-hover:text-blue-400 transition-transform" />
                     </div>
                   </div>
-
-                  {/* Quick actions */}
-                  {appt.status === "completed" && userRole === "client" && (
-                    <div className="flex gap-2 mt-3 pt-3" style={{ borderTop: "1px solid var(--border)" }}>
-                      <button
-                        onClick={e => { e.stopPropagation(); navigate(`/technician/${appt.techId || appt.tech_id}`); }}
-                        className="btn-ghost btn-sm flex-1 justify-center"
-                        style={{ height: 34, fontSize: 12 }}
-                      >
-                        <Star size={13} /> Dejar Reseña
-                      </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); navigate(`/chat?user=${appt.techId || appt.tech_id}`); }}
-                        className="btn-ghost btn-sm flex-1 justify-center"
-                        style={{ height: 34, fontSize: 12 }}
-                      >
-                        <MessageSquare size={13} /> Contactar
-                      </button>
-                    </div>
-                  )}
                 </motion.div>
               );
             })}

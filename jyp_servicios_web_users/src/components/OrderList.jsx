@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { storeService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import { TechLoader } from './common/TechLoader';
 
 const OrderList = () => {
   const navigate = useNavigate();
@@ -47,7 +48,7 @@ const OrderList = () => {
     : orders.filter(o => o.status === filter);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 font-outfit pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-700">
       
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 px-2">
@@ -80,9 +81,7 @@ const OrderList = () => {
       {/* Orders List */}
       <div className="space-y-4 px-2">
         {loading ? (
-          Array(3).fill(0).map((_, i) => (
-            <div key={i} className="glass-panel p-6 h-48 animate-pulse" />
-          ))
+          <TechLoader compact title="Cargando Pedidos" subtitle="Obteniendo historial de compras..." />
         ) : filteredOrders.length > 0 ? (
           filteredOrders.map((order) => {
             const status = getStatusInfo(order.status);

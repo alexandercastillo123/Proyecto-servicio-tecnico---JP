@@ -5,6 +5,7 @@ import { Store, MapPin, Search, ChevronRight, Phone, Clock, ShoppingCart, ArrowR
 import { storeService } from '../services/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
+import { TechLoader } from './common/TechLoader';
 
 // Fix Leaflet icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -72,6 +73,7 @@ const StoreList = () => {
 
   useEffect(() => {
     setMapReady(true);
+    fetchStores();
   }, []);
 
   const filteredStores = stores.filter(s =>

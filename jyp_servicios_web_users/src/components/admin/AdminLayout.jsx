@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Calendar, Users, Package,
   Store, LogOut, ChevronLeft, ChevronRight,
-  Shield, Cpu, Sun, Moon
+  Shield, Cpu, Sun, Moon, Zap
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
