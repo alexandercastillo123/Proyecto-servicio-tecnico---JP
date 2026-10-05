@@ -10,6 +10,8 @@ import {
 import { clientService, techService } from '../services/api';
 import { useSocket } from '../context/SocketContext';
 
+import { TechLoader } from './common/TechLoader';
+
 const AppointmentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -53,9 +55,10 @@ const AppointmentDetails = () => {
   const fetchDetails = async () => {
     try {
       const response = await clientService.getAppointmentDetails(id);
-      if (response.data.success) {
-        setAppt(response.data.data);
-        setPriceInput(response.data.data.price || '');
+      const payload = response.data?.resultado || response.data?.data;
+      if (payload || response.data?.exito || response.data?.success) {
+        setAppt(payload);
+        setPriceInput(payload?.price || '');
       }
     } catch (error) {
       console.error('Error fetching details:', error);
@@ -129,15 +132,10 @@ const AppointmentDetails = () => {
 
   if (loading) {
     return (
-      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
-        <div 
-          className="w-10 h-10 rounded-full border-4 border-t-transparent animate-spin"
-          style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}
-        />
-        <p className="text-sm font-semibold animate-pulse" style={{ color: 'var(--text-secondary)' }}>
-          Cargando detalles de la cita...
-        </p>
-      </div>
+      <TechLoader 
+        title="Consultando Orden de Servicio" 
+        subtitle="Obteniendo telemetría y estado de la cita..." 
+      />
     );
   }
 

@@ -4,9 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar as CalendarIcon, Clock, ChevronRight, 
   ChevronLeft, FileText, AlertCircle, CheckCircle2,
-  ArrowRight, MapPin, Check
+  ArrowRight, MapPin, Check, Wrench, ShieldCheck, Cpu
 } from 'lucide-react';
 import { clientService, storeService } from '../services/api';
+import { TechLoader } from './common/TechLoader';
 
 const AppointmentScheduling = () => {
   const [searchParams] = useSearchParams();
@@ -25,6 +26,8 @@ const AppointmentScheduling = () => {
   useEffect(() => {
     if (providerId) {
       fetchProviderDetails();
+    } else {
+      setLoading(false);
     }
   }, [providerId]);
 
@@ -41,7 +44,7 @@ const AppointmentScheduling = () => {
             id: b.id,
             user_id: b.user_id,
             names: b.name,
-            surnames: '(Sucursal)',
+            surnames: '(Sucursal Oficial)',
             city: b.city
           });
         }
@@ -70,7 +73,7 @@ const AppointmentScheduling = () => {
     try {
       const scheduledDate = getNextDateForDay(selectedDay);
       const data = {
-        technicianId: provider.user_id || provider.id,
+        technicianId: provider?.user_id || provider?.id || providerId,
         scheduledDate: scheduledDate,
         scheduledTime: selectedSlot,
         description,
@@ -91,58 +94,56 @@ const AppointmentScheduling = () => {
     }
   };
 
-  if (loading) return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-      <div 
-        className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin"
-        style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}
+  if (loading) {
+    return (
+      <TechLoader 
+        title="Consultando Disponibilidad Técnica" 
+        subtitle="Sincronizando agenda del especialista..." 
       />
-      <p className="font-bold text-xs uppercase tracking-wider animate-pulse" style={{ color: 'var(--primary)' }}>
-        Cargando Agenda...
-      </p>
-    </div>
-  );
+    );
+  }
 
   const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00'];
+  const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="max-w-4xl mx-auto py-6 sm:py-8 px-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+      
       {/* Progress Stepper */}
-      <div className="flex items-center justify-between mb-12 px-6 md:px-20 relative">
-        {[1, 2, 3].map((s) => (
-          <div key={s} className="flex flex-col items-center gap-2 relative z-10">
+      <div className="flex items-center justify-between mb-10 px-4 sm:px-16 relative">
+        {[
+          { num: 1, label: 'Horario' },
+          { num: 2, label: 'Falla & Diagnóstico' },
+          { num: 3, label: 'Confirmación' }
+        ].map(({ num, label }) => (
+          <div key={num} className="flex flex-col items-center gap-2 relative z-10">
             <div 
-              className={`w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-sm transition-all duration-300 shadow-md ${
-                step > s ? 'text-white' : step === s ? 'text-white shadow-lg' : ''
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm transition-all duration-300 shadow-md ${
+                step > num 
+                  ? 'bg-blue-600 text-white' 
+                  : step === num 
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-blue-500/30' 
+                  : 'bg-slate-800 text-slate-400 border border-white/10'
               }`}
-              style={{
-                backgroundColor: step >= s ? 'var(--primary)' : 'var(--bg-card)',
-                color: step >= s ? '#fff' : 'var(--text-muted)',
-                border: step >= s ? 'none' : '1px solid var(--border)'
-              }}
             >
-              {step > s ? <Check size={18} /> : s}
+              {step > num ? <Check size={18} strokeWidth={3} /> : num}
             </div>
             <span 
-              className="text-[11px] font-bold uppercase tracking-wider"
-              style={{ color: step >= s ? 'var(--text-primary)' : 'var(--text-muted)' }}
+              className={`text-[11px] font-bold uppercase tracking-wider text-center ${
+                step >= num ? 'text-white' : 'text-slate-500'
+              }`}
             >
-              {s === 1 ? 'Horario' : s === 2 ? 'Falla' : 'Confirmar'}
+              {label}
             </span>
           </div>
         ))}
         {/* Connector line */}
         <div 
-          className="absolute top-5 left-1/4 right-1/4 h-[2px] -z-0"
-          style={{ backgroundColor: 'var(--border)' }}
+          className="absolute top-5 left-1/4 right-1/4 h-[2px] -z-0 bg-white/10"
         >
           <div 
-            className="h-full transition-all duration-500" 
-            style={{ 
-              width: `${(step - 1) * 50}%`,
-              backgroundColor: 'var(--primary)'
-            }} 
+            className="h-full transition-all duration-500 bg-gradient-to-r from-blue-600 to-cyan-400" 
+            style={{ width: `${(step - 1) * 50}%` }} 
           />
         </div>
       </div>
@@ -154,30 +155,30 @@ const AppointmentScheduling = () => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
-            className="p-8 md:p-10 rounded-2xl border shadow-xl relative overflow-hidden"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+            className="glass-card p-6 sm:p-10 rounded-3xl relative overflow-hidden"
           >
             <div className="flex items-center gap-4 mb-8">
               <div 
-                className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
+                className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+                style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.2) 0%, rgba(6,182,212,0.2) 100%)', color: '#38BDF8' }}
               >
                 <CalendarIcon size={28} />
               </div>
               <div>
-                <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                  Selecciona Horario
+                <h2 className="text-2xl font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                  Selecciona Fecha & Turno
                 </h2>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Reserva una cita técnica con {provider?.names || 'el especialista'}.
+                <p className="text-xs sm:text-sm text-slate-400">
+                  Reserva con {provider?.names || 'el especialista'} en los bloques oficiales de atención.
                 </p>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <label className="text-xs font-bold uppercase tracking-wider block" style={{ color: 'var(--primary)' }}>
-                  Día de la semana
+              {/* Day selection */}
+              <div className="space-y-3">
+                <label className="text-xs font-bold uppercase tracking-wider text-blue-400 block">
+                  Día de la Semana
                 </label>
                 <div className="grid grid-cols-2 gap-2.5">
                   {days.map((day) => {
@@ -185,14 +186,13 @@ const AppointmentScheduling = () => {
                     return (
                       <button
                         key={day}
+                        type="button"
                         onClick={() => setSelectedDay(day)}
-                        className="p-4 rounded-xl border text-sm font-bold transition-all text-center"
-                        style={{
-                          backgroundColor: isSelected ? 'var(--primary)' : 'var(--bg)',
-                          borderColor: isSelected ? 'var(--primary)' : 'var(--border)',
-                          color: isSelected ? '#FFFFFF' : 'var(--text-primary)',
-                          boxShadow: isSelected ? '0 4px 14px rgba(45, 107, 255, 0.3)' : 'none'
-                        }}
+                        className={`p-3.5 rounded-xl border text-xs sm:text-sm font-bold transition-all text-center ${
+                          isSelected 
+                            ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-600/30' 
+                            : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                        }`}
                       >
                         {day}
                       </button>
@@ -201,9 +201,10 @@ const AppointmentScheduling = () => {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <label className="text-xs font-bold uppercase tracking-wider block" style={{ color: 'var(--primary)' }}>
-                  Hora disponible
+              {/* Time Slot selection */}
+              <div className="space-y-3">
+                <label className="text-xs font-bold uppercase tracking-wider text-blue-400 block">
+                  Horario de Atención
                 </label>
                 <div className="grid grid-cols-2 gap-2.5">
                   {times.map((time) => {
@@ -211,17 +212,16 @@ const AppointmentScheduling = () => {
                     return (
                       <button
                         key={time}
+                        type="button"
                         onClick={() => setSelectedSlot(time)}
-                        className="p-4 rounded-xl border text-sm font-bold transition-all flex items-center justify-center gap-2"
-                        style={{
-                          backgroundColor: isSelected ? 'var(--primary)' : 'var(--bg)',
-                          borderColor: isSelected ? 'var(--primary)' : 'var(--border)',
-                          color: isSelected ? '#FFFFFF' : 'var(--text-primary)',
-                          boxShadow: isSelected ? '0 4px 14px rgba(45, 107, 255, 0.3)' : 'none'
-                        }}
+                        className={`p-3.5 rounded-xl border text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 ${
+                          isSelected 
+                            ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-600/30' 
+                            : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                        }`}
                       >
-                        <Clock size={16} />
-                        <span>{time}</span>
+                        <Clock size={15} />
+                        <span>{time} hrs</span>
                       </button>
                     );
                   })}
@@ -229,14 +229,14 @@ const AppointmentScheduling = () => {
               </div>
             </div>
 
-            <div className="mt-10 pt-6 border-t flex justify-end" style={{ borderColor: 'var(--border)' }}>
+            <div className="mt-10 pt-6 border-t border-white/10 flex justify-end">
               <button 
                 disabled={!selectedDay || !selectedSlot}
                 onClick={() => setStep(2)}
-                className="btn-primary px-8 py-3.5 text-sm flex items-center gap-2 rounded-xl font-bold shadow-lg disabled:opacity-40"
+                className="btn-primary py-3 px-8 text-xs font-bold uppercase tracking-wider rounded-xl shadow-lg disabled:opacity-40"
               >
                 <span>Continuar</span>
-                <ChevronRight size={18} />
+                <ChevronRight size={16} />
               </button>
             </div>
           </motion.div>
@@ -248,71 +248,64 @@ const AppointmentScheduling = () => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
-            className="p-8 md:p-10 rounded-2xl border shadow-xl"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+            className="glass-card p-6 sm:p-10 rounded-3xl"
           >
             <div className="flex items-center gap-4 mb-8">
               <div 
-                className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
+                className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+                style={{ background: 'rgba(37,99,235,0.2)', color: '#38BDF8' }}
               >
                 <FileText size={28} />
               </div>
               <div>
-                <h2 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                  ¿Qué problema presenta tu equipo?
+                <h2 className="text-2xl font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                  Descripción de la Falla
                 </h2>
-                <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  Describe detalladamente el síntoma o motivo de la visita.
+                <p className="text-xs sm:text-sm text-slate-400">
+                  Explica con el mayor detalle posible el comportamiento o falla que presenta tu equipo.
                 </p>
               </div>
             </div>
 
-            <div className="space-y-5">
+            <div className="space-y-4">
               <textarea 
-                rows="6"
-                placeholder="Ej. Mi laptop no enciende, el ventilador hace mucho ruido, la pantalla parpadea, requiero mantenimiento general preventivo..."
-                className="w-full rounded-2xl p-5 text-sm outline-none border transition-all"
-                style={{
-                  backgroundColor: 'var(--bg)',
-                  borderColor: 'var(--border)',
-                  color: 'var(--text-primary)'
-                }}
+                rows="5"
+                placeholder="Ejemplo: Mi laptop ThinkPad enciende los LEDs pero no da video en pantalla. Comenzó tras una sobretensión eléctrica..."
+                className="input-field h-auto py-4 rounded-2xl leading-relaxed resize-none"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
               
               <div 
-                className="p-4 rounded-xl border flex items-start gap-3 text-xs leading-relaxed"
+                className="p-4 rounded-2xl border flex items-start gap-3 text-xs leading-relaxed"
                 style={{ 
-                  backgroundColor: 'rgba(45, 107, 255, 0.05)', 
-                  borderColor: 'rgba(45, 107, 255, 0.2)',
+                  backgroundColor: 'rgba(37, 99, 235, 0.08)', 
+                  borderColor: 'rgba(59, 130, 246, 0.25)',
                   color: 'var(--text-secondary)'
                 }}
               >
-                <AlertCircle size={20} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
+                <ShieldCheck size={18} className="shrink-0 text-cyan-400 mt-0.5" />
                 <span>
-                  Información: Esta es una solicitud de cita técnica. El profesional revisará tu caso y podrá comunicarse vía chat para brindarte orientación o coordinar la visita.
+                  <strong>Garantía de Servicio JyP:</strong> Tu cita incluye una revisión de integridad física y diagnóstico preliminary. Podrás acordar repuestos originales directamente con el técnico a través del chat en vivo.
                 </span>
               </div>
             </div>
 
-            <div className="mt-8 flex justify-between items-center">
+            <div className="mt-8 flex justify-between items-center pt-4 border-t border-white/10">
               <button 
+                type="button"
                 onClick={() => setStep(1)}
-                className="flex items-center gap-2 font-bold text-xs uppercase tracking-wider transition-colors hover:opacity-80"
-                style={{ color: 'var(--text-secondary)' }}
+                className="btn-ghost py-2.5 px-4 text-xs font-bold"
               >
-                <ChevronLeft size={16} />
-                <span>Regresar</span>
+                <ChevronLeft size={16} /> Regresar
               </button>
               <button 
                 disabled={!description.trim()}
                 onClick={() => setStep(3)}
-                className="btn-primary px-8 py-3.5 text-sm flex items-center gap-2 rounded-xl font-bold shadow-lg disabled:opacity-40"
+                className="btn-primary py-3 px-8 text-xs font-bold uppercase tracking-wider rounded-xl shadow-lg disabled:opacity-40"
               >
-                <span>Ver Resumen</span>
-                <ChevronRight size={18} />
+                <span>Revisar Resumen</span>
+                <ChevronRight size={16} />
               </button>
             </div>
           </motion.div>
@@ -324,112 +317,102 @@ const AppointmentScheduling = () => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
-            className="p-8 md:p-10 rounded-2xl border shadow-xl"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+            className="glass-card p-6 sm:p-10 rounded-3xl"
           >
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold mb-1" style={{ color: 'var(--text-primary)' }}>
-                Confirmación de Cita
+              <h2 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                Confirmación de la Cita Técnica
               </h2>
-              <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-                Revisa los datos antes de registrar tu cita técnica.
+              <p className="text-xs sm:text-sm text-slate-400 mt-1">
+                Verifica los datos del servicio antes de emitir la orden.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-              <div 
-                className="p-5 rounded-xl border"
-                style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
-              >
-                <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--primary)' }}>
-                  Especialista Seleccionado
-                </p>
+              {/* Provider Info */}
+              <div className="p-5 rounded-2xl border border-white/10 bg-white/5 space-y-3">
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 block">
+                  Especialista / Taller Asignado
+                </span>
                 <div className="flex items-center gap-3">
                   <div 
-                    className="w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg text-white"
-                    style={{ backgroundColor: 'var(--primary)' }}
+                    className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-lg text-white"
+                    style={{ background: 'linear-gradient(135deg, #2563EB, #06B6D4)' }}
                   >
                     {provider?.names?.[0] || 'T'}
                   </div>
                   <div>
-                    <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
+                    <h4 className="font-bold text-sm text-white">
                       {provider?.names} {provider?.surnames}
-                    </p>
-                    <div className="flex items-center gap-1.5 text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>
-                      <MapPin size={13} style={{ color: 'var(--primary)' }} />
-                      <span>{provider?.city || 'Trujillo, Perú'}</span>
+                    </h4>
+                    <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
+                      <MapPin size={12} className="text-blue-400" />
+                      <span>{provider?.city || 'Lima Metropolitana'}</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div 
-                className="p-5 rounded-xl border"
-                style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
-              >
-                <p className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--primary)' }}>
-                  Fecha y Hora
-                </p>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2.5 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
-                    <CalendarIcon size={16} style={{ color: 'var(--primary)' }} />
+              {/* Date and Time */}
+              <div className="p-5 rounded-2xl border border-white/10 bg-white/5 space-y-3">
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 block">
+                  Fecha & Horario de Llegada
+                </span>
+                <div className="space-y-1.5 text-sm font-bold text-white">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon size={15} className="text-cyan-400" />
                     <span>{selectedDay}</span>
                   </div>
-                  <div className="flex items-center gap-2.5 font-bold text-sm" style={{ color: 'var(--text-primary)' }}>
-                    <Clock size={16} style={{ color: 'var(--primary)' }} />
+                  <div className="flex items-center gap-2">
+                    <Clock size={15} className="text-cyan-400" />
                     <span>{selectedSlot} hrs</span>
                   </div>
                 </div>
               </div>
 
-              <div 
-                className="md:col-span-2 p-5 rounded-xl border"
-                style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
-              >
-                <p className="text-[11px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--primary)' }}>
-                  Motivo de la Cita
-                </p>
-                <p className="text-sm italic leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+              {/* Problem Details */}
+              <div className="md:col-span-2 p-5 rounded-2xl border border-white/10 bg-white/5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 block mb-2">
+                  Detalle del Requerimiento
+                </span>
+                <p className="text-xs sm:text-sm text-slate-300 italic leading-relaxed">
                   "{description}"
                 </p>
               </div>
             </div>
 
             {error && (
-              <div 
-                className="mb-6 p-4 rounded-xl flex items-center gap-3 text-sm font-semibold"
-                style={{ 
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-                  border: '1px solid rgba(239, 68, 68, 0.25)',
-                  color: '#EF4444' 
-                }}
-              >
-                <AlertCircle size={18} />
+              <div className="mb-6 p-4 rounded-xl flex items-center gap-3 text-xs font-semibold bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                <AlertCircle size={16} />
                 <span>{error}</span>
               </div>
             )}
 
             <div className="flex flex-col gap-3">
               <button 
+                type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="btn-primary w-full py-4 text-sm font-bold flex items-center justify-center gap-2 rounded-xl shadow-lg"
+                className="btn-primary w-full py-4 text-xs font-black uppercase tracking-wider rounded-2xl shadow-xl flex items-center justify-center gap-2"
               >
                 {submitting ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Agendando...</span>
+                    <span>Registrando Solicitud...</span>
                   </div>
                 ) : (
-                  <span>Confirmar y Agendar Cita</span>
+                  <>
+                    <span>Confirmar y Enviar Solicitud</span>
+                    <CheckCircle2 size={16} />
+                  </>
                 )}
               </button>
               <button 
+                type="button"
                 onClick={() => setStep(2)}
-                className="text-xs font-bold uppercase tracking-wider py-2 transition-colors hover:opacity-80"
-                style={{ color: 'var(--text-muted)' }}
+                className="text-xs font-bold text-slate-400 hover:text-white py-2"
               >
-                Modificar Detalles
+                Editar Descripción
               </button>
             </div>
           </motion.div>
@@ -440,39 +423,33 @@ const AppointmentScheduling = () => {
             key="success"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="p-10 text-center rounded-2xl border shadow-xl"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+            className="glass-card p-8 sm:p-12 text-center rounded-3xl"
           >
             <div 
-              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
-              style={{ backgroundColor: 'rgba(0, 229, 160, 0.15)', color: 'var(--secondary)' }}
+              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl"
+              style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', border: '1px solid rgba(16, 185, 129, 0.3)' }}
             >
-              <CheckCircle2 size={48} />
+              <CheckCircle2 size={44} />
             </div>
-            <h2 className="text-3xl font-bold mb-3 tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              ¡Cita Agendada con Éxito!
+            <h2 className="text-3xl font-black text-white mb-2" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+              ¡Cita Técnica Solicitada!
             </h2>
-            <p className="max-w-md mx-auto mb-8 text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-              Tu solicitud ha sido remitida a {provider?.names}. Podrás revisar el estado y comunicarte con el técnico desde tu panel.
+            <p className="max-w-md mx-auto mb-8 text-xs sm:text-sm text-slate-300 leading-relaxed">
+              La solicitud ha sido enviada al técnico. Puedes monitorear el estado y chatear directamente desde tu panel.
             </p>
             
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Link 
                 to="/appointments" 
-                className="btn-primary px-8 py-3.5 text-sm font-bold rounded-xl shadow-lg"
+                className="btn-primary px-8 py-3.5 text-xs font-black uppercase tracking-wider rounded-xl shadow-lg text-center"
               >
                 Ver Mis Citas
               </Link>
               <Link 
                 to="/" 
-                className="px-8 py-3.5 rounded-xl font-bold text-sm border transition-colors hover:opacity-80"
-                style={{ 
-                  backgroundColor: 'var(--bg)', 
-                  borderColor: 'var(--border)',
-                  color: 'var(--text-primary)' 
-                }}
+                className="btn-ghost px-8 py-3.5 text-xs font-bold rounded-xl text-center"
               >
-                Volver al Inicio
+                Volver al Panel
               </Link>
             </div>
           </motion.div>

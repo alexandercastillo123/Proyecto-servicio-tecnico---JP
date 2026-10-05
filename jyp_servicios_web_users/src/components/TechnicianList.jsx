@@ -1,7 +1,11 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import { Search, Filter, Star, MapPin, MessageSquare, Calendar, ChevronRight, Target, Wrench, RefreshCw, Navigation, User, ArrowRight, Cpu, Shield, Clock } from 'lucide-react';
+import { 
+  Search, Filter, Star, MapPin, MessageSquare, Calendar, ChevronRight, 
+  Target, Wrench, RefreshCw, Navigation, User, ArrowRight, Cpu, ShieldCheck, 
+  Clock, Sparkles, CheckCircle2 
+} from 'lucide-react';
 import { clientService } from '../services/api.js';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -15,15 +19,15 @@ L.Icon.Default.mergeOptions({
 
 const techIcon = new L.Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
-  iconSize: [40, 40],
-  iconAnchor: [20, 40],
-  popupAnchor: [0, -40],
+  iconSize: [42, 42],
+  iconAnchor: [21, 42],
+  popupAnchor: [0, -42],
 });
 
 const userIcon = new L.Icon({
   iconUrl: 'https://cdn-icons-png.flaticon.com/512/7114/7114757.png',
-  iconSize: [30, 30],
-  iconAnchor: [15, 15],
+  iconSize: [34, 34],
+  iconAnchor: [17, 17],
 });
 
 // Helper component to smoothly re-center the map without unmounting MapContainer
@@ -54,7 +58,9 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
   const [technicians, setTechnicians] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [filters, setFilters] = useState({ city: '', minRating: 0 });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterAvailableOnly, setFilterAvailableOnly] = useState(false);
+  const [filterMinRating, setFilterMinRating] = useState(0);
   const [mapCenter, setMapCenter] = useState([-12.046374, -77.042793]);
   const [tempMarker, setTempMarker] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
@@ -69,17 +75,20 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
 
   useEffect(() => {
     setMapReady(true);
+    // Auto fetch technicians on mount if user location exists
+    if (userLocation?.lat && userLocation?.lng) {
+      fetchTechnicians([userLocation.lat, userLocation.lng]);
+    }
   }, []);
 
-  const fetchTechnicians = async () => {
+  const fetchTechnicians = async (coords = tempMarker) => {
     setLoading(true);
     try {
-      // Use the nearby endpoint for radius search
-      const params = tempMarker ? {
-        lat: tempMarker[0],
-        lng: tempMarker[1],
-        radius: 10 // 10km radius
-      } : filters;
+      const params = coords ? {
+        lat: coords[0],
+        lng: coords[1],
+        radius: 15 // 15km radius
+      } : { city: 'Lima' };
 
       const response = await clientService.getNearbyTechnicians(params);
       if (response.data.exito) {
@@ -106,12 +115,11 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
       const newLoc = {
         lat: tempMarker[0],
         lng: tempMarker[1],
-        address: data.display_name || 'UbicaciÃ³n Seleccionada'
+        address: data?.display_name?.split(',').slice(0, 2).join(',') || 'Ubicación Seleccionada'
       };
 
       if (onLocationUpdate) onLocationUpdate(newLoc);
-      await fetchTechnicians();
-      
+      await fetchTechnicians(tempMarker);
     } catch (error) {
       console.error('Manual search failed:', error);
       setIsSearching(false);
@@ -119,166 +127,240 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
     }
   };
 
+  // Filtered technician list
+  const filteredTechnicians = technicians.filter(tech => {
+    const fullName = `${tech.names || ''} ${tech.surnames || ''} ${tech.company_name || ''}`.toLowerCase();
+    const specialties = (tech.specialties || '').toLowerCase();
+    const matchesQuery = !searchQuery || fullName.includes(searchQuery.toLowerCase()) || specialties.includes(searchQuery.toLowerCase());
+    const matchesAvailable = !filterAvailableOnly || tech.is_available === 1;
+    const matchesRating = !filterMinRating || (parseFloat(tech.rating || 5.0) >= filterMinRating);
+    return matchesQuery && matchesAvailable && matchesRating;
+  });
+
   return (
-    <div className="flex flex-col lg:flex-row gap-6" style={{ height: 680, fontFamily: "'Inter',sans-serif" }}>
-      
-      {/* â”€â”€ Sidebar: Tech Cards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <div className="w-full lg:w-[380px] flex flex-col gap-4 overflow-hidden">
-        {/* Search */}
+    <div 
+      className="flex flex-col lg:flex-row gap-6 rounded-3xl" 
+      style={{ height: 720, fontFamily: "'Inter', sans-serif" }}
+    >
+      {/* ── Sidebar: Filter & Technician Cards ───────────────── */}
+      <div className="w-full lg:w-[420px] flex flex-col gap-3.5 overflow-hidden">
+        {/* Search bar */}
         <div className="relative">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-dim)', pointerEvents: 'none' }} />
+          <Search 
+            size={16} 
+            className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" 
+            style={{ color: 'var(--text-dim)' }} 
+          />
           <input
             type="text"
-            placeholder="Filtrar tÃ©cnicos..."
+            placeholder="Buscar por nombre o especialidad (laptop, red...)"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             className="input-field"
-            style={{ paddingLeft: 40, height: 44 }}
-            onChange={(e) => setFilters({ ...filters, city: e.target.value })}
+            style={{ paddingLeft: 42, height: 46, borderRadius: 14 }}
           />
         </div>
 
-        <div className="flex-1 overflow-y-auto no-scrollbar space-y-3">
-          {!hasSearched ? (
+        {/* Quick Filter Buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setFilterAvailableOnly(!filterAvailableOnly)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+              filterAvailableOnly 
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
+                : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
+            }`}
+          >
+            Disponibles Ahora
+          </button>
+          <button
+            type="button"
+            onClick={() => setFilterMinRating(filterMinRating === 4.5 ? 0 : 4.5)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1 ${
+              filterMinRating === 4.5 
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+                : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
+            }`}
+          >
+            <Star size={12} fill="currentColor" /> 4.5+ Estrellas
+          </button>
+          <span className="text-[11px] font-bold text-slate-400 ml-auto">
+            {filteredTechnicians.length} resultados
+          </span>
+        </div>
+
+        {/* Card Scroll Area */}
+        <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 pr-1">
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="glass-card p-5 space-y-3" style={{ height: 160 }}>
+                  <div className="flex gap-3">
+                    <div className="w-12 h-12 rounded-xl skeleton" />
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 w-3/4 skeleton rounded" />
+                      <div className="h-3 w-1/2 skeleton rounded" />
+                    </div>
+                  </div>
+                  <div className="h-3 w-full skeleton rounded mt-4" />
+                </div>
+              ))}
+            </div>
+          ) : !hasSearched ? (
             <div
-              className="h-full flex flex-col items-center justify-center p-8 text-center rounded-2xl"
+              className="h-full flex flex-col items-center justify-center p-8 text-center rounded-3xl"
               style={{ border: '2px dashed var(--border)', background: 'var(--bg-input)' }}
             >
               <div
                 className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
-                style={{ background: 'rgba(45,107,255,0.1)', border: '1px solid rgba(45,107,255,0.2)' }}
+                style={{ background: 'rgba(37, 99, 235, 0.15)', border: '1px solid rgba(59, 130, 246, 0.3)' }}
               >
-                <Navigation size={28} style={{ color: 'var(--primary)', animation: 'pulse 2s infinite' }} />
+                <Navigation size={28} className="text-blue-500 animate-pulse" />
               </div>
-              <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 8 }}>
-                Comienza la bÃºsqueda
+              <h3 className="text-base font-black text-white mb-2" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                Explorador de Técnicos
               </h3>
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                Haz doble click en el mapa para marcar tu zona y presiona{' '}
-                <span style={{ color: 'var(--primary)', fontWeight: 700 }}>Buscar</span>{' '}
-                para ver expertos disponibles.
+              <p className="text-xs text-slate-400 leading-relaxed max-w-xs mb-4">
+                Haz doble clic en el mapa para marcar tu zona y pulsa "Buscar Técnicos aquí".
               </p>
-            </div>
-          ) : loading ? (
-            <div className="space-y-3">
-              {[...Array(3)].map((_, i) => (
-                <div key={i} className="skeleton" style={{ height: 130, borderRadius: 16 }} />
-              ))}
-            </div>
-          ) : technicians.length > 0 ? (
-            technicians.map((tech, idx) => (
-              <div
-                key={tech.id}
-                className="glass-card p-4 cursor-pointer group"
-                style={{ animation: `slide-up 0.4s ${idx * 0.06}s both` }}
-                onClick={() => {
-                  const lat = parseFloat(tech.latitude);
-                  const lng = parseFloat(tech.longitude);
-                  if (!isNaN(lat) && !isNaN(lng)) setMapCenter([lat, lng]);
-                }}
+              <button
+                onClick={handleManualSearch}
+                className="btn-primary py-2.5 px-5 text-xs font-bold"
               >
-                <div className="flex items-start gap-3">
-                  {/* Avatar */}
-                  <div
-                    className="shrink-0 flex items-center justify-center font-black text-white text-lg rounded-2xl"
-                    style={{
-                      width: 52, height: 52,
-                      background: 'linear-gradient(135deg, var(--primary), var(--tertiary))',
-                      fontFamily: "'Plus Jakarta Sans',sans-serif",
-                      position: 'relative',
-                    }}
-                  >
-                    {tech.names?.[0]?.[0]?.toUpperCase() || 'T'}
-                    {/* Availability dot */}
-                    {tech.is_available === 1 && (
-                      <span
-                        className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full"
-                        style={{ background: 'var(--success)', border: '2px solid var(--bg)', boxShadow: '0 0 8px var(--secondary-glow)' }}
-                      />
-                    )}
-                  </div>
+                <Search size={14} /> Buscar en mi ubicación
+              </button>
+            </div>
+          ) : filteredTechnicians.length > 0 ? (
+            filteredTechnicians.map((tech) => {
+              const isAvailable = tech.is_available === 1;
+              const rating = tech.rating ? parseFloat(tech.rating).toFixed(1) : '5.0';
+              const name = `${tech.names || ''} ${tech.surnames || ''}`.trim() || tech.company_name || 'Especialista Técnico';
+              const distanceKm = tech.distance ? `${parseFloat(tech.distance).toFixed(1)} km` : null;
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <h3
-                        className="truncate text-sm font-bold group-hover:text-blue-400 transition-colors"
-                        style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: 'var(--text-primary)' }}
-                      >
-                        {tech.names?.[0] || 'TÃ©cnico'} {tech.surnames?.[0] || ''}
-                      </h3>
-                      {/* Rating */}
-                      <div
-                        className="flex items-center gap-1 px-2 py-0.5 rounded-lg shrink-0"
-                        style={{ background: 'rgba(255,176,32,0.12)', border: '1px solid rgba(255,176,32,0.2)' }}
-                      >
-                        <Star size={10} style={{ color: '#FFB020', fill: '#FFB020' }} />
-                        <span style={{ fontSize: 11, fontWeight: 800, color: '#FFB020' }}>
-                          {tech.rating ? parseFloat(tech.rating).toFixed(1) : '5.0'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Location & specialty */}
-                    <div className="flex items-center gap-1 mt-1" style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                      <MapPin size={10} style={{ color: 'var(--primary)', flexShrink: 0 }} />
-                      <span className="truncate">{tech.city || 'Lima'}</span>
-                    </div>
-
-                    {/* Skills tags */}
-                    {tech.specialties && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {String(tech.specialties).split(',').slice(0, 2).map((sp, i) => (
-                          <span
-                            key={i}
-                            className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                            style={{ background: 'rgba(45,107,255,0.1)', color: 'var(--info)', border: '1px solid rgba(45,107,255,0.15)' }}
-                          >
-                            {sp.trim()}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Footer */}
+              return (
                 <div
-                  className="flex items-center justify-between mt-3 pt-3"
-                  style={{ borderTop: '1px solid var(--border)' }}
+                  key={tech.id}
+                  className="glass-card p-4 rounded-2xl cursor-pointer group hover:border-blue-500/50 transition-all duration-200"
+                  onClick={() => {
+                    const lat = parseFloat(tech.latitude);
+                    const lng = parseFloat(tech.longitude);
+                    if (!isNaN(lat) && !isNaN(lng)) setMapCenter([lat, lng]);
+                  }}
                 >
-                  <div className="flex items-center gap-3">
-                    {tech.is_available === 1 ? (
-                      <span className="status-badge status-completed">Disponible</span>
-                    ) : (
-                      <span className="status-badge status-expired">No disponible</span>
-                    )}
-                    <span style={{ fontSize: 11, color: 'var(--text-dim)', display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={10} /> 5+ aÃ±os
-                    </span>
+                  <div className="flex items-start gap-3.5">
+                    {/* Tech Avatar */}
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-white text-base shrink-0 relative shadow-md"
+                      style={{
+                        background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+                        fontFamily: "'Plus Jakarta Sans',sans-serif",
+                      }}
+                    >
+                      {name[0]?.toUpperCase() || 'T'}
+                      {/* Availability status badge */}
+                      <span
+                        className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2"
+                        style={{
+                          borderColor: 'var(--bg)',
+                          background: isAvailable ? 'var(--success)' : '#94A3B8',
+                          boxShadow: isAvailable ? '0 0 8px #10B981' : 'none'
+                        }}
+                      />
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="font-bold text-sm text-white truncate group-hover:text-blue-400 transition-colors">
+                          {name}
+                        </h4>
+                        
+                        {/* Rating pill */}
+                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 shrink-0">
+                          <Star size={11} fill="currentColor" />
+                          <span className="text-[11px] font-black">{rating}</span>
+                        </div>
+                      </div>
+
+                      {/* City and distance */}
+                      <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                        <span className="flex items-center gap-1 truncate">
+                          <MapPin size={11} className="text-blue-400" />
+                          {tech.city || 'Lima'}
+                        </span>
+                        {distanceKm && (
+                          <span className="text-[11px] font-bold text-cyan-400">
+                            · a {distanceKm}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Specialty tags */}
+                      {tech.specialties && (
+                        <div className="flex flex-wrap gap-1.5 mt-2.5">
+                          {String(tech.specialties).split(',').slice(0, 2).map((sp, i) => (
+                            <span
+                              key={i}
+                              className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-500/10 text-blue-300 border border-blue-500/20"
+                            >
+                              {sp.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); navigate(`/technician/${tech.id}`); }}
-                    className="btn-primary btn-sm"
-                    style={{ height: 32, padding: '0 12px', fontSize: 12 }}
-                  >
-                    Ver Perfil <ArrowRight size={12} />
-                  </button>
+
+                  {/* Actions Bar */}
+                  <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-white/5">
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${isAvailable ? 'text-emerald-400' : 'text-slate-400'}`}>
+                      {isAvailable ? 'En línea / Disponible' : 'Fuera de turno'}
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/appointments/schedule?tech=${tech.id}`);
+                        }}
+                        className="btn-primary py-1.5 px-3 text-[11px] font-bold"
+                        style={{ height: 32, borderRadius: 10 }}
+                      >
+                        <Calendar size={12} /> Agendar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/technician/${tech.id}`);
+                        }}
+                        className="btn-ghost py-1.5 px-3 text-[11px] font-bold"
+                        style={{ height: 32, borderRadius: 10 }}
+                      >
+                        Perfil
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
-            <div className="card text-center py-10">
-              <Wrench size={28} style={{ color: 'var(--text-dim)', margin: '0 auto 12px' }} />
-              <p style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Sin tÃ©cnicos en esta zona</p>
-              <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>Prueba ampliar el radio de bÃºsqueda</p>
+            <div className="glass-card text-center p-8 rounded-2xl space-y-3">
+              <Wrench size={32} className="text-slate-500 mx-auto" />
+              <h4 className="text-sm font-bold text-white">No se encontraron especialistas</h4>
+              <p className="text-xs text-slate-400">
+                Prueba cambiando los filtros o desplazando el mapa hacia otra zona de Lima.
+              </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* â”€â”€ Map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <div
-        className="flex-1 min-h-[380px] lg:min-h-0 relative overflow-hidden"
-        style={{ borderRadius: 24, border: '1px solid var(--border)' }}
+      {/* ── Interactive Map Container ─────────────────────────── */}
+      <div 
+        className="flex-1 min-h-[380px] lg:min-h-0 relative overflow-hidden rounded-3xl border border-white/10 shadow-2xl"
       >
         {mapReady && (
           <MapContainer
@@ -288,7 +370,10 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
             style={{ height: '100%', width: '100%' }}
             zoomControl={false}
           >
-            <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" attribution="&copy; CARTO" />
+            <TileLayer
+              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              attribution="&copy; CARTO"
+            />
             <MapEvents onDblClick={(lat, lng) => setTempMarker([lat, lng])} />
             <RecenterMap coords={mapCenter} />
 
@@ -297,28 +382,46 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
                 <Circle
                   center={tempMarker}
                   radius={10000}
-                  pathOptions={{ color: '#2D6BFF', fillOpacity: 0.05, weight: 1.5, dashArray: '6,10' }}
+                  pathOptions={{
+                    color: '#2563EB',
+                    fillOpacity: 0.08,
+                    weight: 1.5,
+                    dashArray: '6,10'
+                  }}
                 />
                 <Marker position={tempMarker} icon={userIcon} />
               </>
             )}
 
-            {hasSearched && technicians.map((tech) => {
+            {technicians.map((tech) => {
               const lat = parseFloat(tech.latitude);
               const lng = parseFloat(tech.longitude);
               if (isNaN(lat) || isNaN(lng)) return null;
               return (
                 <Marker key={tech.id} position={[lat, lng]} icon={techIcon}>
                   <Popup>
-                    <div style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", textAlign: 'center', padding: 8 }}>
-                      <h4 style={{ fontWeight: 800, fontSize: 14, marginBottom: 8 }}>
-                        {tech.names?.[0] || 'TÃ©cnico'} {tech.surnames?.[0] || ''}
+                    <div style={{ fontFamily: "'Inter',sans-serif", textAlign: 'center', padding: '6px 4px' }}>
+                      <h4 style={{ fontWeight: 800, fontSize: 14, marginBottom: 4, color: 'var(--text-primary)' }}>
+                        {tech.names || tech.company_name || 'Técnico Especialista'}
                       </h4>
+                      <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                        {tech.city || 'Lima'}
+                      </p>
                       <button
                         onClick={() => navigate(`/technician/${tech.id}`)}
-                        style={{ background: '#2D6BFF', color: 'white', border: 'none', padding: '6px 16px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}
+                        style={{
+                          background: 'linear-gradient(135deg, #2563EB, #06B6D4)',
+                          color: 'white',
+                          border: 'none',
+                          padding: '6px 14px',
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          width: '100%'
+                        }}
                       >
-                        Ver Perfil
+                        Ver Perfil Completo
                       </button>
                     </div>
                   </Popup>
@@ -328,47 +431,48 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
           </MapContainer>
         )}
 
-        {/* Search trigger button */}
+        {/* Trigger Button: Search around current pin */}
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000]">
           <button
             type="button"
             onClick={handleManualSearch}
             disabled={isSearching}
-            className="flex items-center gap-2.5 btn-primary"
+            className="btn-primary shadow-2xl py-3 px-6 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2.5"
             style={{
-              height: 48, padding: '0 24px', borderRadius: 999,
-              fontSize: 13, letterSpacing: '0.04em', fontWeight: 700,
-              boxShadow: '0 16px 40px rgba(45,107,255,0.4)',
+              background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+              boxShadow: '0 10px 30px rgba(37, 99, 235, 0.45)',
             }}
           >
-            {isSearching
-              ? <><RefreshCw size={16} style={{ animation: 'spin-loader 0.75s linear infinite' }} /> Buscando...</>
-              : <><Search size={16} /> Buscar TÃ©cnicos aquÃ­</>
-            }
+            {isSearching ? (
+              <>
+                <RefreshCw size={15} className="animate-spin" />
+                <span>Escaneando Zona...</span>
+              </>
+            ) : (
+              <>
+                <Search size={15} />
+                <span>Buscar Técnicos en esta zona</span>
+              </>
+            )}
           </button>
         </div>
 
-        {/* Location overlay */}
+        {/* Zone indicator card in top left */}
         <div
-          className="absolute top-5 left-5 z-[1000] flex items-center gap-3 px-4 py-3 rounded-2xl"
-          style={{
-            background: 'rgba(5,7,15,0.85)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-lg)',
-          }}
+          className="absolute top-5 left-5 z-[1000] flex items-center gap-3 px-4 py-3 rounded-2xl glass-panel"
         >
           <div
-            style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(45,107,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-blue-400"
+            style={{ background: 'rgba(37, 99, 235, 0.15)', border: '1px solid rgba(59, 130, 246, 0.3)' }}
           >
-            <MapPin size={18} style={{ color: 'var(--primary)' }} />
+            <MapPin size={18} />
           </div>
           <div>
-            <p style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 2 }}>
-              Zona seleccionada
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Cobertura Activa
             </p>
-            <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', maxWidth: 180, fontFamily: "'Plus Jakarta Sans',sans-serif" }} className="truncate">
-              {userLocation?.address?.split(',')[0] || 'Lima'}
+            <p className="text-xs font-bold text-white max-w-[170px] truncate">
+              {userLocation?.address?.split(',')[0] || 'Lima Metropolitana'}
             </p>
           </div>
         </div>
@@ -378,4 +482,3 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
 };
 
 export default TechnicianList;
-

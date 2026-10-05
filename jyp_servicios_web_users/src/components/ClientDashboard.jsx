@@ -1,11 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, MapPin, Star, Calendar, ArrowRight, ShieldCheck, Zap, X, Filter, Store, MessageSquare, User, Target, Clock } from 'lucide-react';
+import { 
+  Search, MapPin, Star, Calendar, ArrowRight, ShieldCheck, 
+  Zap, X, Filter, Store, MessageSquare, User, Target, Clock,
+  Cpu, Monitor, Server, Wrench, HardDrive, Wifi, Sparkles, Navigation,
+  CheckCircle2, AlertCircle
+} from 'lucide-react';
 import { clientService, messageService } from '../services/api';
 import LocationPicker from './LocationPicker';
 import { Link, useNavigate } from 'react-router-dom';
 import TechnicianList from './TechnicianList';
 import { useSocket } from '../context/SocketContext';
+import { TechLoader, RadarIndicator } from './common/TechLoader';
+
+const SERVICE_CATEGORIES = [
+  { id: 'all', label: 'Todos los Servicios', icon: Sparkles },
+  { id: 'pc', label: 'Laptops & PCs', icon: Monitor },
+  { id: 'electronics', label: 'Microelectrónica', icon: Cpu },
+  { id: 'servers', label: 'Servidores & Redes', icon: Server },
+  { id: 'storage', label: 'Recuperación de Datos', icon: HardDrive },
+  { id: 'maintenance', label: 'Mantenimiento Preventivo', icon: Wrench },
+];
 
 const ClientDashboard = () => {
   const navigate = useNavigate();
@@ -14,12 +29,14 @@ const ClientDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [activeAppointment, setActiveAppointment] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user') || '{}'));
   
   // Try to load from localStorage first
   const [userLocation, setUserLocation] = useState(() => {
     const saved = localStorage.getItem('user_location');
     return saved ? JSON.parse(saved) : { 
-      address: 'Lima Centro',
+      address: 'Lima Centro, Perú',
       lat: -12.046374, 
       lng: -77.042793 
     };
@@ -27,7 +44,6 @@ const ClientDashboard = () => {
 
   useEffect(() => {
     fetchData();
-    // Auto-detect if it's the default location
     if (userLocation.lat === -12.046374 && userLocation.lng === -77.042793) {
        detectLocation();
     }
@@ -65,13 +81,12 @@ const ClientDashboard = () => {
           const newLoc = {
             lat: pos.coords.latitude,
             lng: pos.coords.longitude,
-            address: 'Ubicación Detectada'
+            address: 'Ubicación Detectada (GPS)'
           };
           updateLocation(newLoc);
-          // Try to get address
           reverseGeocode(newLoc.lat, newLoc.lng);
         },
-        (err) => console.log('Geolocation auto-detect failed'),
+        () => console.log('Geolocation auto-detect failed'),
         { enableHighAccuracy: true }
       );
     }
@@ -82,7 +97,8 @@ const ClientDashboard = () => {
       const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
       const data = await response.json();
       if (data && data.display_name) {
-        const newLoc = { lat, lng, address: data.display_name };
+        const shortAddr = data.display_name.split(',').slice(0, 2).join(',');
+        const newLoc = { lat, lng, address: shortAddr || data.display_name };
         updateLocation(newLoc);
       }
     } catch (e) {}
@@ -97,16 +113,18 @@ const ClientDashboard = () => {
     setIsLoading(true);
     try {
       const [convsResp, apptsResp] = await Promise.all([
-        messageService.getConversations(),
-        clientService.getMyAppointments()
+        messageService.getConversations().catch(() => ({ data: {} })),
+        clientService.getMyAppointments().catch(() => ({ data: {} }))
       ]);
       
-      if (convsResp.data.exito) {
+      if (convsResp.data?.exito) {
         setConversations(convsResp.data.resultado || []);
       }
-      if (apptsResp.data.exito) {
+      if (apptsResp.data?.exito) {
         const appts = apptsResp.data.resultado || [];
-        const active = appts.find(a => a.status === 'confirmed' || a.status === 'paid');
+        const active = appts.find(a => 
+          ['confirmed', 'paid', 'in_progress', 'on_the_way'].includes(a.status)
+        );
         setActiveAppointment(active);
       }
     } catch (error) {
@@ -119,145 +137,252 @@ const ClientDashboard = () => {
   const recentTechChat = conversations.find(c => c.other_user_role === 'tech' || c.other_user_role === 'technician');
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-20" style={{ fontFamily: "'Inter',sans-serif" }}>
+    <div className="max-w-6xl mx-auto space-y-8 pb-16" style={{ fontFamily: "'Inter', sans-serif" }}>
       
-      {/* ── HEADER ───────────────────────────────────────────── */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="space-y-2">
-          <button 
-            onClick={() => setShowLocationModal(true)}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-[0.12em] transition-all"
-            style={{
-              background: 'rgba(45,107,255,0.1)',
-              border: '1px solid rgba(45,107,255,0.25)',
-              color: 'var(--primary)'
-            }}
-          >
-            <Target size={11} style={{ animation: 'pulse 2s infinite' }} />
-            {userLocation.address.split(',')[0]}
-          </button>
-          <h1
-            className="text-4xl md:text-5xl font-black tracking-tight leading-tight"
-            style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: 'var(--text-primary)' }}
-          >
-            Explorar <span style={{ color: 'var(--primary)' }}>Técnicos</span>
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: 480, lineHeight: 1.6 }}>
-            Encuentra expertos certificados cerca de tu zona para soporte técnico inmediato.
-          </p>
+      {/* ── HERO BANNER WITH CINEMATIC TECH BACKGROUND ─────────── */}
+      <div 
+        className="glass-card p-6 sm:p-8 md:p-10 rounded-3xl relative overflow-hidden"
+        style={{
+          background: "linear-gradient(135deg, rgba(13, 22, 41, 0.85) 0%, rgba(6, 9, 19, 0.95) 100%)",
+          border: "1px solid rgba(59, 130, 246, 0.25)",
+          boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(37, 99, 235, 0.15)",
+        }}
+      >
+        {/* Subtle grid pattern */}
+        <div 
+          className="absolute inset-0 bg-tech-circuit opacity-60 pointer-events-none" 
+        />
+        {/* Glowing orb */}
+        <div 
+          className="absolute -top-20 -right-20 w-80 h-80 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, transparent 70%)", filter: "blur(60px)" }}
+        />
+
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-3 max-w-2xl">
+            {/* Location selector pill */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button 
+                onClick={() => setShowLocationModal(true)}
+                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all hover:scale-105"
+                style={{
+                  background: 'rgba(37, 99, 235, 0.18)',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  color: '#60A5FA'
+                }}
+              >
+                <Target size={13} className="text-cyan-400 animate-pulse" />
+                <span>{userLocation.address.split(',')[0]}</span>
+                <span className="text-[10px] text-blue-300 uppercase underline ml-1 font-semibold">Cambiar</span>
+              </button>
+
+              <RadarIndicator label="Radar de Técnicos Activo" />
+            </div>
+
+            <h1
+              className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-white"
+              style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}
+            >
+              Hola, <span className="gradient-tech">{user?.names?.split(' ')[0] || user?.username || 'Cliente'}</span>
+            </h1>
+
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl">
+              Solicita asistencia técnica en tiempo real. Conectamos tu necesidad de hardware con especialistas certificados con garantía de 7 días.
+            </p>
+          </div>
+
+          {/* Quick Schedule CTA button */}
+          <div className="shrink-0 flex flex-col sm:flex-row md:flex-col gap-3 w-full sm:w-auto">
+            <button
+              onClick={() => navigate('/appointments/schedule')}
+              className="btn-primary py-3.5 px-6 shadow-xl text-center"
+              style={{ borderRadius: 14 }}
+            >
+              <Calendar size={18} />
+              <span>Agendar Reparación</span>
+            </button>
+            <Link
+              to="/stores"
+              className="btn-ghost py-3.5 px-6 text-center text-xs font-bold"
+              style={{ borderRadius: 14 }}
+            >
+              <Store size={16} />
+              <span>Ver Tiendas & Talleres</span>
+            </Link>
+          </div>
         </div>
-        <div
-          className="p-5 rounded-3xl"
+
+        {/* Category Pills Bar */}
+        <div className="relative z-10 pt-8 border-t border-white/10 mt-6 flex gap-2 overflow-x-auto no-scrollbar pb-1">
+          {SERVICE_CATEGORIES.map((cat) => {
+            const Icon = cat.icon;
+            const isSelected = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id)}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200"
+                style={{
+                  background: isSelected ? "rgba(37, 99, 235, 0.3)" : "rgba(255, 255, 255, 0.05)",
+                  border: isSelected ? "1px solid rgba(59, 130, 246, 0.6)" : "1px solid rgba(255, 255, 255, 0.08)",
+                  color: isSelected ? "#38BDF8" : "var(--text-secondary)",
+                }}
+              >
+                <Icon size={14} className={isSelected ? "text-cyan-400" : "text-slate-400"} />
+                <span>{cat.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── ACTIVE SERVICE BANNER ───────────────────────────────── */}
+      {activeAppointment && (
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-6 sm:p-7 rounded-3xl relative overflow-hidden"
           style={{
-            background: 'rgba(45,107,255,0.1)',
-            border: '1px solid rgba(45,107,255,0.2)',
-            color: 'var(--primary)',
+            background: "linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(6, 182, 212, 0.1) 100%)",
+            border: "1px solid rgba(59, 130, 246, 0.35)",
+            boxShadow: "0 15px 35px rgba(37, 99, 235, 0.15)",
           }}
         >
-          <Zap size={36} />
-        </div>
-      </header>
-
-      {/* ── ACTIVE SERVICE BANNER ─────────────────────────────────────────── */}
-      {activeAppointment && (
-        <div className="px-4">
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-primary/10 border border-primary/20 p-6 rounded-[32px] flex flex-col md:flex-row items-center justify-between shadow-xl gap-4"
-          >
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center text-white shadow-xl shadow-primary/20">
+              <div 
+                className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg"
+                style={{ background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)" }}
+              >
                 <Clock size={28} className="animate-pulse" />
               </div>
               <div>
-                <p className="text-[10px] font-black text-primary uppercase tracking-widest leading-none mb-1">Tu servicio está listo</p>
-                <h3 className="text-xl font-black text-white">{activeAppointment.serviceType || 'Servicio Técnico'}</h3>
-                <p className="text-xs text-text-dim">Especialista: <span className="text-white font-bold">{activeAppointment.techName || 'Técnico'}</span></p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400">
+                    Servicio Activo en Progreso
+                  </span>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                </div>
+                <h3 className="text-xl font-black text-white">
+                  {activeAppointment.serviceType || 'Mantenimiento Especializado'}
+                </h3>
+                <p className="text-xs text-slate-300">
+                  Especialista asignado: <span className="text-white font-bold">{activeAppointment.techName || 'Técnico JyP'}</span>
+                </p>
               </div>
             </div>
-            
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <div className="flex-1 md:flex-none text-right hidden sm:block">
-                 <p className="text-[10px] font-black text-text-dim uppercase">Estado</p>
-                 <p className="text-sm font-black text-primary uppercase">{activeAppointment.status}</p>
-              </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-3 w-full lg:w-auto">
+              <button 
+                onClick={() => navigate(`/appointments/${activeAppointment.id}`)}
+                className="btn-ghost flex-1 lg:flex-none text-xs font-bold py-3"
+              >
+                Ver Detalle & Ruta
+              </button>
               <button 
                 onClick={() => navigate(`/chat?user=${activeAppointment.techId}`)}
-                className="flex-1 md:flex-none bg-primary text-white px-8 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+                className="btn-primary flex-1 lg:flex-none text-xs font-black uppercase tracking-wider py-3"
               >
-                Ir al Chat
+                <MessageSquare size={15} />
+                <span>Chat Directo</span>
               </button>
             </div>
-          </motion.div>
-        </div>
+          </div>
+        </motion.div>
       )}
 
-      {/* ── RECENT TECH BANNER ────────────────────────────────────────────── */}
-      {recentTechChat && (
-        <div className="px-4">
-           <motion.div 
-             initial={{ opacity: 0, x: -20 }}
-             animate={{ opacity: 1, x: 0 }}
-             onClick={() => navigate(`/chat?user=${recentTechChat.other_user_id}`)}
-             className="bg-primary p-6 rounded-[32px] shadow-2xl shadow-primary/30 flex items-center gap-5 cursor-pointer group hover:scale-[1.02] transition-all relative overflow-hidden"
-           >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16" />
-              <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-white font-black text-2xl border-2 border-white/10 relative z-10">
-                 {recentTechChat.username?.[0]}
-              </div>
-              <div className="flex-1 relative z-10">
-                 <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-1">Última Consulta</p>
-                 <h3 className="text-white font-black text-lg">{recentTechChat.username}</h3>
-                 <p className="text-white/80 text-xs line-clamp-1">{recentTechChat.last_message}</p>
-              </div>
-              <div className="bg-white/20 p-3 rounded-xl text-white group-hover:translate-x-1 transition-transform">
-                 <ArrowRight size={20} />
-              </div>
-           </motion.div>
-        </div>
+      {/* ── RECENT CONSULTATION BANNER ──────────────────────────── */}
+      {recentTechChat && !activeAppointment && (
+        <motion.div 
+          initial={{ opacity: 0, x: -15 }}
+          animate={{ opacity: 1, x: 0 }}
+          onClick={() => navigate(`/chat?user=${recentTechChat.other_user_id}`)}
+          className="glass-card p-5 rounded-2xl flex items-center gap-4 cursor-pointer group hover:border-blue-500/50 transition-all"
+        >
+          <div 
+            className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-lg shrink-0 shadow-md"
+            style={{ background: "linear-gradient(135deg, #2563EB 0%, #8B5CF6 100%)" }}
+          >
+            {recentTechChat.username?.[0]?.toUpperCase() || "T"}
+          </div>
+          <div className="flex-1 min-w-0">
+            <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 block mb-0.5">
+              Última Consulta Técnica
+            </span>
+            <h4 className="text-sm font-bold text-white truncate">{recentTechChat.username}</h4>
+            <p className="text-xs text-slate-400 line-clamp-1">{recentTechChat.last_message || 'Abrir conversación...'}</p>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/5 group-hover:bg-blue-600 group-hover:text-white transition-all text-slate-400">
+            <ArrowRight size={16} />
+          </div>
+        </motion.div>
       )}
 
-      {/* ── TECHNICIAN LIST AREA ─────────────────────────────────────────── */}
-      <main className="px-4 space-y-10">
-        <div className="flex justify-between items-end">
-           <h2 className="text-2xl font-black text-white px-2 flex items-center gap-3">
-              Expertos Disponibles
-              <ShieldCheck className="text-primary" size={24} />
-           </h2>
+      {/* ── TECHNICIAN LIST AREA ────────────────────────────────── */}
+      <section className="space-y-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-black text-white flex items-center gap-2.5">
+              <span>Especialistas Disponibles en tu Zona</span>
+              <ShieldCheck className="text-cyan-400" size={22} />
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">
+              Filtra y visualiza la ubicación de técnicos certificados listos para acudir a domicilio o recibir tu equipo.
+            </p>
+          </div>
         </div>
-        <TechnicianList userLocation={userLocation} />
-      </main>
 
-      {/* Location Modal */}
+        {/* Technician List Component */}
+        <TechnicianList 
+          userLocation={userLocation} 
+          onLocationUpdate={updateLocation}
+        />
+      </section>
+
+      {/* ── LOCATION SELECTOR MODAL ─────────────────────────────── */}
       <AnimatePresence>
         {showLocationModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-background/80 backdrop-blur-md">
+          <div className="modal-overlay">
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="glass-panel w-full max-w-xl p-8 relative"
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="glass-panel w-full max-w-xl p-6 sm:p-8 rounded-3xl relative"
             >
-              <button onClick={() => setShowLocationModal(false)} className="absolute top-6 right-6 text-slate-500 hover:text-white"><X size={24} /></button>
-              <div className="flex items-center gap-4 mb-2">
-                 <div className="w-10 h-10 bg-primary/20 rounded-xl flex items-center justify-center text-primary">
-                    <MapPin size={24} />
-                 </div>
-                 <h3 className="text-2xl font-black text-white">Establecer Ubicación</h3>
+              <button 
+                onClick={() => setShowLocationModal(false)} 
+                className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X size={20} />
+              </button>
+
+              <div className="flex items-center gap-3 mb-2">
+                <div 
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-cyan-400"
+                  style={{ background: 'rgba(6, 182, 212, 0.15)', border: '1px solid rgba(6, 182, 212, 0.3)' }}
+                >
+                  <MapPin size={22} />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-white">Fijar Ubicación de Servicio</h3>
+                  <p className="text-xs text-slate-400">Ubica tu punto de referencia en el mapa interactivo.</p>
+                </div>
               </div>
-              <p className="text-slate-500 text-sm mb-8">Selecciona tu ubicación exacta en el mapa para ver técnicos cerca de ti.</p>
               
-              <LocationPicker 
-                onLocationSelect={(loc) => updateLocation(loc)}
-                initialLocation={{ lat: userLocation.lat, lng: userLocation.lng }}
-              />
+              <div className="mt-5 rounded-2xl overflow-hidden border border-white/10">
+                <LocationPicker 
+                  onLocationSelect={(loc) => updateLocation(loc)}
+                  initialLocation={{ lat: userLocation.lat, lng: userLocation.lng }}
+                />
+              </div>
               
               <button 
                 onClick={() => setShowLocationModal(false)} 
-                className="btn-primary w-full mt-8 py-5 text-white font-black uppercase tracking-widest text-sm shadow-2xl shadow-primary/30"
+                className="btn-primary w-full mt-6 py-4 font-black uppercase tracking-wider text-xs shadow-xl"
               >
-                Confirmar Ubicación
+                Confirmar y Actualizar Radar
               </button>
             </motion.div>
           </div>
