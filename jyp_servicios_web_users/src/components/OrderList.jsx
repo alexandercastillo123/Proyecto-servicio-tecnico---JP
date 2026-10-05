@@ -97,7 +97,7 @@ const OrderList = () => {
     : orders.filter(o => o.status === filter);
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10 pb-20 animate-in fade-in duration-500">
+    <div className="w-full space-y-10 pb-4 animate-in fade-in duration-500">
       
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 px-1">
@@ -148,7 +148,7 @@ const OrderList = () => {
       </header>
 
       {/* Orders List */}
-      <div className="space-y-5">
+      <div className="space-y-6">
         {loading ? (
           <TechLoader compact title="Cargando Pedidos" subtitle="Sincronizando estado de órdenes..." />
         ) : filteredOrders.length > 0 ? (
@@ -161,7 +161,7 @@ const OrderList = () => {
             return (
               <div 
                 key={order.id}
-                className="glass-panel p-6 sm:p-7 flex flex-col md:flex-row gap-6 hover:border-blue-500/40 transition-all rounded-3xl relative overflow-hidden bg-[#0e1424] border border-white/10 shadow-xl"
+                className="glass-panel p-7 sm:p-8 flex flex-col md:flex-row gap-6 hover:border-blue-500/40 transition-all rounded-3xl relative overflow-hidden bg-[#0e1424] border border-white/10 shadow-xl"
               >
                 {/* Product Info */}
                 <div className="flex gap-4 flex-1">

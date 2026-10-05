@@ -71,7 +71,7 @@ const ScheduleManagement = () => {
   if (loading) return <div className="h-96 flex items-center justify-center text-text-dim font-bold">Cargando disponibilidad...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-16" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="max-w-4xl mx-auto space-y-8 pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-5 p-6 sm:p-8 rounded-[32px] bg-gradient-to-r from-blue-900/20 via-slate-900/30 to-purple-900/20 border border-white/5 backdrop-blur-xl">
         <div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2">

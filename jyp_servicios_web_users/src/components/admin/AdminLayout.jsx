@@ -166,11 +166,11 @@ const AdminLayout = ({ user, onLogout }) => {
 
       {/* Main */}
       <main
-        className="flex-1 overflow-x-hidden transition-all duration-300"
+        className="flex-1 min-h-screen flex flex-col overflow-x-hidden transition-all duration-300"
         style={{ marginLeft: collapsed ? 80 : 268 }}
       >
         {/* Topbar */}
-        <header className="h-20 px-8 flex items-center justify-between border-b border-white/5 sticky top-0 z-30"
+        <header className="h-20 px-8 flex items-center justify-between border-b border-white/5 sticky top-0 z-30 shrink-0"
           style={{ background: 'rgba(2,3,6,0.85)', backdropFilter: 'blur(16px)' }}>
           <div className="flex items-center gap-3">
             <Zap size={16} className="text-[#3B28FF]" />
@@ -192,18 +192,21 @@ const AdminLayout = ({ user, onLogout }) => {
         </header>
 
         {/* Page Content */}
-        <div className="p-8 min-h-[calc(100vh-5rem)]">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={location.pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.25, ease: 'easeOut' }}
-            >
-              <Outlet />
-            </motion.div>
-          </AnimatePresence>
+        <div className="flex-1 px-4 sm:px-6 md:px-8 lg:px-10 py-6 sm:py-8 md:py-10">
+          <div className="max-w-7xl mx-auto w-full">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={location.pathname}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.25, ease: 'easeOut' }}
+                className="w-full"
+              >
+                <Outlet />
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </main>
     </div>

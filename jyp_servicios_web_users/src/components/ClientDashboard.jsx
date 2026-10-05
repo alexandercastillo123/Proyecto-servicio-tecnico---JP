@@ -137,11 +137,11 @@ const ClientDashboard = () => {
   const recentTechChat = conversations.find(c => c.other_user_role === 'tech' || c.other_user_role === 'technician');
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10 pb-20" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="w-full space-y-12 pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
       
       {/* ── HERO BANNER WITH CINEMATIC TECH BACKGROUND ─────────── */}
       <div 
-        className="glass-card p-8 sm:p-10 md:p-12 rounded-[32px] relative overflow-hidden"
+        className="glass-card p-10 sm:p-12 md:p-16 rounded-[32px] relative overflow-hidden"
         style={{
           background: "linear-gradient(135deg, rgba(13, 22, 41, 0.9) 0%, rgba(6, 9, 19, 0.96) 100%)",
           border: "1px solid rgba(59, 130, 246, 0.25)",
@@ -158,8 +158,8 @@ const ClientDashboard = () => {
           style={{ background: "radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, transparent 70%)", filter: "blur(70px)" }}
         />
 
-        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
-          <div className="space-y-4 max-w-2xl">
+        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-10">
+          <div className="space-y-5 max-w-2xl">
             {/* Location selector pill */}
             <div className="flex flex-wrap items-center gap-2.5">
               <button 
@@ -196,7 +196,7 @@ const ClientDashboard = () => {
               Hola, <span className="gradient-tech">{user?.names?.split(' ')[0] || user?.username || 'Cliente'}</span>
             </h1>
 
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl">
+            <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl mt-1">
               Solicita asistencia técnica en tiempo real. Conectamos tu necesidad de hardware con especialistas certificados con garantía de 7 días.
             </p>
           </div>
@@ -221,7 +221,7 @@ const ClientDashboard = () => {
         </div>
 
         {/* Category Pills Bar */}
-        <div className="relative z-10 pt-8 border-t border-white/10 mt-8 flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
+        <div className="relative z-10 pt-10 border-t border-white/10 mt-10 flex gap-3 overflow-x-auto no-scrollbar pb-2">
           {SERVICE_CATEGORIES.map((cat) => {
             const Icon = cat.icon;
             const isSelected = selectedCategory === cat.id;
@@ -230,11 +230,12 @@ const ClientDashboard = () => {
                 key={cat.id}
                 type="button"
                 onClick={() => setSelectedCategory(cat.id)}
-                className="flex items-center gap-2.5 px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 shadow-sm"
+                className="flex items-center gap-2.5 px-5 py-3 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 shadow-sm"
                 style={{
                   background: isSelected ? "rgba(37, 99, 235, 0.35)" : "rgba(255, 255, 255, 0.05)",
                   border: isSelected ? "1px solid rgba(59, 130, 246, 0.7)" : "1px solid rgba(255, 255, 255, 0.08)",
                   color: isSelected ? "#38BDF8" : "var(--text-secondary)",
+                  letterSpacing: "0.01em",
                 }}
               >
                 <Icon size={14} className={isSelected ? "text-cyan-400" : "text-slate-400"} />
@@ -250,7 +251,7 @@ const ClientDashboard = () => {
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-6 sm:p-7 rounded-3xl relative overflow-hidden"
+          className="p-7 sm:p-8 rounded-3xl relative overflow-hidden"
           style={{
             background: "linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(6, 182, 212, 0.1) 100%)",
             border: "1px solid rgba(59, 130, 246, 0.35)",
@@ -307,7 +308,7 @@ const ClientDashboard = () => {
           initial={{ opacity: 0, x: -15 }}
           animate={{ opacity: 1, x: 0 }}
           onClick={() => navigate(`/chat?user=${recentTechChat.other_user_id}`)}
-          className="glass-card p-5 rounded-2xl flex items-center gap-4 cursor-pointer group hover:border-blue-500/50 transition-all"
+          className="glass-card p-6 rounded-2xl flex items-center gap-5 cursor-pointer group hover:border-blue-500/50 transition-all"
         >
           <div 
             className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-lg shrink-0 shadow-md"

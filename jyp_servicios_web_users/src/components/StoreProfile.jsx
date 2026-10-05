@@ -94,7 +94,7 @@ const StoreProfile = () => {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-16 max-w-7xl mx-auto">
+    <div className="w-full space-y-8 animate-in fade-in duration-500 pb-4">
       <Link 
         to="/stores" 
         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border bg-white/5 hover:bg-white/10 transition-all font-semibold text-xs tracking-wider uppercase shadow-sm"

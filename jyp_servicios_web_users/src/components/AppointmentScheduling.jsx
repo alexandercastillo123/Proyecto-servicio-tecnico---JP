@@ -161,7 +161,7 @@ const AppointmentScheduling = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-6 sm:py-8 px-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="max-w-4xl mx-auto pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
       
       {/* Progress Stepper */}
       <div className="flex items-center justify-between mb-12 px-4 sm:px-16 relative">

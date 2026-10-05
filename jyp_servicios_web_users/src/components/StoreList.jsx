@@ -129,9 +129,9 @@ const StoreList = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-16" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <header className="p-6 sm:p-8 rounded-[32px] bg-gradient-to-r from-blue-900/20 via-slate-900/30 to-purple-900/20 border border-white/5 backdrop-blur-xl">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2">
+    <div className="w-full space-y-8 pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <header className="p-8 sm:p-10 rounded-[32px] bg-gradient-to-r from-blue-900/20 via-slate-900/30 to-purple-900/20 border border-white/5 backdrop-blur-xl">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-3">
           Red Oficial de Distribución
         </span>
         <h1 
@@ -140,13 +140,13 @@ const StoreList = () => {
         >
           Tiendas y Sucursales Oficiales
         </h1>
-        <p className="text-sm text-slate-400 mt-1 max-w-2xl">
+        <p className="text-sm text-slate-400 mt-2 max-w-2xl leading-relaxed">
           Busca locales autorizados para repuestos certificados, diagnóstico presencial y soporte técnico con garantía de fábrica.
         </p>
       </header>
 
-      <div className="flex flex-col lg:flex-row h-[720px] gap-8">
-        <div className="w-full lg:w-[400px] flex flex-col gap-4 overflow-hidden">
+      <div className="flex flex-col lg:flex-row min-h-[580px] lg:h-[calc(100vh-250px)] lg:min-h-[600px] lg:max-h-[820px] gap-8">
+        <div className="w-full lg:w-[420px] flex flex-col gap-4 overflow-hidden">
           <div 
             className="p-4 rounded-3xl border shadow-sm"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
@@ -168,7 +168,7 @@ const StoreList = () => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-1 space-y-3.5">
+          <div className="flex-1 overflow-y-auto pr-1 space-y-4">
             {!hasSearched ? (
               <div 
                 className="h-full flex flex-col items-center justify-center p-8 text-center rounded-[32px] border border-dashed"
@@ -204,7 +204,7 @@ const StoreList = () => {
                       setMapCenter([lat, lng]);
                     }
                   }}
-                  className="p-5 rounded-3xl border shadow-sm transition-all hover:border-primary/50 cursor-pointer group"
+                  className="p-6 rounded-3xl border shadow-sm transition-all hover:border-primary/50 cursor-pointer group"
                   style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
                 >
                   <div className="flex gap-4 items-start">

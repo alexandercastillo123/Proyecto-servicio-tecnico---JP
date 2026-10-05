@@ -158,7 +158,7 @@ const StoreDashboard = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10 pb-20">
+    <div className="w-full space-y-10 pb-4">
       {/* Header & Recent Activity Banner */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
