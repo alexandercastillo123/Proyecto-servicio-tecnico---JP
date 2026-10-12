@@ -6,6 +6,7 @@ const { authenticate } = require('../middleware/auth');
 router.get('/settings', authenticate, notificationsController.getSettings);
 router.put('/settings', authenticate, notificationsController.updateSettings);
 router.get('/', authenticate, notificationsController.getNotifications);
+router.put('/read-all', authenticate, notificationsController.markAllAsRead);
 router.put('/:id/read', authenticate, notificationsController.markAsRead);
 router.post('/token', authenticate, notificationsController.saveToken);
 

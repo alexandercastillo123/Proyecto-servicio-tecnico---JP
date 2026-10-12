@@ -128,8 +128,10 @@ const StoreDashboard = () => {
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const [orderFilter, setOrderFilter] = useState('all');
   const pendingOrders = orders.filter(o => o.status === 'pending');
   const recentChat = conversations.filter(c => c.other_user_role === 'client')[0];
+  const displayedOrders = orderFilter === 'all' ? orders : orders.filter(o => o.status === orderFilter);
 
   const getStatusBadge = (status) => {
     switch(status) {
@@ -156,11 +158,11 @@ const StoreDashboard = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-16">
+    <div className="max-w-7xl mx-auto space-y-10 pb-20">
       {/* Header & Recent Activity Banner */}
-      <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 className="text-3xl font-extrabold tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2" style={{ color: 'var(--text-primary)' }}>
             Sucursal <span style={{ color: 'var(--primary)' }}>{user.branchName || 'Principal JyP'}</span>
           </h1>
           <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
@@ -173,12 +175,12 @@ const StoreDashboard = () => {
             initial={{ opacity: 0, x: 15 }}
             animate={{ opacity: 1, x: 0 }}
             onClick={() => navigate(`/chat?user=${recentChat.other_user_id}`)}
-            className="flex-1 max-w-sm p-3.5 rounded-2xl border shadow-sm flex items-center justify-between cursor-pointer transition-all hover:border-primary/40"
+            className="flex-1 max-w-sm p-4 rounded-3xl border shadow-md flex items-center justify-between cursor-pointer transition-all hover:border-primary/40"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3.5">
               <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-white text-sm"
+                className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-white text-sm shadow-md"
                 style={{ backgroundColor: 'var(--primary)' }}
               >
                 {recentChat.username?.[0] || 'C'}
@@ -194,7 +196,7 @@ const StoreDashboard = () => {
       </section>
 
       {/* Operational Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         {[
           { label: 'Productos Registrados', val: products.length, icon: Box, color: 'var(--primary)', bg: 'rgba(45, 107, 255, 0.1)' },
           { label: 'Pedidos Totales', val: orders.length, icon: ShoppingCart, color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.1)' },
@@ -203,20 +205,20 @@ const StoreDashboard = () => {
         ].map((stat, i) => (
           <div 
             key={i} 
-            className="p-5 rounded-2xl border shadow-sm flex items-center gap-4"
+            className="p-6 rounded-3xl border shadow-lg flex items-center gap-4 transition-all hover:-translate-y-1"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
             <div 
-              className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+              className="w-13 h-13 rounded-2xl flex items-center justify-center shrink-0 shadow-sm"
               style={{ backgroundColor: stat.bg, color: stat.color }}
             >
-              <stat.icon size={22} />
+              <stat.icon size={24} />
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                 {stat.label}
               </p>
-              <h3 className="text-xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
+              <h3 className="text-xl sm:text-2xl font-black" style={{ color: 'var(--text-primary)' }}>
                 {stat.val}
               </h3>
             </div>
@@ -224,7 +226,7 @@ const StoreDashboard = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Orders Management Section */}
         <section className="lg:col-span-1 space-y-4">
           <div className="flex items-center justify-between">
@@ -245,6 +247,23 @@ const StoreDashboard = () => {
             </button>
           </div>
 
+          {/* Order Filter Tabs */}
+          <div className="flex flex-wrap gap-2">
+            {[{id:'all', label:'Todos'}, {id:'pending', label:'Pendientes'}, {id:'confirmed', label:'Confirmados'}, {id:'shipped', label:'En camino'}, {id:'delivered', label:'Entregados'}].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setOrderFilter(tab.id)}
+                className={`px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wide transition-all border shadow-sm ${
+                  orderFilter === tab.id
+                    ? 'bg-blue-600/20 text-blue-400 border-blue-500/40'
+                    : 'bg-transparent text-slate-400 border-transparent hover:bg-white/5'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           <div className="space-y-3 max-h-[550px] overflow-y-auto pr-1">
             {isLoading ? (
               [...Array(3)].map((_, i) => (
@@ -254,7 +273,7 @@ const StoreDashboard = () => {
                   style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
                 />
               ))
-            ) : orders.length === 0 ? (
+            ) : displayedOrders.length === 0 ? (
               <div 
                 className="p-10 text-center rounded-2xl border border-dashed"
                 style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
@@ -263,7 +282,7 @@ const StoreDashboard = () => {
                 <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>No hay pedidos pendientes</p>
               </div>
             ) : (
-              orders.slice(0, 6).map((order) => (
+              displayedOrders.slice(0, 8).map((order) => (
                 <div 
                   key={order.id} 
                   className="p-4 rounded-2xl border shadow-sm space-y-3 transition-all hover:border-primary/40"
@@ -325,6 +344,21 @@ const StoreDashboard = () => {
                         <span>Despachar</span>
                       </button>
                     )}
+                    {order.status === 'shipped' && (
+                      <button 
+                        onClick={async () => {
+                          try {
+                            const resp = await storeService.updateOrderStatus(order.id, 'delivered');
+                            if (resp.data.exito) fetchDashboardData();
+                          } catch (e) { console.error(e); }
+                        }}
+                        className="flex-1 py-1.5 text-white text-[11px] font-bold rounded-lg uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm"
+                        style={{ backgroundColor: '#22C55E' }}
+                      >
+                        <CheckCircle size={14} /> 
+                        <span>Entregado</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))
@@ -346,7 +380,7 @@ const StoreDashboard = () => {
                   placeholder="Buscar en catálogo..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full rounded-xl py-2 pl-9 pr-3 text-xs outline-none border transition-all"
+                  className="w-full rounded-2xl py-2.5 pl-10 pr-4 text-xs outline-none border transition-all"
                   style={{
                     backgroundColor: 'var(--bg)',
                     borderColor: 'var(--border)',
@@ -356,7 +390,7 @@ const StoreDashboard = () => {
               </div>
               <button 
                 onClick={handleAddProduct}
-                className="btn-primary p-2.5 rounded-xl shadow-md flex items-center justify-center shrink-0"
+                className="btn-primary p-2.5 rounded-2xl shadow-md flex items-center justify-center shrink-0"
                 title="Agregar producto"
               >
                 <Plus size={18} />
@@ -365,7 +399,7 @@ const StoreDashboard = () => {
           </div>
 
           <div 
-            className="rounded-2xl border shadow-sm overflow-hidden"
+            className="rounded-3xl border shadow-lg overflow-hidden"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
             <div className="overflow-x-auto">

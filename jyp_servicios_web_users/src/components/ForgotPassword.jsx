@@ -21,13 +21,13 @@ const ForgotPassword = () => {
 
     try {
       const response = await authService.forgotPassword(email);
-      if (response.success) {
+      if (response.success || response.exito) {
         navigate('/verify-code', { state: { email } });
       } else {
-        setError(response.message || 'Error al enviar el código');
+        setError(response.message || response.mensaje || 'Error al enviar el código');
       }
     } catch (err) {
-      setError('Error de conexión con el servidor');
+      setError(err.response?.data?.mensaje || err.response?.data?.message || 'Error de conexión con el servidor');
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +70,7 @@ const ForgotPassword = () => {
         className="w-full max-w-md relative z-10"
       >
         <div 
-          className="p-8 md:p-10 rounded-2xl border shadow-2xl backdrop-blur-xl"
+          className="p-8 md:p-10 rounded-[32px] border shadow-2xl backdrop-blur-xl"
           style={{ 
             backgroundColor: 'var(--bg-card)', 
             borderColor: 'var(--border)' 
@@ -79,19 +79,19 @@ const ForgotPassword = () => {
           <div className="flex justify-between items-center mb-8">
             <Link 
               to="/login" 
-              className="p-2.5 rounded-xl border transition-colors flex items-center justify-center"
+              className="p-3 rounded-2xl border transition-colors flex items-center justify-center hover:scale-105"
               style={{ 
                 backgroundColor: 'var(--bg)', 
                 borderColor: 'var(--border)',
                 color: 'var(--text-secondary)' 
               }}
             >
-              <ArrowLeft size={20} />
+              <ArrowLeft size={18} />
             </Link>
             
             <div className="flex items-center gap-2.5">
               <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-md"
                 style={{ backgroundColor: 'var(--primary)' }}
               >
                 <Cpu size={22} className="text-white" />
@@ -130,7 +130,7 @@ const ForgotPassword = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full py-3.5 pl-11 pr-4 rounded-xl border transition-all text-sm outline-none"
+                  className="w-full py-3.5 pl-11 pr-4 rounded-2xl border transition-all text-sm outline-none"
                   style={{
                     backgroundColor: 'var(--bg)',
                     borderColor: 'var(--border)',
@@ -146,7 +146,7 @@ const ForgotPassword = () => {
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="p-4 rounded-xl flex items-center gap-3 text-sm"
+                className="p-4 rounded-2xl flex items-center gap-3 text-sm"
                 style={{ 
                   backgroundColor: 'rgba(239, 68, 68, 0.1)', 
                   border: '1px solid rgba(239, 68, 68, 0.25)',
@@ -161,7 +161,7 @@ const ForgotPassword = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 font-bold rounded-xl transition-all flex items-center justify-center gap-2 group text-white shadow-lg"
+              className="w-full h-12 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 group text-white shadow-xl hover:scale-[1.01]"
               style={{
                 backgroundColor: 'var(--primary)',
                 boxShadow: '0 8px 24px rgba(45, 107, 255, 0.35)'

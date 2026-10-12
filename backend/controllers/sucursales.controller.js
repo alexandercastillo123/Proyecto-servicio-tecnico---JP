@@ -68,6 +68,11 @@ const getStoreProducts = asyncHandler(async (req, res) => {
     res.json(Respuesta.ok(data, 'Éxito'));
 });
 
+const getCatalogProducts = asyncHandler(async (req, res) => {
+    const data = await sucursalService.getAllCatalogProducts(req.query);
+    res.json(Respuesta.ok(data, 'Catálogo completo de productos obtenido.'));
+});
+
 const addStoreProduct = asyncHandler(async (req, res) => {
     await sucursalService.addStoreProduct(req.user.id, req.user.role, req.body);
     res.status(201).json(Respuesta.ok(null, '¡El producto ha sido añadido correctamente!', 201));
@@ -143,7 +148,7 @@ const getStoreAppointments = asyncHandler(async (req, res) => {
 module.exports = {
     getStores, getNearbyStores, getStoreById, getMyStore, createStore, updateStore, deleteStore, updateStoreStatus,
     uploadStoreImage, uploadProductImage,
-    getStoreProducts, addStoreProduct, updateStoreProduct, deleteStoreProduct,
+    getStoreProducts, getCatalogProducts, addStoreProduct, updateStoreProduct, deleteStoreProduct,
     getStoreSchedules, getStoreReviews, addStoreReview,
     createOrder, payOrder, confirmOrderPayment, getMyOrders, getStoreOrders, updateOrderStatus,
     getStoreAppointments

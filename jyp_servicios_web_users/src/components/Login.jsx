@@ -180,7 +180,7 @@ const Login = ({ onLogin }) => {
           </p>
 
           {/* Specialty Hardware Pills */}
-          <div className="flex flex-wrap gap-2 pt-2">
+          <div className="flex flex-wrap gap-2.5 pt-2">
             {[
               { label: "Microelectrónica", icon: Cpu },
               { label: "Servidores & Redes", icon: Server },
@@ -189,14 +189,14 @@ const Login = ({ onLogin }) => {
             ].map(({ label, icon: Icon }) => (
               <div
                 key={label}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-200"
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold text-slate-200"
                 style={{
-                  background: "rgba(255, 255, 255, 0.06)",
-                  border: "1px solid rgba(255, 255, 255, 0.1)",
+                  background: "rgba(255, 255, 255, 0.07)",
+                  border: "1px solid rgba(255, 255, 255, 0.12)",
                   backdropFilter: "blur(8px)",
                 }}
               >
-                <Icon size={13} className="text-cyan-400" />
+                <Icon size={14} className="text-cyan-400" />
                 <span>{label}</span>
               </div>
             ))}
@@ -204,7 +204,7 @@ const Login = ({ onLogin }) => {
 
           {/* Stats Bar */}
           <div
-            className="grid grid-cols-3 gap-4 pt-6 border-t border-white/10"
+            className="grid grid-cols-3 gap-5 pt-6 border-t border-white/10"
           >
             {[
               { val: "15,200+", lbl: "Equipos Reparados" },
@@ -215,7 +215,7 @@ const Login = ({ onLogin }) => {
                 <p className="text-xl xl:text-2xl font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
                   {stat.val}
                 </p>
-                <p className="text-[11px] font-medium text-slate-400 mt-0.5">{stat.lbl}</p>
+                <p className="text-[11px] font-medium text-slate-400 mt-1">{stat.lbl}</p>
               </div>
             ))}
           </div>
@@ -226,34 +226,34 @@ const Login = ({ onLogin }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8, delay: 0.3 }}
-          className="relative z-10 flex items-center justify-between p-4 rounded-2xl"
+          className="relative z-10 flex items-center justify-between p-5 rounded-3xl"
           style={{
             background: "rgba(255, 255, 255, 0.05)",
-            border: "1px solid rgba(255, 255, 255, 0.08)",
-            backdropFilter: "blur(12px)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            backdropFilter: "blur(14px)",
           }}
         >
           <div className="flex items-center gap-3">
             <div className="flex -space-x-2">
               {["/assets/hero_tech.png", "/assets/hero_client.png", "/assets/hero_store.png"].map((src, i) => (
-                <div key={i} className="w-8 h-8 rounded-full border-2 border-slate-900 bg-slate-700 overflow-hidden flex items-center justify-center text-xs font-bold text-white">
+                <div key={i} className="w-9 h-9 rounded-full border-2 border-slate-900 bg-slate-700 overflow-hidden flex items-center justify-center text-xs font-bold text-white shadow">
                   {i === 0 ? "TC" : i === 1 ? "CL" : "TI"}
                 </div>
               ))}
             </div>
             <div>
               <p className="text-xs font-bold text-white">+2,800 Técnicos y Clientes activos</p>
-              <div className="flex items-center gap-1 text-[11px] text-amber-300">
+              <div className="flex items-center gap-1.5 text-[11px] text-amber-300 mt-0.5">
                 <div className="flex">
                   {[...Array(5)].map((_, i) => (
-                    <Star key={i} size={11} fill="currentColor" />
+                    <Star key={i} size={12} fill="currentColor" />
                   ))}
                 </div>
                 <span className="text-slate-400 ml-1">Garantía total de servicio</span>
               </div>
             </div>
           </div>
-          <span className="hidden xl:inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+          <span className="hidden xl:inline-flex px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
             En línea 24/7
           </span>
         </motion.div>
@@ -312,11 +312,11 @@ const Login = ({ onLogin }) => {
           </div>
 
           {/* Quick Demo Switcher Tabs */}
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
               Prueba Rápida con 1 Click (Cuentas Demo)
             </p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-2.5">
               {DEMO_ACCOUNTS.map((demo) => {
                 const Icon = demo.icon;
                 const isSelected = selectedDemo === demo.role;
@@ -325,15 +325,16 @@ const Login = ({ onLogin }) => {
                     key={demo.role}
                     type="button"
                     onClick={() => handleSelectDemo(demo)}
-                    className="flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all duration-200"
+                    className="flex flex-col items-center justify-center p-3 rounded-2xl border text-center transition-all duration-200 hover:scale-[1.02]"
                     style={{
-                      background: isSelected ? "rgba(37, 99, 235, 0.16)" : "var(--bg-input)",
+                      background: isSelected ? "rgba(37, 99, 235, 0.18)" : "var(--bg-input)",
                       borderColor: isSelected ? "var(--primary-light)" : "var(--border)",
                       color: isSelected ? "#38BDF8" : "var(--text-secondary)",
+                      boxShadow: isSelected ? "0 4px 15px rgba(37, 99, 235, 0.2)" : "none",
                     }}
                   >
-                    <Icon size={16} className={isSelected ? "text-cyan-400" : "text-slate-400"} />
-                    <span className="text-[11px] font-bold mt-1 truncate max-w-full">
+                    <Icon size={18} className={isSelected ? "text-cyan-400" : "text-slate-400"} />
+                    <span className="text-[11px] font-bold mt-1.5 truncate max-w-full">
                       {demo.label}
                     </span>
                   </button>
@@ -354,7 +355,7 @@ const Login = ({ onLogin }) => {
               </label>
               <div className="relative">
                 <Mail
-                  size={16}
+                  size={18}
                   className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors"
                   style={{ color: "var(--text-dim)" }}
                 />
@@ -365,7 +366,7 @@ const Login = ({ onLogin }) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="input-field"
-                  style={{ paddingLeft: 42, paddingRight: 16 }}
+                  style={{ paddingLeft: 46, paddingRight: 16, height: 50, borderRadius: 18 }}
                 />
               </div>
             </div>
@@ -389,7 +390,7 @@ const Login = ({ onLogin }) => {
               </div>
               <div className="relative">
                 <Lock
-                  size={16}
+                  size={18}
                   className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none transition-colors"
                   style={{ color: "var(--text-dim)" }}
                 />
@@ -400,15 +401,15 @@ const Login = ({ onLogin }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="input-field"
-                  style={{ paddingLeft: 42, paddingRight: 44 }}
+                  style={{ paddingLeft: 46, paddingRight: 46, height: 50, borderRadius: 18 }}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white transition-colors"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-slate-400 hover:text-white transition-colors"
                   title={showPass ? "Ocultar contraseña" : "Ver contraseña"}
                 >
-                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
             </div>
@@ -420,14 +421,14 @@ const Login = ({ onLogin }) => {
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
-                  className="flex items-center gap-3 p-3.5 rounded-xl text-xs font-semibold"
+                  className="flex items-center gap-3 p-4 rounded-2xl text-xs font-semibold"
                   style={{
                     background: "var(--error-bg)",
                     border: "1px solid rgba(239, 68, 68, 0.3)",
                     color: "var(--error)",
                   }}
                 >
-                  <AlertCircle size={16} className="shrink-0" />
+                  <AlertCircle size={18} className="shrink-0" />
                   <span>{error}</span>
                 </motion.div>
               )}
@@ -437,11 +438,11 @@ const Login = ({ onLogin }) => {
             <button
               type="submit"
               disabled={loading}
-              className="btn-primary w-full shadow-lg"
+              className="btn-primary w-full shadow-xl shadow-blue-600/25 transition-transform hover:scale-[1.01]"
               style={{
-                height: 50,
+                height: 52,
                 fontSize: 15,
-                borderRadius: 12,
+                borderRadius: 20,
               }}
             >
               {loading ? (

@@ -456,18 +456,18 @@ const Chat = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] glass-panel overflow-hidden shadow-2xl font-outfit" style={{ border: '1px solid var(--border)' }}>
+    <div className="flex h-[calc(100vh-12rem)] glass-panel overflow-hidden shadow-2xl font-outfit rounded-[32px]" style={{ border: '1px solid var(--border)' }}>
       {/* Sidebar - Conversations */}
       <div className={`w-full md:w-80 lg:w-96 flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}
         style={{ borderRight: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
         <div className="p-6 space-y-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>Mensajes</h2>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
             <input 
               type="text" 
               placeholder="Buscar conversaciones..." 
-              className="w-full rounded-xl py-2.5 pl-10 pr-4 text-xs focus:outline-none transition-all"
+              className="w-full rounded-2xl py-2.5 pl-10 pr-4 text-xs focus:outline-none transition-all"
               style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
             />
           </div>
@@ -898,71 +898,71 @@ const Chat = () => {
                 accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" 
                 className="hidden" 
               />
-               <form onSubmit={handleSendMessage} className="flex gap-3 items-center">
-                 <button 
-                   type="button" 
-                   disabled={isUploading}
-                   onClick={() => fileInputRef.current?.click()}
-                   className="p-3 rounded-xl transition-all cursor-pointer disabled:opacity-50 shrink-0"
-                   style={{ background: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-                   title="Adjuntar imagen, audio, video o documento"
-                 >
-                   <Paperclip size={18} className={isUploading ? 'animate-spin' : ''} />
-                 </button>
-                 <div className="flex-1 relative">
-                   <input 
-                     type="text" 
-                     placeholder={isUploading ? "Subiendo archivo..." : "Escribe tu mensaje aquí..."} 
-                     className="w-full rounded-xl py-3 px-4 text-sm focus:outline-none transition-all"
-                     style={{ 
-                       background: 'var(--bg-card)', 
-                       border: '1px solid var(--border)', 
-                       color: 'var(--text-primary)'
-                     }}
-                     value={newMessage}
-                     onChange={handleInputChange}
-                     disabled={isUploading || isRecording}
-                   />
-                 </div>
-                  {isRecording ? (
-                    <button 
-                      type="button"
-                      onMouseDown={startRecording}
-                      onMouseUp={stopRecording}
-                      onMouseLeave={stopRecording}
-                      onTouchStart={startRecording}
-                      onTouchEnd={stopRecording}
-                      className="p-3 rounded-xl transition-all cursor-pointer flex items-center gap-2 shrink-0"
-                      style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
-                      title="Grabando... suelta para enviar"
-                    >
-                      <Mic size={18} className="animate-pulse" />
-                      <span className="text-xs font-bold hidden sm:block">Grabando</span>
-                    </button>
-                  ) : newMessage.trim() ? (
-                    <button 
-                      type="submit" 
-                      disabled={isUploading}
-                      className="p-3 rounded-xl transition-all cursor-pointer disabled:opacity-50 shrink-0 shadow-lg"
-                      style={{ background: 'var(--primary)', color: '#fff' }}
-                    >
-                      <Send size={18} />
-                    </button>
-                  ) : (
-                    <button 
-                      type="button"
-                      onMouseDown={startRecording}
-                      onMouseUp={stopRecording}
-                      onTouchStart={startRecording}
-                      onTouchEnd={stopRecording}
-                      disabled={isUploading}
-                      className="p-3 rounded-xl transition-all cursor-pointer disabled:opacity-50 shrink-0"
-                      style={{ background: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
-                      title="Grabar mensaje de voz"
-                    >
-                      <Mic size={18} />
-                    </button>
-                  )}
+              <form onSubmit={handleSendMessage} className="flex gap-3 items-center">
+                <button 
+                  type="button" 
+                  disabled={isUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-3.5 rounded-2xl transition-all cursor-pointer disabled:opacity-50 shrink-0 hover:bg-white/5"
+                  style={{ background: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                  title="Adjuntar imagen, audio, video o documento"
+                >
+                  <Paperclip size={18} className={isUploading ? 'animate-spin' : ''} />
+                </button>
+                <div className="flex-1 relative">
+                  <input 
+                    type="text" 
+                    placeholder={isUploading ? "Subiendo archivo..." : "Escribe tu mensaje aquí..."} 
+                    className="w-full rounded-2xl py-3 px-5 text-sm focus:outline-none transition-all"
+                    style={{ 
+                      background: 'var(--bg-card)', 
+                      border: '1px solid var(--border)', 
+                      color: 'var(--text-primary)'
+                    }}
+                    value={newMessage}
+                    onChange={handleInputChange}
+                    disabled={isUploading || isRecording}
+                  />
+                </div>
+                {isRecording ? (
+                  <button 
+                    type="button"
+                    onMouseDown={startRecording}
+                    onMouseUp={stopRecording}
+                    onMouseLeave={stopRecording}
+                    onTouchStart={startRecording}
+                    onTouchEnd={stopRecording}
+                    className="p-3.5 rounded-2xl transition-all cursor-pointer flex items-center gap-2 shrink-0 shadow-lg"
+                    style={{ background: 'rgba(239,68,68,0.15)', color: '#ef4444' }}
+                    title="Grabando... suelta para enviar"
+                  >
+                    <Mic size={18} className="animate-pulse" />
+                    <span className="text-xs font-bold hidden sm:block">Grabando</span>
+                  </button>
+                ) : newMessage.trim() ? (
+                  <button 
+                    type="submit" 
+                    disabled={isUploading}
+                    className="p-3.5 rounded-2xl transition-all cursor-pointer disabled:opacity-50 shrink-0 shadow-lg hover:scale-105"
+                    style={{ background: 'var(--primary)', color: '#fff' }}
+                  >
+                    <Send size={18} />
+                  </button>
+                ) : (
+                  <button 
+                    type="button" 
+                    onMouseDown={startRecording}
+                    onMouseUp={stopRecording}
+                    onTouchStart={startRecording}
+                    onTouchEnd={stopRecording}
+                    disabled={isUploading}
+                    className="p-3.5 rounded-2xl transition-all cursor-pointer disabled:opacity-50 shrink-0 hover:bg-white/5"
+                    style={{ background: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                    title="Grabar mensaje de voz"
+                  >
+                    <Mic size={18} />
+                  </button>
+                )}
                </form>
             </div>
           </>
@@ -987,7 +987,7 @@ const Chat = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="w-full max-w-sm p-8 relative rounded-2xl shadow-2xl"
+              className="w-full max-w-sm p-8 sm:p-9 relative rounded-[36px] shadow-2xl"
               style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
             >
               <button 
@@ -1000,8 +1000,8 @@ const Chat = () => {
                 <X size={24} />
               </button>
               <div className="flex flex-col items-center text-center space-y-4 mb-8">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center"
-                  style={{ background: 'rgba(45,107,255,0.1)', color: 'var(--primary)' }}>
+                <div className="w-16 h-16 rounded-3xl flex items-center justify-center shadow-lg"
+                  style={{ background: 'rgba(45,107,255,0.12)', color: 'var(--primary)' }}>
                   <DollarSign size={32} />
                 </div>
                 <div>
@@ -1015,7 +1015,7 @@ const Chat = () => {
                   <input 
                     type="number" 
                     placeholder="0.00" 
-                    className="w-full rounded-xl text-2xl font-black pl-14 pr-6 py-4 focus:outline-none transition-all"
+                    className="w-full rounded-2xl text-2xl font-black pl-14 pr-6 py-4 focus:outline-none transition-all"
                     style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                     value={tempPrice}
                     onChange={(e) => setTempPrice(e.target.value)}
@@ -1024,7 +1024,7 @@ const Chat = () => {
                 <button 
                   onClick={handleSetAppointmentPrice}
                   disabled={processing}
-                  className="w-full py-4 font-black text-sm rounded-xl transition-all hover:brightness-110 disabled:opacity-60 shadow-lg"
+                  className="w-full py-4 font-black text-sm rounded-2xl transition-all hover:brightness-110 disabled:opacity-60 shadow-xl"
                   style={{ background: 'var(--primary)', color: '#fff' }}
                 >
                   {processing ? 'Procesando...' : 'Establecer y Notificar'}
@@ -1044,7 +1044,7 @@ const Chat = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="w-full max-w-md p-8 relative rounded-2xl shadow-2xl"
+              className="w-full max-w-md p-8 sm:p-10 relative rounded-[36px] shadow-2xl"
               style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
             >
               <button 
@@ -1057,8 +1057,8 @@ const Chat = () => {
                 <X size={24} />
               </button>
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center"
-                  style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981' }}>
+                <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+                  style={{ background: 'rgba(16,185,129,0.12)', color: '#10b981' }}>
                   <Wallet size={28} />
                 </div>
                 <div>
@@ -1096,7 +1096,7 @@ const Chat = () => {
                 ))}
               </div>
 
-              <div className="mt-6 p-4 rounded-xl flex gap-3"
+              <div className="mt-6 p-4 rounded-2xl flex gap-3"
                 style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.2)' }}>
                 <AlertCircle size={20} className="shrink-0" style={{ color: '#ca8a04' }} />
                 <p className="text-[10px] leading-relaxed italic" style={{ color: '#ca8a04' }}>
@@ -1117,11 +1117,11 @@ const Chat = () => {
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="w-full max-w-md p-8 relative rounded-2xl shadow-2xl"
+              className="w-full max-w-md p-8 sm:p-10 relative rounded-[36px] shadow-2xl"
               style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}
             >
               <button 
-                onClick={() => setShowOfferModal(false)}
+                onClick={() => setShowOfferModal(false)} 
                 className="absolute top-6 right-6 transition-colors"
                 style={{ color: 'var(--text-muted)' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
@@ -1131,8 +1131,8 @@ const Chat = () => {
               </button>
               
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(45,107,255,0.1)', color: 'var(--primary)' }}>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-md"
+                  style={{ background: 'rgba(45,107,255,0.12)', color: 'var(--primary)' }}>
                   <DollarSign size={24} />
                 </div>
                 <div>
@@ -1147,14 +1147,14 @@ const Chat = () => {
                   <input 
                     type="number" 
                     placeholder="0.00" 
-                    className="w-full rounded-xl text-2xl font-black px-6 py-4 focus:outline-none transition-all"
+                    className="w-full rounded-2xl text-2xl font-black px-6 py-4 focus:outline-none transition-all"
                     style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
                     value={offerPrice}
                     onChange={(e) => setOfferPrice(e.target.value)}
                   />
                 </div>
 
-                <div className="p-4 rounded-xl"
+                <div className="p-4 rounded-2xl"
                   style={{ background: 'rgba(45,107,255,0.05)', border: '1px solid rgba(45,107,255,0.15)' }}>
                   <p className="text-[10px] leading-relaxed italic" style={{ color: 'var(--text-secondary)' }}>
                     * El cliente recibirá una notificación y podrá aceptar o rechazar tu oferta de inmediato. Una vez aceptada, el servicio quedará confirmado con este precio.
@@ -1163,10 +1163,11 @@ const Chat = () => {
 
                 <button 
                   onClick={handleSendOffer}
-                  className="w-full py-5 font-black text-base rounded-xl shadow-xl transition-all hover:brightness-110"
+                  disabled={!offerPrice}
+                  className="w-full py-4 font-black text-sm rounded-2xl transition-all hover:brightness-110 disabled:opacity-50 shadow-xl"
                   style={{ background: 'var(--primary)', color: '#fff' }}
                 >
-                  Confirmar y Enviar
+                  Confirmar y Enviar Oferta
                 </button>
               </div>
             </motion.div>

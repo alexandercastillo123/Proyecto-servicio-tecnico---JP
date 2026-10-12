@@ -84,29 +84,29 @@ const AppointmentList = () => {
   const counts = getCounts();
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-20" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="max-w-7xl mx-auto space-y-8 pb-20" style={{ fontFamily: "'Inter', sans-serif" }}>
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 p-6 sm:p-8 rounded-[32px] bg-gradient-to-r from-blue-900/20 via-slate-900/30 to-purple-900/20 border border-white/5 backdrop-blur-xl">
         <div>
-          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-400 block mb-1">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2">
             Gestión de Reparaciones
           </span>
           <h1 
-            className="text-3xl font-black text-white tracking-tight"
+            className="text-3xl sm:text-4xl font-black text-white tracking-tight"
             style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}
           >
             Mis Citas Técnicas
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Historial y seguimiento de diagnósticos y servicios de hardware.
+          <p className="text-sm text-slate-400 mt-1 max-w-xl">
+            Historial y seguimiento de diagnósticos y servicios de hardware certificados.
           </p>
         </div>
 
         {userRole === "client" && (
           <button
             onClick={() => navigate("/appointments/schedule")}
-            className="btn-primary py-3 px-5 text-xs font-bold uppercase tracking-wider rounded-xl shadow-lg self-start sm:self-auto"
+            className="btn-primary py-3.5 px-6 text-xs font-bold uppercase tracking-wider rounded-2xl shadow-xl shadow-blue-600/20 self-start sm:self-auto flex items-center gap-2 hover:scale-[1.02] transition-transform"
           >
             <Plus size={16} /> Nueva Solicitud
           </button>
@@ -116,34 +116,33 @@ const AppointmentList = () => {
       {/* Search & Tabs Row */}
       <div className="space-y-4">
         <div className="relative">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={18} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="Filtrar por tipo de servicio, nombre de técnico o cliente..."
+            placeholder="Filtrar por tipo de servicio, técnico o cliente..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="input-field"
-            style={{ paddingLeft: 42, paddingRight: 16, height: 46, borderRadius: 14 }}
+            className="w-full bg-slate-900/60 border border-white/10 rounded-2xl pl-12 pr-5 py-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500/60 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-inner"
           />
         </div>
 
         {/* Tab pills */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
           {TABS.map(tab => (
             <button
               key={tab}
               type="button"
               onClick={() => setActiveTab(tab)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border ${
+              className={`flex items-center gap-2.5 px-5 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all border ${
                 activeTab === tab 
-                  ? 'bg-blue-600 border-blue-400 text-white shadow-md shadow-blue-600/30' 
-                  : 'bg-white/5 border-white/10 text-slate-400 hover:text-white'
+                  ? 'bg-blue-600 border-blue-400 text-white shadow-lg shadow-blue-600/30 scale-[1.02]' 
+                  : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
               }`}
             >
               <span>{tab}</span>
               {counts[tab] > 0 && (
-                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
-                  activeTab === tab ? 'bg-white/20 text-white' : 'bg-white/10 text-slate-400'
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  activeTab === tab ? 'bg-white/25 text-white' : 'bg-white/10 text-slate-400'
                 }`}>
                   {counts[tab]}
                 </span>
@@ -164,16 +163,16 @@ const AppointmentList = () => {
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card text-center py-16 px-6 rounded-3xl space-y-4"
+          className="glass-card text-center py-20 px-8 rounded-[32px] space-y-4"
         >
-          <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mx-auto text-slate-400">
-            <Calendar size={32} />
+          <div className="w-20 h-20 rounded-3xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto text-blue-400 shadow-xl shadow-blue-500/5">
+            <Calendar size={36} />
           </div>
           <div>
-            <h3 className="text-lg font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+            <h3 className="text-xl font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
               No se encontraron citas
             </h3>
-            <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
+            <p className="text-sm text-slate-400 mt-1.5 max-w-sm mx-auto">
               {activeTab !== "Todas" 
                 ? `No tienes citas con estado "${activeTab.toLowerCase()}".` 
                 : "Aún no registras ninguna orden técnica de soporte."}
@@ -182,14 +181,14 @@ const AppointmentList = () => {
           {userRole === "client" && (
             <button
               onClick={() => navigate("/appointments/schedule")}
-              className="btn-primary py-2.5 px-6 text-xs font-bold rounded-xl mt-2 inline-flex"
+              className="btn-primary py-3 px-7 text-xs font-bold rounded-2xl mt-4 inline-flex items-center gap-2"
             >
-              <Plus size={14} /> Solicitar mi primera reparación
+              <Plus size={16} /> Solicitar mi primera reparación
             </button>
           )}
         </motion.div>
       ) : (
-        <div className="space-y-3.5">
+        <div className="space-y-4">
           <AnimatePresence>
             {filtered.map((appt, i) => {
               const st = STATUS[appt.status] || { label: appt.status, cls: "status-badge" };
@@ -205,42 +204,42 @@ const AppointmentList = () => {
                   exit={{ opacity: 0, scale: 0.98 }}
                   transition={{ delay: i * 0.04 }}
                   onClick={() => navigate(`/appointments/${appt.id}`)}
-                  className="glass-card p-5 rounded-2xl cursor-pointer group hover:border-blue-500/50 transition-all duration-200"
+                  className="glass-card p-6 sm:p-7 rounded-3xl cursor-pointer group hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300"
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-start gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                    <div className="flex items-start gap-4 sm:gap-5">
                       <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-md"
+                        className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-lg"
                         style={{
-                          background: 'linear-gradient(135deg, rgba(37,99,235,0.2) 0%, rgba(6,182,212,0.15) 100%)',
+                          background: 'linear-gradient(135deg, rgba(37,99,235,0.25) 0%, rgba(6,182,212,0.15) 100%)',
                           color: '#38BDF8',
-                          border: '1px solid rgba(59,130,246,0.3)'
+                          border: '1px solid rgba(59,130,246,0.35)'
                         }}
                       >
-                        <Wrench size={22} />
+                        <Wrench size={24} />
                       </div>
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-bold text-base text-white group-hover:text-blue-400 transition-colors">
+                          <h3 className="font-bold text-lg text-white group-hover:text-blue-400 transition-colors">
                             {appt.serviceType || appt.service_type || "Mantenimiento Técnico"}
                           </h3>
                         </div>
-                        <p className="text-xs text-slate-400 mt-0.5">
+                        <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
                           {userRole === "client" ? "Especialista: " : "Cliente: "}
                           <span className="text-slate-200 font-semibold">{otherPerson}</span>
                         </p>
 
-                        <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-slate-400">
+                        <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-slate-400">
                           {appt.scheduled_at && (
-                            <span className="flex items-center gap-1.5">
-                              <Clock size={12} className="text-cyan-400" />
+                            <span className="flex items-center gap-1.5 bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+                              <Clock size={13} className="text-cyan-400" />
                               <span>{new Date(appt.scheduled_at).toLocaleDateString("es-PE", { dateStyle: "medium" })} · {new Date(appt.scheduled_at).toLocaleTimeString("es-PE", { timeStyle: "short" })}</span>
                             </span>
                           )}
                           {(appt.location_address || appt.address) && (
-                            <span className="flex items-center gap-1.5 truncate max-w-[220px]">
-                              <MapPin size={12} className="text-blue-400" />
+                            <span className="flex items-center gap-1.5 truncate max-w-[260px] bg-white/5 px-2.5 py-1 rounded-full border border-white/5">
+                              <MapPin size={13} className="text-blue-400" />
                               <span>{appt.location_address || appt.address}</span>
                             </span>
                           )}
@@ -249,17 +248,19 @@ const AppointmentList = () => {
                     </div>
 
                     {/* Status & Price */}
-                    <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 border-white/5">
+                    <div className="flex items-center justify-between sm:justify-end gap-5 shrink-0 border-t sm:border-t-0 pt-4 sm:pt-0 border-white/5">
                       {appt.price && (
                         <div className="text-right">
                           <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Presupuesto</span>
-                          <span className="text-base font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                          <span className="text-lg font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
                             S/. {parseFloat(appt.price).toFixed(2)}
                           </span>
                         </div>
                       )}
                       <span className={st.cls}>{st.label}</span>
-                      <ChevronRight size={18} className="text-slate-500 group-hover:translate-x-1 group-hover:text-blue-400 transition-transform" />
+                      <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow">
+                        <ChevronRight size={18} className="group-hover:translate-x-0.5 transition-transform" />
+                      </div>
                     </div>
                   </div>
                 </motion.div>

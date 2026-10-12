@@ -157,7 +157,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="input-field"
-            style={{ paddingLeft: 42, height: 46, borderRadius: 14 }}
+            style={{ paddingLeft: 44, height: 48, borderRadius: 18 }}
           />
         </div>
 
@@ -166,7 +166,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
           <button
             type="button"
             onClick={() => setFilterAvailableOnly(!filterAvailableOnly)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+            className={`px-4 py-2 rounded-full text-xs font-bold transition-all border shadow-sm ${
               filterAvailableOnly 
                 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' 
                 : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
@@ -177,7 +177,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
           <button
             type="button"
             onClick={() => setFilterMinRating(filterMinRating === 4.5 ? 0 : 4.5)}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1 ${
+            className={`px-4 py-2 rounded-full text-xs font-bold transition-all border flex items-center gap-1.5 shadow-sm ${
               filterMinRating === 4.5 
                 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
                 : 'bg-white/5 text-slate-400 border-white/10 hover:text-white'
@@ -241,17 +241,17 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
               return (
                 <div
                   key={tech.id}
-                  className="glass-card p-4 rounded-2xl cursor-pointer group hover:border-blue-500/50 transition-all duration-200"
+                  className="glass-card p-5 rounded-3xl cursor-pointer group hover:border-blue-500/50 transition-all duration-200 shadow-md"
                   onClick={() => {
                     const lat = parseFloat(tech.latitude);
                     const lng = parseFloat(tech.longitude);
                     if (!isNaN(lat) && !isNaN(lng)) setMapCenter([lat, lng]);
                   }}
                 >
-                  <div className="flex items-start gap-3.5">
+                  <div className="flex items-start gap-4">
                     {/* Tech Avatar */}
                     <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center font-black text-white text-base shrink-0 relative shadow-md"
+                      className="w-13 h-13 rounded-2xl flex items-center justify-center font-black text-white text-base shrink-0 relative shadow-md"
                       style={{
                         background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
                         fontFamily: "'Plus Jakarta Sans',sans-serif",
@@ -277,7 +277,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
                         </h4>
                         
                         {/* Rating pill */}
-                        <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 shrink-0">
+                        <div className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 shrink-0">
                           <Star size={11} fill="currentColor" />
                           <span className="text-[11px] font-black">{rating}</span>
                         </div>
@@ -302,7 +302,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
                           {String(tech.specialties).split(',').slice(0, 2).map((sp, i) => (
                             <span
                               key={i}
-                              className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-500/10 text-blue-300 border border-blue-500/20"
+                              className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-300 border border-blue-500/20"
                             >
                               {sp.trim()}
                             </span>
@@ -313,7 +313,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
                   </div>
 
                   {/* Actions Bar */}
-                  <div className="flex items-center justify-between mt-3.5 pt-3 border-t border-white/5">
+                  <div className="flex items-center justify-between mt-4 pt-3.5 border-t border-white/5">
                     <span className={`text-[10px] font-bold uppercase tracking-wider ${isAvailable ? 'text-emerald-400' : 'text-slate-400'}`}>
                       {isAvailable ? 'En línea / Disponible' : 'Fuera de turno'}
                     </span>
@@ -325,8 +325,8 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
                           e.stopPropagation();
                           navigate(`/appointments/schedule?tech=${tech.id}`);
                         }}
-                        className="btn-primary py-1.5 px-3 text-[11px] font-bold"
-                        style={{ height: 32, borderRadius: 10 }}
+                        className="btn-primary py-1.5 px-3.5 text-[11px] font-bold rounded-xl"
+                        style={{ height: 34 }}
                       >
                         <Calendar size={12} /> Agendar
                       </button>
@@ -336,8 +336,8 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
                           e.stopPropagation();
                           navigate(`/technician/${tech.id}`);
                         }}
-                        className="btn-ghost py-1.5 px-3 text-[11px] font-bold"
-                        style={{ height: 32, borderRadius: 10 }}
+                        className="btn-ghost py-1.5 px-3.5 text-[11px] font-bold rounded-xl"
+                        style={{ height: 34 }}
                       >
                         Perfil
                       </button>

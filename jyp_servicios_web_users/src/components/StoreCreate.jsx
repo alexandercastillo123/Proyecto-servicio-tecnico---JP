@@ -87,7 +87,7 @@ const StoreCreate = () => {
       )}
 
       <div 
-        className="p-7 md:p-9 rounded-2xl border shadow-xl min-h-[460px] flex flex-col justify-between"
+        className="p-8 md:p-10 rounded-[32px] border shadow-2xl min-h-[480px] flex flex-col justify-between"
         style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
       >
         <AnimatePresence mode="wait">
@@ -97,31 +97,31 @@ const StoreCreate = () => {
               initial={{ opacity: 0, x: 15 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -15 }}
-              className="space-y-5 flex-1"
+              className="space-y-6 flex-1"
             >
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3.5 mb-6">
                 <div 
-                  className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-md"
+                  style={{ backgroundColor: 'rgba(45, 107, 255, 0.12)', color: 'var(--primary)' }}
                 >
-                  <Store size={22} />
+                  <Store size={24} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                  <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
                     Información Básica
                   </h2>
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Datos comerciales de la tienda.</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-muted)' }}>
                     Nombre de la Sucursal
                   </label>
                   <input 
                     type="text" 
-                    className="w-full py-2.5 px-3 rounded-xl border text-xs outline-none transition-all"
+                    className="w-full py-3 px-4 rounded-2xl border text-sm outline-none transition-all"
                     style={{
                       backgroundColor: 'var(--bg)',
                       borderColor: 'var(--border)',
@@ -138,7 +138,7 @@ const StoreCreate = () => {
                   </label>
                   <input 
                     type="tel" 
-                    className="w-full py-2.5 px-3 rounded-xl border text-xs outline-none transition-all"
+                    className="w-full py-3 px-4 rounded-2xl border text-sm outline-none transition-all"
                     style={{
                       backgroundColor: 'var(--bg)',
                       borderColor: 'var(--border)',
@@ -155,7 +155,7 @@ const StoreCreate = () => {
                   </label>
                   <textarea 
                     rows="3"
-                    className="w-full py-2.5 px-3 rounded-xl border text-xs outline-none resize-none transition-all"
+                    className="w-full py-3 px-4 rounded-2xl border text-sm outline-none resize-none transition-all"
                     style={{
                       backgroundColor: 'var(--bg)',
                       borderColor: 'var(--border)',
@@ -176,31 +176,31 @@ const StoreCreate = () => {
               initial={{ opacity: 0, x: 15 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -15 }}
-              className="space-y-5 flex-1"
+              className="space-y-6 flex-1"
             >
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3.5 mb-6">
                 <div 
-                  className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-md"
+                  style={{ backgroundColor: 'rgba(45, 107, 255, 0.12)', color: 'var(--primary)' }}
                 >
-                  <MapPin size={22} />
+                  <MapPin size={24} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                  <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
                     Ubicación Geográfica
                   </h2>
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Ubica tu taller o tienda en el mapa interactivo.</p>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-muted)' }}>
                     Dirección Referencial
                   </label>
                   <input 
                     type="text" 
-                    className="w-full py-2.5 px-3 rounded-xl border text-xs outline-none transition-all"
+                    className="w-full py-3 px-4 rounded-2xl border text-sm outline-none transition-all"
                     style={{
                       backgroundColor: 'var(--bg)',
                       borderColor: 'var(--border)',
@@ -211,13 +211,13 @@ const StoreCreate = () => {
                     onChange={(e) => setFormData({...formData, address: e.target.value})}
                   />
                 </div>
-                <div className="h-64 rounded-xl overflow-hidden border relative" style={{ borderColor: 'var(--border)' }}>
+                <div className="h-64 rounded-2xl overflow-hidden border relative shadow-inner" style={{ borderColor: 'var(--border)' }}>
                   <LocationPicker onLocationSelect={updateLocation} />
                   <div 
-                    className="absolute bottom-3 left-3 z-[1000] p-2.5 rounded-xl border backdrop-blur-md flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider shadow-lg"
+                    className="absolute bottom-3 left-3 z-[1000] p-3 rounded-2xl border backdrop-blur-md flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider shadow-lg"
                     style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
                   >
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'var(--primary)' }} />
                     <span>Ajusta el marcador en el local</span>
                   </div>
                 </div>
@@ -231,26 +231,26 @@ const StoreCreate = () => {
               initial={{ opacity: 0, x: 15 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -15 }}
-              className="space-y-5 flex-1"
+              className="space-y-6 flex-1"
             >
-              <div className="flex items-center gap-3 mb-6">
+              <div className="flex items-center gap-3.5 mb-6">
                 <div 
-                  className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: 'rgba(0, 229, 160, 0.1)', color: 'var(--secondary)' }}
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-md"
+                  style={{ backgroundColor: 'rgba(0, 229, 160, 0.15)', color: 'var(--secondary)' }}
                 >
-                  <CheckCircle2 size={22} />
+                  <CheckCircle2 size={24} />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                  <h2 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>
                     Confirmar Registro de Tienda
                   </h2>
                   <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>Revisa los datos antes de publicar la sucursal.</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div 
-                  className="p-5 rounded-xl border space-y-3"
+                  className="p-6 rounded-2xl border space-y-3.5"
                   style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
                 >
                   <div>
@@ -267,14 +267,14 @@ const StoreCreate = () => {
                   </div>
                 </div>
                 <div 
-                  className="p-5 rounded-xl border flex flex-col justify-center items-center text-center space-y-2"
+                  className="p-6 rounded-2xl border flex flex-col justify-center items-center text-center space-y-2.5"
                   style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
                 >
                   <div 
-                    className="w-12 h-12 rounded-full flex items-center justify-center"
+                    className="w-14 h-14 rounded-full flex items-center justify-center shadow-md"
                     style={{ backgroundColor: 'rgba(0, 229, 160, 0.15)', color: 'var(--secondary)' }}
                   >
-                    <Eye size={24} />
+                    <Eye size={26} />
                   </div>
                   <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                     Tu sucursal aparecerá de inmediato en el mapa de tiendas oficiales para miles de clientes.
@@ -283,13 +283,13 @@ const StoreCreate = () => {
               </div>
 
               <div 
-                className="p-4 rounded-xl border flex items-start gap-3"
+                className="p-5 rounded-2xl border flex items-start gap-3.5"
                 style={{ 
                   backgroundColor: 'rgba(45, 107, 255, 0.05)', 
                   borderColor: 'rgba(45, 107, 255, 0.2)' 
                 }}
               >
-                <FileText size={18} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
+                <FileText size={20} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
                 <p className="text-xs leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                   Al confirmar, declaras que la información proporcionada es verídica y que la tienda cumple los estándares de calidad de la red de JyP Servicios Técnicos.
                 </p>
@@ -298,11 +298,11 @@ const StoreCreate = () => {
           )}
         </AnimatePresence>
 
-        <div className="mt-8 flex justify-between items-center pt-5 border-t" style={{ borderColor: 'var(--border)' }}>
+        <div className="mt-8 flex justify-between items-center pt-6 border-t" style={{ borderColor: 'var(--border)' }}>
           {step > 1 ? (
             <button 
               onClick={handleBack}
-              className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider transition-opacity hover:opacity-80"
+              className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider px-4 py-2.5 rounded-2xl border border-white/5 hover:bg-white/5 transition-colors"
               style={{ color: 'var(--text-secondary)' }}
             >
               <ChevronLeft size={16} />
@@ -314,7 +314,7 @@ const StoreCreate = () => {
             <button 
               onClick={handleNext}
               disabled={!formData.name || !formData.address}
-              className="btn-primary px-7 py-3 text-xs font-bold uppercase tracking-wider flex items-center gap-2 rounded-xl shadow-lg disabled:opacity-40"
+              className="btn-primary px-8 py-3.5 text-xs font-bold uppercase tracking-wider flex items-center gap-2 rounded-2xl shadow-xl shadow-blue-600/20 disabled:opacity-40 hover:scale-[1.02] transition-transform"
             >
               <span>Siguiente</span>
               <ChevronRight size={16} />
@@ -323,7 +323,7 @@ const StoreCreate = () => {
             <button 
               onClick={handleSubmit}
               disabled={loading}
-              className="btn-primary px-8 py-3.5 text-xs font-bold uppercase tracking-wider flex items-center gap-2 rounded-xl shadow-lg disabled:opacity-50"
+              className="btn-primary px-9 py-3.5 text-xs font-bold uppercase tracking-wider flex items-center gap-2 rounded-2xl shadow-xl shadow-blue-600/25 disabled:opacity-50 hover:scale-[1.02] transition-transform"
             >
               <Save size={16} />
               <span>{loading ? 'Creando Tienda...' : 'Confirmar y Crear Tienda'}</span>

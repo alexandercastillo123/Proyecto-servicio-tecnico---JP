@@ -178,11 +178,11 @@ const AppointmentDetails = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6 pb-12">
-      <div className="flex justify-between items-center">
+    <div className="max-w-7xl mx-auto space-y-8 pb-16" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="flex justify-between items-center p-6 sm:p-7 rounded-[32px] bg-gradient-to-r from-blue-900/20 via-slate-900/30 to-purple-900/20 border border-white/5 backdrop-blur-xl">
         <Link 
           to="/appointments" 
-          className="inline-flex items-center gap-2 font-semibold text-sm transition-opacity hover:opacity-80"
+          className="inline-flex items-center gap-2 font-semibold text-sm transition-colors hover:text-white px-4 py-2 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10"
           style={{ color: 'var(--text-secondary)' }}
         >
           <ChevronLeft size={18} />
@@ -193,31 +193,31 @@ const AppointmentDetails = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Info */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-8">
           <section 
-            className="p-7 rounded-2xl border shadow-lg"
+            className="p-8 sm:p-9 rounded-[32px] border shadow-xl"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
-            <h2 className="text-lg font-bold mb-5 flex items-center gap-2.5" style={{ color: 'var(--text-primary)' }}>
-              <FileText size={20} style={{ color: 'var(--primary)' }} />
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2.5" style={{ color: 'var(--text-primary)' }}>
+              <FileText size={22} style={{ color: 'var(--primary)' }} />
               <span>Detalles del Servicio</span>
             </h2>
             <div 
-              className="p-5 rounded-xl border space-y-4"
+              className="p-6 rounded-2xl border space-y-5"
               style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
             >
               <p className="text-sm italic leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
                 "{appt.description}"
               </p>
-              <div className="pt-4 border-t flex flex-wrap gap-6" style={{ borderColor: 'var(--border)' }}>
+              <div className="pt-4 border-t flex flex-wrap gap-8" style={{ borderColor: 'var(--border)' }}>
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
                     Fecha Programada
                   </p>
                   <p className="font-bold text-sm flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
-                    <Calendar size={14} style={{ color: 'var(--primary)' }} />
+                    <Calendar size={15} style={{ color: 'var(--primary)' }} />
                     {new Date(appt.scheduled_date).toLocaleDateString()}
                   </p>
                 </div>
@@ -226,7 +226,7 @@ const AppointmentDetails = () => {
                     Hora
                   </p>
                   <p className="font-bold text-sm flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
-                    <Clock size={14} style={{ color: 'var(--primary)' }} />
+                    <Clock size={15} style={{ color: 'var(--primary)' }} />
                     {appt.scheduled_time?.slice(0, 5)} hrs
                   </p>
                 </div>
@@ -235,7 +235,7 @@ const AppointmentDetails = () => {
                     Ubicación
                   </p>
                   <p className="font-bold text-sm flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
-                    <MapPin size={14} style={{ color: 'var(--primary)' }} />
+                    <MapPin size={15} style={{ color: 'var(--primary)' }} />
                     {appt.address || 'Servicio en Taller / Local'}
                   </p>
                 </div>
@@ -245,26 +245,26 @@ const AppointmentDetails = () => {
 
           {/* Action History / Pricing */}
           <section 
-            className="p-7 rounded-2xl border shadow-lg"
+            className="p-8 sm:p-9 rounded-[32px] border shadow-xl"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
-            <h2 className="text-lg font-bold mb-5 flex items-center gap-2.5" style={{ color: 'var(--text-primary)' }}>
-              <DollarSign size={20} style={{ color: 'var(--primary)' }} />
+            <h2 className="text-xl font-bold mb-6 flex items-center gap-2.5" style={{ color: 'var(--text-primary)' }}>
+              <DollarSign size={22} style={{ color: 'var(--primary)' }} />
               <span>Presupuesto y Pago</span>
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div 
-                className="p-5 rounded-xl border"
+                className="p-6 rounded-2xl border"
                 style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
               >
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[10px] font-bold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-muted)' }}>
                   Monto del Servicio
                 </p>
                 {isTech && appt.status === 'pending' ? (
-                  <div className="flex gap-2">
+                  <div className="flex gap-2.5">
                     <input 
                       type="number" 
-                      className="w-full py-2 px-3 text-base font-bold rounded-xl border outline-none"
+                      className="w-full py-2.5 px-4 text-base font-bold rounded-2xl border outline-none"
                       style={{ 
                         backgroundColor: 'var(--bg-card)', 
                         borderColor: 'var(--border)', 
@@ -277,28 +277,28 @@ const AppointmentDetails = () => {
                     <button 
                       onClick={handleSetPrice}
                       disabled={actionLoading || !priceInput}
-                      className="btn-primary px-4 py-2 text-xs font-bold rounded-xl disabled:opacity-50"
+                      className="btn-primary px-5 py-2.5 text-xs font-bold rounded-2xl disabled:opacity-50"
                     >
                       Guardar
                     </button>
                   </div>
                 ) : (
-                  <p className="text-2xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
+                  <p className="text-3xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
                     S/. {Number(appt.price || 0).toFixed(2)}
                   </p>
                 )}
               </div>
 
               <div 
-                className="p-5 rounded-xl border"
+                className="p-6 rounded-2xl border"
                 style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
               >
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[10px] font-bold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-muted)' }}>
                   Estado del Pago
                 </p>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="flex items-center gap-2.5 mt-2">
                   <div 
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    className="w-3 h-3 rounded-full shrink-0"
                     style={{
                       backgroundColor: appt.payment_status === 'paid' ? '#22C55E' : appt.payment_status === 'waiting_confirmation' ? '#06B6D4' : '#EAB308'
                     }}
@@ -318,13 +318,13 @@ const AppointmentDetails = () => {
         </div>
 
         {/* Sidebar */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           <div 
-            className="p-6 text-center rounded-2xl border shadow-lg relative overflow-hidden"
+            className="p-8 text-center rounded-[32px] border shadow-xl relative overflow-hidden"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
             <div 
-              className="flex flex-col items-center cursor-pointer p-2 rounded-xl transition-all"
+              className="flex flex-col items-center cursor-pointer p-2 rounded-2xl transition-all"
               onClick={() => {
                 if (!isTech && appt.technician_id) {
                   navigate(`/technician/${appt.technician_id}`);
@@ -332,7 +332,7 @@ const AppointmentDetails = () => {
               }}
             >
               <div 
-                className="w-16 h-16 rounded-2xl flex items-center justify-center font-bold text-2xl text-white mb-3 shadow-md"
+                className="w-20 h-20 rounded-3xl flex items-center justify-center font-bold text-2xl text-white mb-4 shadow-lg"
                 style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #00C6FF 100%)' }}
               >
                 {otherUser?.names?.[0] || 'U'}
@@ -340,52 +340,52 @@ const AppointmentDetails = () => {
               <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--primary)' }}>
                 {isTech ? 'Cliente' : 'Técnico Especialista'}
               </p>
-              <h3 className="text-base font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
+              <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
                 {otherUser?.names} {otherUser?.surnames}
               </h3>
             </div>
             
-            <div className="space-y-2 text-left pt-3 border-t text-xs" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+            <div className="space-y-2.5 text-left pt-4 border-t text-xs" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
               {otherUser?.phone && (
-                <div className="flex items-center gap-2">
-                  <Phone size={14} style={{ color: 'var(--primary)' }} />
+                <div className="flex items-center gap-2.5">
+                  <Phone size={15} style={{ color: 'var(--primary)' }} />
                   <span>{otherUser.phone}</span>
                 </div>
               )}
               {otherUser?.email && (
-                <div className="flex items-center gap-2">
-                  <Mail size={14} style={{ color: 'var(--primary)' }} />
+                <div className="flex items-center gap-2.5">
+                  <Mail size={15} style={{ color: 'var(--primary)' }} />
                   <span className="truncate">{otherUser.email}</span>
                 </div>
               )}
             </div>
 
-            <div className="mt-5 pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
+            <div className="mt-6 pt-5 border-t" style={{ borderColor: 'var(--border)' }}>
               <Link 
                 to={`/chat?user=${otherUser?.id}`} 
-                className="w-full btn-primary py-2.5 flex items-center justify-center gap-2 text-xs font-bold rounded-xl shadow-md"
+                className="w-full btn-primary py-3 flex items-center justify-center gap-2 text-xs font-bold rounded-2xl shadow-lg hover:scale-[1.02] transition-transform"
               >
-                <MessageSquare size={15} />
+                <MessageSquare size={16} />
                 <span>Ir al Chat</span>
               </Link>
             </div>
           </div>
 
           <div 
-            className="p-6 rounded-2xl border space-y-3 shadow-lg"
+            className="p-8 rounded-[32px] border space-y-4 shadow-xl"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
-            <h3 className="text-[11px] font-bold uppercase tracking-wider mb-3" style={{ color: 'var(--text-muted)' }}>
+            <h3 className="text-[11px] font-black uppercase tracking-wider mb-2 text-slate-400">
               Control de Estado
             </h3>
 
             {isTech ? (
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-3">
                 {appt.status === 'pending' && (
                   <button 
                     onClick={() => handleUpdateStatus('confirmed')}
                     disabled={actionLoading || !appt.price}
-                    className="btn-primary w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider shadow-md disabled:opacity-40"
+                    className="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider shadow-lg disabled:opacity-40"
                   >
                     Confirmar Servicio
                   </button>
@@ -394,7 +394,7 @@ const AppointmentDetails = () => {
                   <button 
                     onClick={() => handleUpdateStatus('on_the_way')}
                     disabled={actionLoading}
-                    className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all hover:opacity-90"
+                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg transition-all hover:opacity-90"
                     style={{ backgroundColor: '#2563EB' }}
                   >
                     Marcar En Camino
@@ -404,7 +404,7 @@ const AppointmentDetails = () => {
                   <button 
                     onClick={() => handleUpdateStatus('arrived')}
                     disabled={actionLoading}
-                    className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all hover:opacity-90"
+                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg transition-all hover:opacity-90"
                     style={{ backgroundColor: '#06B6D4' }}
                   >
                     Confirmar Llegada
@@ -414,7 +414,7 @@ const AppointmentDetails = () => {
                   <button 
                     onClick={() => handleUpdateStatus('in_progress')}
                     disabled={actionLoading}
-                    className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-black shadow-md transition-all hover:opacity-90"
+                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-black shadow-lg transition-all hover:opacity-90"
                     style={{ backgroundColor: 'var(--secondary)' }}
                   >
                     Iniciar Trabajo
@@ -424,7 +424,7 @@ const AppointmentDetails = () => {
                   <button 
                     onClick={() => handleUpdateStatus('completed')}
                     disabled={actionLoading}
-                    className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all hover:opacity-90"
+                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg transition-all hover:opacity-90"
                     style={{ backgroundColor: '#16A34A' }}
                   >
                     Finalizar Trabajo
@@ -434,7 +434,7 @@ const AppointmentDetails = () => {
                   <button 
                     onClick={handleConfirmPayment}
                     disabled={actionLoading}
-                    className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md transition-all hover:opacity-90"
+                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg transition-all hover:opacity-90"
                     style={{ backgroundColor: '#16A34A' }}
                   >
                     Confirmar Pago Recibido
@@ -444,34 +444,34 @@ const AppointmentDetails = () => {
                   <button 
                     onClick={() => handleUpdateStatus('cancelled')}
                     disabled={actionLoading}
-                    className="w-full py-2.5 rounded-xl font-bold text-xs transition-colors hover:bg-red-500/10 text-red-500"
+                    className="w-full py-3 rounded-2xl font-bold text-xs transition-colors hover:bg-red-500/10 text-red-500 border border-transparent hover:border-red-500/20"
                   >
                     Cancelar Cita
                   </button>
                 )}
               </div>
             ) : (
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-3">
                 {!appt.price && (
                   <div 
-                    className="p-3.5 rounded-xl border flex items-start gap-2.5 text-xs"
+                    className="p-4 rounded-2xl border flex items-start gap-3 text-xs"
                     style={{ 
                       backgroundColor: 'rgba(45, 107, 255, 0.05)', 
                       borderColor: 'rgba(45, 107, 255, 0.2)',
                       color: 'var(--text-secondary)'
                     }}
                   >
-                    <AlertCircle size={16} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
+                    <AlertCircle size={18} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
                     <span>Esperando a que el técnico proporcione el presupuesto.</span>
                   </div>
                 )}
                 {appt.status !== 'pending' && appt.price && appt.payment_status === 'pending' && (
                   <button 
                     onClick={() => setShowPaymentModal(true)}
-                    className="w-full py-3.5 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md flex items-center justify-center gap-2"
+                    className="w-full py-4 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-xl shadow-emerald-600/25 flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform"
                     style={{ backgroundColor: '#16A34A' }}
                   >
-                    <CreditCard size={16} />
+                    <CreditCard size={18} />
                     <span>Pagar S/. {Number(appt.price).toFixed(2)}</span>
                   </button>
                 )}
@@ -479,7 +479,7 @@ const AppointmentDetails = () => {
                   <button 
                     onClick={() => handleUpdateStatus('on_the_way')}
                     disabled={actionLoading}
-                    className="w-full py-3 rounded-xl font-bold text-xs uppercase tracking-wider text-white shadow-md"
+                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg"
                     style={{ backgroundColor: '#2563EB' }}
                   >
                     Estoy En Camino al Local
@@ -489,7 +489,7 @@ const AppointmentDetails = () => {
                   <button 
                     onClick={handleCancel}
                     disabled={actionLoading}
-                    className="w-full py-2.5 rounded-xl font-bold text-xs text-red-500 transition-colors hover:bg-red-500/10"
+                    className="w-full py-3 rounded-2xl font-bold text-xs text-red-500 transition-colors hover:bg-red-500/10 border border-transparent hover:border-red-500/20"
                   >
                     Cancelar Cita
                   </button>
@@ -508,34 +508,35 @@ const AppointmentDetails = () => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="max-w-md w-full p-8 rounded-2xl border shadow-2xl space-y-6"
+              className="max-w-md w-full p-8 sm:p-10 rounded-[36px] border shadow-2xl space-y-6"
               style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
             >
               <div className="text-center">
                 <div 
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3"
+                  className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/10"
                   style={{ backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#22C55E' }}
                 >
-                  <CreditCard size={28} />
+                  <CreditCard size={32} />
                 </div>
-                <h3 className="text-xl font-bold" style={{ color: 'var(--text-primary)' }}>Método de Pago</h3>
-                <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>
+                <h3 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Método de Pago</h3>
+                <p className="text-xs mt-1.5" style={{ color: 'var(--text-secondary)' }}>
                   Selecciona cómo realizarás el pago de S/. {Number(appt.price).toFixed(2)}
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-2 gap-3">
                 {['yape', 'plin', 'transfer', 'cash'].map(method => {
                   const isSel = paymentMethod === method;
                   return (
                     <button
                       key={method}
                       onClick={() => setPaymentMethod(method)}
-                      className="p-3 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all"
+                      className="p-3.5 rounded-2xl border text-xs font-bold uppercase tracking-wider transition-all hover:scale-[1.02]"
                       style={{
                         backgroundColor: isSel ? 'var(--primary)' : 'var(--bg)',
                         borderColor: isSel ? 'var(--primary)' : 'var(--border)',
-                        color: isSel ? '#FFFFFF' : 'var(--text-primary)'
+                        color: isSel ? '#FFFFFF' : 'var(--text-primary)',
+                        boxShadow: isSel ? '0 4px 15px rgba(37,99,235,0.25)' : 'none'
                       }}
                     >
                       {method}
@@ -545,7 +546,7 @@ const AppointmentDetails = () => {
               </div>
 
               <div 
-                className="p-5 rounded-xl border text-center"
+                className="p-6 rounded-2xl border text-center"
                 style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
               >
                 {paymentMethod === 'yape' || paymentMethod === 'plin' ? (
@@ -570,10 +571,10 @@ const AppointmentDetails = () => {
                 )}
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 pt-2">
                 <button 
                   onClick={() => setShowPaymentModal(false)}
-                  className="flex-1 py-3 font-bold text-xs uppercase rounded-xl border transition-colors hover:opacity-80"
+                  className="flex-1 py-3.5 font-bold text-xs uppercase rounded-2xl border transition-colors hover:bg-white/5"
                   style={{ 
                     backgroundColor: 'var(--bg)', 
                     borderColor: 'var(--border)', 
@@ -585,7 +586,7 @@ const AppointmentDetails = () => {
                 <button 
                   onClick={handlePay}
                   disabled={actionLoading}
-                  className="flex-1 py-3 font-bold text-xs uppercase rounded-xl text-white shadow-lg disabled:opacity-50"
+                  className="flex-1 py-3.5 font-bold text-xs uppercase rounded-2xl text-white shadow-xl shadow-emerald-600/25 disabled:opacity-50 hover:scale-[1.02] transition-transform"
                   style={{ backgroundColor: '#16A34A' }}
                 >
                   {actionLoading ? 'Procesando...' : 'Confirmar Pago'}

@@ -23,6 +23,12 @@ router.get('/nearby', sucursalesController.getNearbyStores);
 router.get('/my-store', authenticate, sucursalesController.getMyStore);
 
 /**
+ * @route   GET /api/sucursales/products/catalog
+ * @desc    Get all available products across all stores
+ */
+router.get('/products/catalog', sucursalesController.getCatalogProducts);
+
+/**
  * @route   GET /api/sucursales/:id
  * @desc    Get store details
  */

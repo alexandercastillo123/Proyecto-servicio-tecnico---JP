@@ -48,10 +48,25 @@ export const authService = {
   register: (data) => api.post('/auth/register', data),
   getProfile: () => api.get('/users/profile'),
   updateProfile: (data) => api.put('/users/profile', data),
+  changePassword: (data) => api.post('/auth/change-password', { newPassword: data.newPassword || data }),
+  forgotPassword: (email) => api.post('/auth/forgot-password', { email }).then(r => r.data),
+  verifyCode: (email, code) => api.post('/auth/verify-code', { email, code }).then(r => r.data),
+  resetPassword: (email, code, newPassword) => api.post('/auth/reset-password', { email, code, newPassword }).then(r => r.data),
+  uploadProfilePhoto: (formData) => api.post('/users/profile/photo', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
   }
+};
+
+export const notificationService = {
+  getNotifications: () => api.get('/notifications'),
+  markAsRead: (id) => api.put(`/notifications/${id}/read`),
+  markAllAsRead: () => api.put('/notifications/read-all'),
+  getSettings: () => api.get('/notifications/settings'),
+  updateSettings: (data) => api.put('/notifications/settings', data),
 };
 
 export const techService = {
@@ -80,6 +95,7 @@ export const storeService = {
   getBranches: () => api.get('/sucursales'),
   getNearbyBranches: (params) => api.get('/sucursales/nearby', { params }),
   getBranchDetails: (id) => api.get(`/sucursales/${id}`),
+  getCatalogProducts: (params) => api.get('/sucursales/products/catalog', { params }),
   getProducts: (branchId) => api.get(`/sucursales/${branchId}/products`),
   getOrders: (branchId) => api.get(`/sucursales/orders/store/${branchId}`),
   getMyOrders: () => api.get('/sucursales/orders/my-orders'),

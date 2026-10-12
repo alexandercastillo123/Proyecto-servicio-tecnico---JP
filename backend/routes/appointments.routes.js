@@ -16,7 +16,7 @@ router.post(
     [
         body('technicianId').isInt().withMessage('Valid technician ID is required'),
         body('scheduledDate').isDate().withMessage('Valid date is required (YYYY-MM-DD)'),
-        body('scheduledTime').matches(/^([01]\d|2[0-3]):([0-5]\d)$/).withMessage('Valid time is required (HH:MM)'),
+        body('scheduledTime').matches(/^([01]\d|2[0-3]):([0-5]\d)(:([0-5]\d))?$/).withMessage('Valid time is required (HH:MM)'),
         body('description').optional().isString()
     ],
     validate,

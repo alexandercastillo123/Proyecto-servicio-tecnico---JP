@@ -20,6 +20,7 @@ import StoreCreate from './components/StoreCreate';
 import StoreList from './components/StoreList';
 import StoreProfile from './components/StoreProfile';
 import OrderList from './components/OrderList';
+import StoreMarketplace from './components/StoreMarketplace';
 import { Toaster } from 'react-hot-toast';
 import { SocketProvider } from './context/SocketContext';
 import { TechLoader } from './components/common/TechLoader';
@@ -152,6 +153,7 @@ function App() {
           <Route path="orders"                element={<OrderList />} />
 
           {/* Store Specific */}
+          <Route path="shop"                  element={<StoreMarketplace />} />
           <Route path="stores"                element={<StoreList />} />
           <Route path="stores/create"         element={<StoreCreate />} />
           <Route path="store/:id"             element={<StoreProfile />} />

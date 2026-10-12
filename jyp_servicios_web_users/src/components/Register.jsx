@@ -101,23 +101,23 @@ const Register = ({ onLogin }) => {
         className="w-full max-w-xl z-10 my-8"
       >
         <div 
-          className="glass-card p-6 sm:p-8 md:p-10 rounded-3xl relative"
+          className="glass-card p-8 sm:p-10 md:p-12 rounded-[36px] relative"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xl)' }}
         >
           {/* Header Brand */}
           <div className="flex items-center justify-between pb-6 mb-6 border-b" style={{ borderColor: 'var(--border)' }}>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3.5">
               <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md"
+                className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg"
                 style={{ background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)' }}
               >
-                <Cpu size={20} className="text-white" strokeWidth={2.3} />
+                <Cpu size={22} className="text-white" strokeWidth={2.3} />
               </div>
               <div>
-                <span className="font-black text-lg tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: 'var(--text-primary)' }}>
+                <span className="font-black text-xl tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", color: 'var(--text-primary)' }}>
                   JyP Servicios Técnicos
                 </span>
-                <span className="text-[10px] font-bold text-blue-500 block uppercase tracking-wider">
+                <span className="text-[10px] font-black text-blue-500 block uppercase tracking-wider">
                   Registro de Nueva Cuenta
                 </span>
               </div>
@@ -163,7 +163,7 @@ const Register = ({ onLogin }) => {
                         key={role.id}
                         type="button"
                         onClick={() => { setFormData({...formData, role: role.id}); setStep(2); }}
-                        className="flex items-center gap-4 p-4 sm:p-5 rounded-2xl border text-left transition-all duration-200 group hover:translate-x-1"
+                        className="flex items-center gap-4 p-5 rounded-2xl border text-left transition-all duration-200 group hover:translate-x-1"
                         style={{
                           background: 'var(--bg-input)',
                           borderColor: 'var(--border)',
@@ -178,21 +178,21 @@ const Register = ({ onLogin }) => {
                         }}
                       >
                         <div 
-                          className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
+                          className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-105"
                           style={{ background: 'rgba(37,99,235,0.15)', color: '#38BDF8', border: '1px solid rgba(37,99,235,0.3)' }}
                         >
-                          <Icon size={22} />
+                          <Icon size={24} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h4 className="font-bold text-base text-white">{role.label}</h4>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                            <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300">
                               {role.badge}
                             </span>
                           </div>
-                          <p className="text-xs text-slate-400 mt-0.5 truncate">{role.desc}</p>
+                          <p className="text-xs text-slate-400 mt-1 truncate">{role.desc}</p>
                         </div>
-                        <ChevronRight className="text-slate-500 group-hover:text-blue-400 transition-colors" size={18} />
+                        <ChevronRight className="text-slate-500 group-hover:text-blue-400 transition-colors" size={20} />
                       </button>
                     );
                   })}
@@ -227,7 +227,7 @@ const Register = ({ onLogin }) => {
                     <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                       Tipo de Registro
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-2 gap-2.5">
                       {[
                         { type: 'natural', label: 'Persona Natural' },
                         { type: 'juridical', label: 'Empresa / Jurídica' }
@@ -236,9 +236,9 @@ const Register = ({ onLogin }) => {
                           key={type}
                           type="button"
                           onClick={() => setFormData({...formData, personType: type})}
-                          className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all border ${
+                          className={`py-3 px-4 rounded-2xl font-bold text-xs transition-all border ${
                             formData.personType === type 
-                              ? 'bg-blue-600/20 border-blue-500 text-blue-300' 
+                              ? 'bg-blue-600/25 border-blue-500 text-blue-300 shadow-md shadow-blue-600/10' 
                               : 'bg-white/3 border-white/10 text-slate-400 hover:text-slate-200'
                           }`}
                         >
@@ -259,6 +259,7 @@ const Register = ({ onLogin }) => {
                         type="text" 
                         placeholder="ej. jperez"
                         className="input-field"
+                        style={{ height: 48, borderRadius: 16 }}
                         value={formData.username}
                         onChange={(e) => setFormData({...formData, username: e.target.value})}
                       />
@@ -273,6 +274,7 @@ const Register = ({ onLogin }) => {
                         type="email" 
                         placeholder="correo@ejemplo.com"
                         className="input-field"
+                        style={{ height: 48, borderRadius: 16 }}
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
                       />
@@ -289,6 +291,7 @@ const Register = ({ onLogin }) => {
                             type="text" 
                             placeholder="Juan Carlos"
                             className="input-field" 
+                            style={{ height: 48, borderRadius: 16 }}
                             value={formData.names} 
                             onChange={(e) => setFormData({...formData, names: e.target.value})} 
                           />
@@ -302,6 +305,7 @@ const Register = ({ onLogin }) => {
                             type="text" 
                             placeholder="Pérez García"
                             className="input-field" 
+                            style={{ height: 48, borderRadius: 16 }}
                             value={formData.surnames} 
                             onChange={(e) => setFormData({...formData, surnames: e.target.value})} 
                           />
@@ -317,6 +321,7 @@ const Register = ({ onLogin }) => {
                           type="text" 
                           placeholder="Servicios Técnicos JyP S.A.C."
                           className="input-field" 
+                          style={{ height: 48, borderRadius: 16 }}
                           value={formData.companyName} 
                           onChange={(e) => setFormData({...formData, companyName: e.target.value})} 
                         />
@@ -333,24 +338,24 @@ const Register = ({ onLogin }) => {
                           type={showPassword ? "text" : "password"} 
                           placeholder="Mínimo 6 caracteres"
                           className="input-field"
-                          style={{ paddingRight: 44 }}
+                          style={{ paddingRight: 44, height: 48, borderRadius: 16 }}
                           value={formData.password}
                           onChange={(e) => setFormData({...formData, password: e.target.value})}
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1"
                         >
-                          {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
                       </div>
                     </div>
                   </div>
 
                   {error && (
-                    <div className="flex items-center gap-2.5 p-3 rounded-xl text-xs font-semibold bg-rose-500/10 border border-rose-500/20 text-rose-400">
-                      <AlertCircle size={15} className="shrink-0" />
+                    <div className="flex items-center gap-2.5 p-3.5 rounded-2xl text-xs font-semibold bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                      <AlertCircle size={16} className="shrink-0" />
                       <span>{error}</span>
                     </div>
                   )}
@@ -358,8 +363,8 @@ const Register = ({ onLogin }) => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="btn-primary w-full mt-4"
-                    style={{ height: 50, borderRadius: 14 }}
+                    className="btn-primary w-full mt-4 shadow-xl shadow-blue-600/20"
+                    style={{ height: 52, borderRadius: 20 }}
                   >
                     {loading ? (
                       <div className="spinner" />
