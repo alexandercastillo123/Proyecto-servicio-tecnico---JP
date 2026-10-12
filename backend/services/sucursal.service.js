@@ -87,6 +87,7 @@ const updateStoreStatus = async (storeId, userId, status) => {
 // ─── Products ──────────────────────────────────────────────────────────────────
 
 const getStoreProducts = (storeId) => sucursalRepo.getProducts(storeId);
+const getAllCatalogProducts = (filters) => sucursalRepo.getAllCatalogProducts(filters);
 
 const addStoreProduct = async (userId, userRole, data) => {
     const { sucursal_id, name, price } = data;
@@ -296,7 +297,7 @@ const getStoreAppointments = async (storeId, userId, userRole) => {
 
 module.exports = {
     getStores, getNearbyStores, getStoreById, getMyStore, createStore, updateStore, deleteStore, updateStoreStatus,
-    getStoreProducts, addStoreProduct, updateStoreProduct, deleteStoreProduct,
+    getStoreProducts, getAllCatalogProducts, addStoreProduct, updateStoreProduct, deleteStoreProduct,
     getStoreSchedules, getStoreReviews, addStoreReview,
     createOrder, payOrder, confirmOrderPayment, getMyOrders, getStoreOrders, updateOrderStatus,
     getStoreAppointments

@@ -30,13 +30,13 @@ const VerifyCode = () => {
 
     try {
       const response = await authService.verifyCode(email, code);
-      if (response.success) {
+      if (response.success || response.exito) {
         navigate('/reset-password', { state: { email, code } });
       } else {
-        setError(response.message || 'Código inválido o expirado');
+        setError(response.message || response.mensaje || 'Código inválido o expirado');
       }
     } catch (err) {
-      setError('Error al validar el código');
+      setError(err.response?.data?.mensaje || err.response?.data?.message || 'Error al validar el código');
     } finally {
       setIsLoading(false);
     }
@@ -79,7 +79,7 @@ const VerifyCode = () => {
         className="w-full max-w-md relative z-10"
       >
         <div 
-          className="p-8 md:p-10 rounded-2xl border shadow-2xl backdrop-blur-xl"
+          className="p-8 md:p-10 rounded-[32px] border shadow-2xl backdrop-blur-xl"
           style={{ 
             backgroundColor: 'var(--bg-card)', 
             borderColor: 'var(--border)' 
@@ -88,19 +88,19 @@ const VerifyCode = () => {
           <div className="flex justify-between items-center mb-8">
             <Link 
               to="/forgot-password" 
-              className="p-2.5 rounded-xl border transition-colors flex items-center justify-center"
+              className="p-3 rounded-2xl border transition-colors flex items-center justify-center hover:scale-105"
               style={{ 
                 backgroundColor: 'var(--bg)', 
                 borderColor: 'var(--border)',
                 color: 'var(--text-secondary)' 
               }}
             >
-              <ArrowLeft size={20} />
+              <ArrowLeft size={18} />
             </Link>
 
             <div className="flex items-center gap-2.5">
               <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-md"
                 style={{ backgroundColor: 'var(--primary)' }}
               >
                 <Cpu size={22} className="text-white" />
@@ -113,14 +113,14 @@ const VerifyCode = () => {
 
             <button 
               onClick={() => setShowInfo(!showInfo)}
-              className="p-2.5 rounded-xl border transition-colors"
+              className="p-3 rounded-2xl border transition-colors hover:scale-105"
               style={{ 
                 backgroundColor: 'var(--bg)', 
                 borderColor: 'var(--border)',
                 color: showInfo ? 'var(--primary)' : 'var(--text-secondary)' 
               }}
             >
-              <Info size={20} />
+              <Info size={18} />
             </button>
           </div>
 
@@ -137,7 +137,7 @@ const VerifyCode = () => {
             <motion.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
-              className="mb-6 p-4 rounded-xl text-xs leading-relaxed border"
+              className="mb-6 p-4 rounded-2xl text-xs leading-relaxed border"
               style={{
                 backgroundColor: 'rgba(45, 107, 255, 0.08)',
                 borderColor: 'rgba(45, 107, 255, 0.25)',
@@ -158,7 +158,7 @@ const VerifyCode = () => {
                 maxLength="6"
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                className="w-full py-5 text-center text-3xl font-black tracking-[0.8rem] rounded-xl border outline-none transition-all"
+                className="w-full py-5 text-center text-3xl font-black tracking-[0.8rem] rounded-2xl border outline-none transition-all focus:border-blue-500"
                 style={{
                   backgroundColor: 'var(--bg)',
                   borderColor: 'var(--border)',
@@ -173,7 +173,7 @@ const VerifyCode = () => {
               <motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="p-4 rounded-xl flex items-center gap-3 text-sm"
+                className="p-4 rounded-2xl flex items-center gap-3 text-sm"
                 style={{ 
                   backgroundColor: 'rgba(239, 68, 68, 0.1)', 
                   border: '1px solid rgba(239, 68, 68, 0.25)',
@@ -188,7 +188,7 @@ const VerifyCode = () => {
             <button
               type="submit"
               disabled={isLoading || code.length < 6}
-              className="w-full py-3.5 font-bold rounded-xl transition-all flex items-center justify-center gap-2 group text-white shadow-lg disabled:opacity-50"
+              className="w-full h-12 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 group text-white shadow-xl hover:scale-[1.01] disabled:opacity-50"
               style={{
                 backgroundColor: 'var(--primary)',
                 boxShadow: '0 8px 24px rgba(45, 107, 255, 0.35)'

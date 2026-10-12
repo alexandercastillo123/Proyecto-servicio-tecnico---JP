@@ -94,6 +94,25 @@ const getProducts = async (storeId) => {
     return rows;
 };
 
+const getAllCatalogProducts = async (filters = {}) => {
+    let sql = `SELECT sp.*, s.name as branch_name, s.city as branch_city, s.address as branch_address, s.user_id as branch_user_id
+               FROM store_products sp
+               JOIN sucursales s ON sp.sucursal_id = s.id
+               WHERE sp.is_available = TRUE AND (s.status = 'active' OR s.status IS NULL)`;
+    const params = [];
+    if (filters.category && filters.category !== 'all') {
+        sql += ' AND sp.category = ?';
+        params.push(filters.category);
+    }
+    if (filters.search) {
+        sql += ' AND (sp.name LIKE ? OR sp.description LIKE ?)';
+        params.push(`%${filters.search}%`, `%${filters.search}%`);
+    }
+    sql += ' ORDER BY sp.created_at DESC';
+    const [rows] = await pool.query(sql, params);
+    return rows;
+};
+
 const insertProduct = async (data) => {
     const { sucursal_id, name, description, price, image_url, category, brand, sku, is_available } = data;
     const [result] = await pool.query(
@@ -339,7 +358,7 @@ module.exports = {
     findAll, findById, findByUserId, findNearby, existsByUserId,
     create, update, remove, updateStatus, ownsStore,
     // Products
-    getProducts, insertProduct, findProductWithStore, updateProduct, deleteProduct, findProductForOrder,
+    getProducts, getAllCatalogProducts, insertProduct, findProductWithStore, updateProduct, deleteProduct, findProductForOrder,
     // Schedules
     getSchedules,
     // Reviews

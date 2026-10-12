@@ -135,6 +135,16 @@ const createBasicProfile = async (userId, data, conn) => {
 
 const updateProfile = async (userId, fields) => {
     const { phone, address, city, names, surnames, dni, companyName, ruc, referenceAddress, description } = fields;
+    const [existing] = await pool.query('SELECT user_id FROM user_profiles WHERE user_id = ?', [userId]);
+    if (existing.length === 0) {
+        await pool.query(
+            `INSERT INTO user_profiles
+                (user_id, phone, address, city, names, surnames, dni, company_name, ruc, reference_address, description)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [userId, phone || null, address || null, city || null, names || null, surnames || null, dni || null, companyName || null, ruc || null, referenceAddress || null, description || null]
+        );
+        return;
+    }
     await pool.query(
         `UPDATE user_profiles SET
             phone             = COALESCE(?, phone),
@@ -153,6 +163,11 @@ const updateProfile = async (userId, fields) => {
 };
 
 const updateProfileImage = async (userId, imageUrl) => {
+    const [existing] = await pool.query('SELECT user_id FROM user_profiles WHERE user_id = ?', [userId]);
+    if (existing.length === 0) {
+        await pool.query('INSERT INTO user_profiles (user_id, profile_image_url) VALUES (?, ?)', [userId, imageUrl]);
+        return;
+    }
     await pool.query('UPDATE user_profiles SET profile_image_url = ? WHERE user_id = ?', [imageUrl, userId]);
 };
 

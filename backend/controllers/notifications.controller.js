@@ -42,6 +42,14 @@ const markAsRead = asyncHandler(async (req, res) => {
 });
 
 /**
+ * PUT /api/notifications/read-all
+ */
+const markAllAsRead = asyncHandler(async (req, res) => {
+    await notificationRepo.markAllAsRead(req.user.id);
+    res.json(Respuesta.ok(null, 'Todas las notificaciones marcadas como leídas.'));
+});
+
+/**
  * POST /api/notifications/token
  */
 const saveToken = asyncHandler(async (req, res) => {
@@ -59,4 +67,4 @@ const removeToken = asyncHandler(async (req, res) => {
     res.json(Respuesta.ok(null, 'Token eliminado correctamente.'));
 });
 
-module.exports = { getSettings, updateSettings, getNotifications, markAsRead, saveToken, removeToken };
+module.exports = { getSettings, updateSettings, getNotifications, markAsRead, markAllAsRead, saveToken, removeToken };

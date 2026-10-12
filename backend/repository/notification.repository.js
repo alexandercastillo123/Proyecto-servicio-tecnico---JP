@@ -40,6 +40,14 @@ const markAsRead = async (id, userId) => {
     return result.affectedRows;
 };
 
+const markAllAsRead = async (userId) => {
+    const [result] = await pool.query(
+        'UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE',
+        [userId]
+    );
+    return result.affectedRows;
+};
+
 // ─── Settings ─────────────────────────────────────────────────────────────────
 
 const getSettings = async (userId) => {
@@ -110,7 +118,7 @@ const deleteExpiredResets = async () => {
 };
 
 module.exports = {
-    insert, findByUser, markAsRead,
+    insert, findByUser, markAsRead, markAllAsRead,
     getSettings, createDefaultSettings, updateSettings, getSettingsForPush,
     getFCMTokens, saveToken, removeToken,
     deleteExpiredResets

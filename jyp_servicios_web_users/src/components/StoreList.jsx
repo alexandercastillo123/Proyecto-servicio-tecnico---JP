@@ -129,28 +129,34 @@ const StoreList = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 pb-12">
-      <header className="px-2">
-        <h1 className="text-3xl font-extrabold tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>
-          Tiendas y <span style={{ color: 'var(--primary)' }}>Sucursales Oficiales</span>
+    <div className="max-w-7xl mx-auto space-y-8 pb-16" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <header className="p-6 sm:p-8 rounded-[32px] bg-gradient-to-r from-blue-900/20 via-slate-900/30 to-purple-900/20 border border-white/5 backdrop-blur-xl">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/10 text-blue-400 border border-blue-500/20 mb-2">
+          Red Oficial de Distribución
+        </span>
+        <h1 
+          className="text-3xl sm:text-4xl font-black text-white tracking-tight"
+          style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}
+        >
+          Tiendas y Sucursales Oficiales
         </h1>
-        <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-          Busca locales autorizados para repuestos certificados, diagnóstico presencial y soporte técnico.
+        <p className="text-sm text-slate-400 mt-1 max-w-2xl">
+          Busca locales autorizados para repuestos certificados, diagnóstico presencial y soporte técnico con garantía de fábrica.
         </p>
       </header>
 
-      <div className="flex flex-col lg:flex-row h-[700px] gap-6">
-        <div className="w-full lg:w-[380px] flex flex-col gap-4 overflow-hidden">
+      <div className="flex flex-col lg:flex-row h-[720px] gap-8">
+        <div className="w-full lg:w-[400px] flex flex-col gap-4 overflow-hidden">
           <div 
-            className="p-3.5 rounded-2xl border shadow-sm"
+            className="p-4 rounded-3xl border shadow-sm"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
             <div className="relative">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2" size={17} style={{ color: 'var(--text-muted)' }} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
                 type="text"
                 placeholder="Filtrar por nombre o dirección..."
-                className="w-full rounded-xl py-2.5 pl-10 pr-4 text-sm outline-none border transition-all"
+                className="w-full rounded-2xl py-3 pl-11 pr-4 text-sm outline-none border transition-all"
                 style={{
                   backgroundColor: 'var(--bg)',
                   borderColor: 'var(--border)',
@@ -162,28 +168,28 @@ const StoreList = () => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto pr-1 space-y-3">
+          <div className="flex-1 overflow-y-auto pr-1 space-y-3.5">
             {!hasSearched ? (
               <div 
-                className="h-full flex flex-col items-center justify-center p-8 text-center rounded-2xl border border-dashed"
+                className="h-full flex flex-col items-center justify-center p-8 text-center rounded-[32px] border border-dashed"
                 style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
               >
                 <div 
-                  className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 animate-pulse"
+                  className="w-20 h-20 rounded-3xl flex items-center justify-center mb-4 animate-pulse"
                   style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
                 >
-                  <Store size={32} />
+                  <Store size={36} />
                 </div>
-                <h3 className="font-bold text-base mb-2" style={{ color: 'var(--text-primary)' }}>Explora Sucursales</h3>
-                <p className="text-xs leading-relaxed max-w-xs" style={{ color: 'var(--text-secondary)' }}>
-                  Haz doble clic en el mapa para marcar tu zona y pulsa <span className="font-bold" style={{ color: 'var(--primary)' }}>Buscar Sucursales</span>.
+                <h3 className="font-bold text-lg mb-2" style={{ color: 'var(--text-primary)' }}>Explora Sucursales</h3>
+                <p className="text-xs leading-relaxed max-w-xs text-slate-400">
+                  Haz doble clic en el mapa para marcar tu zona y pulsa <span className="font-bold text-blue-400">Buscar Sucursales</span>.
                 </p>
               </div>
             ) : loading ? (
               Array(3).fill(0).map((_, i) => (
                 <div 
                   key={i} 
-                  className="p-5 rounded-2xl border animate-pulse h-32"
+                  className="p-6 rounded-3xl border animate-pulse h-36"
                   style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
                 />
               ))
@@ -198,22 +204,22 @@ const StoreList = () => {
                       setMapCenter([lat, lng]);
                     }
                   }}
-                  className="p-4 rounded-2xl border shadow-sm transition-all hover:border-primary/40 cursor-pointer group"
+                  className="p-5 rounded-3xl border shadow-sm transition-all hover:border-primary/50 cursor-pointer group"
                   style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
                 >
-                  <div className="flex gap-3.5 items-start">
+                  <div className="flex gap-4 items-start">
                     <div 
-                      className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
+                      className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-md"
+                      style={{ backgroundColor: 'rgba(45, 107, 255, 0.12)', color: 'var(--primary)' }}
                     >
-                      <Store size={22} />
+                      <Store size={24} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-sm truncate" style={{ color: 'var(--text-primary)' }}>
+                      <h3 className="font-bold text-base truncate group-hover:text-blue-400 transition-colors" style={{ color: 'var(--text-primary)' }}>
                         {store.name}
                       </h3>
-                      <p className="text-[11px] font-semibold mt-1 flex items-center gap-1" style={{ color: 'var(--text-secondary)' }}>
-                        <MapPin size={12} style={{ color: 'var(--primary)' }} />
+                      <p className="text-xs font-semibold mt-1 flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
+                        <MapPin size={13} style={{ color: 'var(--primary)' }} />
                         <span className="truncate">{store.address || store.city || 'Trujillo'}</span>
                       </p>
                     </div>
@@ -223,16 +229,16 @@ const StoreList = () => {
                       e.stopPropagation();
                       navigate(`/store/${store.id}`);
                     }}
-                    className="btn-primary w-full mt-3 py-2 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-sm"
+                    className="btn-primary w-full mt-4 py-2.5 text-xs font-bold rounded-2xl flex items-center justify-center gap-2 shadow-sm"
                   >
                     <span>Ver Catálogo y Servicios</span>
-                    <ChevronRight size={14} />
+                    <ChevronRight size={15} />
                   </button>
                 </div>
               ))
             ) : (
               <div 
-                className="p-8 text-center rounded-2xl border text-xs"
+                className="p-10 text-center rounded-3xl border text-xs"
                 style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
               >
                 No se encontraron sucursales en esta zona geográfica.
@@ -242,7 +248,7 @@ const StoreList = () => {
         </div>
 
         <div 
-          className="flex-1 min-h-[400px] lg:min-h-0 rounded-3xl overflow-hidden border relative shadow-xl"
+          className="flex-1 min-h-[400px] lg:min-h-0 rounded-[32px] overflow-hidden border relative shadow-xl"
           style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg)' }}
         >
           {mapReady && (

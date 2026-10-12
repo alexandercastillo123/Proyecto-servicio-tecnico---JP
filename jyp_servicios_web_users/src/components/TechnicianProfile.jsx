@@ -74,100 +74,100 @@ const TechnicianProfile = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-12">
+    <div className="max-w-7xl mx-auto space-y-8 pb-16">
       {/* Back Button */}
       <Link 
         to="/technicians" 
-        className="inline-flex items-center gap-2 transition-all font-semibold text-sm hover:opacity-80"
-        style={{ color: 'var(--text-secondary)' }}
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full border bg-white/5 hover:bg-white/10 transition-all font-semibold text-xs tracking-wider uppercase shadow-sm"
+        style={{ color: 'var(--text-secondary)', borderColor: 'var(--border)' }}
       >
-        <ChevronLeft size={18} />
+        <ChevronLeft size={16} />
         <span>Volver a técnicos</span>
       </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Sidebar Info */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="lg:col-span-1 space-y-8">
           <div 
-            className="p-8 text-center rounded-2xl border relative overflow-hidden shadow-xl"
+            className="p-8 sm:p-10 text-center rounded-[32px] border relative overflow-hidden shadow-2xl"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
             {/* Ambient accent top bar */}
             <div 
-              className="absolute top-0 left-0 right-0 h-28 opacity-15"
+              className="absolute top-0 left-0 right-0 h-32 opacity-20 pointer-events-none"
               style={{ background: 'linear-gradient(180deg, var(--primary) 0%, transparent 100%)' }}
             />
             
-            <div className="relative mb-5 mx-auto w-28 h-28 rounded-3xl flex items-center justify-center text-white text-4xl font-extrabold shadow-xl"
+            <div className="relative mb-6 mx-auto w-28 h-28 rounded-full flex items-center justify-center text-white text-4xl font-extrabold shadow-2xl border-4 border-white/10"
               style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #00C6FF 100%)' }}
             >
               {tech.names?.[0] || 'T'}
             </div>
             
-            <h1 className="text-xl font-bold mb-1 tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            <h1 className="text-2xl font-black mb-1.5 tracking-tight" style={{ color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
               {tech.names} {tech.surnames}
             </h1>
-            <p className="text-xs font-semibold mb-4" style={{ color: 'var(--primary)' }}>
+            <p className="text-xs font-bold uppercase tracking-wider mb-5" style={{ color: 'var(--primary)' }}>
               Especialista en Soporte Técnico
             </p>
 
             <div 
-              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-6"
+              className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold mb-6 shadow-sm"
               style={{ 
                 backgroundColor: 'rgba(0, 229, 160, 0.1)', 
                 color: 'var(--secondary)',
                 border: '1px solid rgba(0, 229, 160, 0.25)' 
               }}
             >
-              <ShieldCheck size={14} />
+              <ShieldCheck size={15} />
               <span>Verificado por JyP</span>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mt-2">
+            <div className="grid grid-cols-2 gap-3.5 mt-2">
               <div 
-                className="p-3.5 rounded-xl border text-center"
+                className="p-4 rounded-2xl border text-center shadow-sm"
                 style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
               >
-                <p className="font-extrabold text-lg flex items-center justify-center gap-1 text-amber-400">
-                  <Star size={16} fill="currentColor" />
+                <p className="font-extrabold text-xl flex items-center justify-center gap-1.5 text-amber-400">
+                  <Star size={18} fill="currentColor" />
                   {tech.rating || '4.8'}
                 </p>
-                <p className="text-[10px] uppercase font-bold tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[10px] uppercase font-bold tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>
                   Calificación
                 </p>
               </div>
               <div 
-                className="p-3.5 rounded-xl border text-center"
+                className="p-4 rounded-2xl border text-center shadow-sm"
                 style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
               >
-                <p className="font-extrabold text-lg" style={{ color: 'var(--text-primary)' }}>
+                <p className="font-extrabold text-xl" style={{ color: 'var(--text-primary)' }}>
                   {tech.reviews_count || '120+'}
                 </p>
-                <p className="text-[10px] uppercase font-bold tracking-wider mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[10px] uppercase font-bold tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>
                   Servicios
                 </p>
               </div>
             </div>
 
-            <div className="mt-6 space-y-3 text-left pt-4 border-t" style={{ borderColor: 'var(--border)' }}>
-              <div className="flex items-center gap-3" style={{ color: 'var(--text-secondary)' }}>
-                <div className="p-2 rounded-lg" style={{ backgroundColor: 'var(--bg)', color: 'var(--primary)' }}>
-                  <MapPin size={16} />
+            <div className="mt-8 space-y-3.5 text-left pt-6 border-t" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center gap-3.5" style={{ color: 'var(--text-secondary)' }}>
+                <div className="p-2.5 rounded-xl shrink-0" style={{ backgroundColor: 'var(--bg)', color: 'var(--primary)' }}>
+                  <MapPin size={18} />
                 </div>
                 <span className="text-sm font-medium">{tech.city || 'Trujillo, Perú'}</span>
               </div>
               {tech.phone && (
-                <div className="flex items-center gap-3" style={{ color: 'var(--text-secondary)' }}>
-                  <div className="p-2 rounded-lg" style={{ backgroundColor: 'var(--bg)', color: 'var(--primary)' }}>
-                    <Phone size={16} />
+                <div className="flex items-center gap-3.5" style={{ color: 'var(--text-secondary)' }}>
+                  <div className="p-2.5 rounded-xl shrink-0" style={{ backgroundColor: 'var(--bg)', color: 'var(--primary)' }}>
+                    <Phone size={18} />
                   </div>
                   <span className="text-sm font-medium">{tech.phone}</span>
                 </div>
               )}
               {tech.email && (
-                <div className="flex items-center gap-3" style={{ color: 'var(--text-secondary)' }}>
-                  <div className="p-2 rounded-lg" style={{ backgroundColor: 'var(--bg)', color: 'var(--primary)' }}>
-                    <Mail size={16} />
+                <div className="flex items-center gap-3.5" style={{ color: 'var(--text-secondary)' }}>
+                  <div className="p-2.5 rounded-xl shrink-0" style={{ backgroundColor: 'var(--bg)', color: 'var(--primary)' }}>
+                    <Mail size={18} />
                   </div>
                   <span className="text-sm font-medium truncate">{tech.email}</span>
                 </div>
@@ -176,22 +176,22 @@ const TechnicianProfile = () => {
           </div>
 
           <div 
-            className="p-6 rounded-2xl border space-y-3 shadow-lg"
+            className="p-8 rounded-[32px] border space-y-4 shadow-xl"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
-            <h3 className="text-xs font-bold uppercase tracking-wider mb-2" style={{ color: 'var(--text-secondary)' }}>
+            <h3 className="text-xs font-black uppercase tracking-wider mb-2" style={{ color: 'var(--text-secondary)' }}>
               Acciones Rápidas
             </h3>
             <Link 
               to={`/appointments/schedule?tech=${tech.id}`} 
-              className="btn-primary w-full py-3.5 text-sm flex items-center justify-center gap-2 rounded-xl font-bold shadow-lg"
+              className="btn-primary w-full py-4 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2.5 rounded-2xl shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
               <Calendar size={18} />
               <span>Agendar Cita Técnica</span>
             </Link>
             <Link 
               to={`/chat?user=${tech.id}`} 
-              className="w-full flex items-center justify-center gap-2 py-3.5 rounded-xl border font-bold text-sm transition-all"
+              className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl border font-black uppercase tracking-wider text-xs transition-all hover:bg-white/5 active:scale-[0.98]"
               style={{ 
                 backgroundColor: 'var(--bg)', 
                 borderColor: 'var(--border)', 
@@ -205,21 +205,21 @@ const TechnicianProfile = () => {
         </div>
 
         {/* Main Content */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-8">
           <section 
-            className="p-8 rounded-2xl border shadow-lg"
+            className="p-8 sm:p-10 rounded-[32px] border shadow-xl"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
-            <h3 className="text-xs font-bold uppercase tracking-wider mb-4 flex items-center gap-2" style={{ color: 'var(--primary)' }}>
-              <Zap size={16} fill="currentColor" />
+            <h3 className="text-xs font-black uppercase tracking-wider mb-4 flex items-center gap-2.5" style={{ color: 'var(--primary)' }}>
+              <Zap size={18} fill="currentColor" />
               <span>Sobre el Especialista</span>
             </h3>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm sm:text-base leading-relaxed text-slate-300" style={{ color: 'var(--text-secondary)' }}>
               {tech.description || 
                 'Técnico especialista certificado comprometido con la excelencia. Cuenta con amplia experiencia en diagnóstico, mantenimiento preventivo y correctivo, y reparación de dispositivos y equipos computacionales con repuestos originales y garantía de servicio.'}
             </p>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-8">
               {[
                 'Diagnóstico Integral de Hardware',
                 'Mantenimiento Preventivo y Limpieza',
@@ -230,10 +230,10 @@ const TechnicianProfile = () => {
               ].map((skill, i) => (
                 <div 
                   key={i} 
-                  className="flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold"
+                  className="flex items-center gap-3 p-4 rounded-2xl border text-xs sm:text-sm font-semibold shadow-sm"
                   style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
                 >
-                  <CheckCircle2 size={16} style={{ color: 'var(--secondary)' }} className="shrink-0" />
+                  <CheckCircle2 size={18} style={{ color: 'var(--secondary)' }} className="shrink-0" />
                   <span>{skill}</span>
                 </div>
               ))}
@@ -241,26 +241,26 @@ const TechnicianProfile = () => {
           </section>
 
           <section 
-            className="p-8 rounded-2xl border shadow-lg"
+            className="p-8 sm:p-10 rounded-[32px] border shadow-xl"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
-            <h3 className="text-xs font-bold uppercase tracking-wider mb-5 flex items-center gap-2" style={{ color: 'var(--primary)' }}>
-              <Clock size={16} />
+            <h3 className="text-xs font-black uppercase tracking-wider mb-6 flex items-center gap-2.5" style={{ color: 'var(--primary)' }}>
+              <Clock size={18} />
               <span>Horarios de Atención Semanal</span>
             </h3>
-            <div className="space-y-2.5">
+            <div className="space-y-3">
               {(tech.schedule && tech.schedule.length > 0) ? tech.schedule.map((slot, i) => (
                 <div 
                   key={i} 
-                  className="flex justify-between items-center p-3.5 rounded-xl border text-sm"
+                  className="flex justify-between items-center p-4 rounded-2xl border text-sm shadow-sm"
                   style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
                 >
-                  <span className="font-bold capitalize" style={{ color: 'var(--text-primary)' }}>
+                  <span className="font-bold capitalize text-white" style={{ color: 'var(--text-primary)' }}>
                     {slot.day_of_week}
                   </span>
                   <div className="flex items-center gap-3">
                     <span 
-                      className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                      className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
                       style={slot.is_active ? {
                         backgroundColor: 'rgba(0, 229, 160, 0.1)',
                         color: 'var(--secondary)'
@@ -278,7 +278,7 @@ const TechnicianProfile = () => {
                 </div>
               )) : (
                 <div 
-                  className="text-center py-8 rounded-xl border border-dashed text-xs"
+                  className="text-center py-10 rounded-2xl border border-dashed text-xs"
                   style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
                 >
                   Atención disponible de Lunes a Sábado de 09:00 AM a 06:00 PM.
@@ -288,24 +288,24 @@ const TechnicianProfile = () => {
           </section>
 
           <section 
-            className="p-8 rounded-2xl border shadow-lg"
+            className="p-8 sm:p-10 rounded-[32px] border shadow-xl"
             style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
           >
-            <h3 className="text-xs font-bold uppercase tracking-wider mb-4" style={{ color: 'var(--primary)' }}>
+            <h3 className="text-xs font-black uppercase tracking-wider mb-5" style={{ color: 'var(--primary)' }}>
               Ubicación y Referencia
             </h3>
             <div className="flex items-start gap-4">
               <div 
-                className="p-3.5 rounded-xl text-white"
+                className="p-4 rounded-2xl text-white shadow-md shrink-0"
                 style={{ backgroundColor: 'var(--primary)' }}
               >
-                <MapPin size={22} />
+                <MapPin size={24} />
               </div>
               <div>
-                <p className="font-bold text-base" style={{ color: 'var(--text-primary)' }}>
+                <p className="font-black text-lg" style={{ color: 'var(--text-primary)' }}>
                   {tech.city || 'Trujillo'}, Perú
                 </p>
-                <p className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>
+                <p className="text-sm mt-1 text-slate-300" style={{ color: 'var(--text-secondary)' }}>
                   {tech.reference_address || tech.address || 'Zona céntrica, atención a domicilio y en taller registrado.'}
                 </p>
               </div>

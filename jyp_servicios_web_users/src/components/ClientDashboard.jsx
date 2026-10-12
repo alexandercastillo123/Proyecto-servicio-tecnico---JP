@@ -137,15 +137,15 @@ const ClientDashboard = () => {
   const recentTechChat = conversations.find(c => c.other_user_role === 'tech' || c.other_user_role === 'technician');
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-16" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="max-w-7xl mx-auto space-y-10 pb-20" style={{ fontFamily: "'Inter', sans-serif" }}>
       
       {/* ── HERO BANNER WITH CINEMATIC TECH BACKGROUND ─────────── */}
       <div 
-        className="glass-card p-6 sm:p-8 md:p-10 rounded-3xl relative overflow-hidden"
+        className="glass-card p-8 sm:p-10 md:p-12 rounded-[32px] relative overflow-hidden"
         style={{
-          background: "linear-gradient(135deg, rgba(13, 22, 41, 0.85) 0%, rgba(6, 9, 19, 0.95) 100%)",
+          background: "linear-gradient(135deg, rgba(13, 22, 41, 0.9) 0%, rgba(6, 9, 19, 0.96) 100%)",
           border: "1px solid rgba(59, 130, 246, 0.25)",
-          boxShadow: "0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(37, 99, 235, 0.15)",
+          boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5), 0 0 35px rgba(37, 99, 235, 0.15)",
         }}
       >
         {/* Subtle grid pattern */}
@@ -154,29 +154,39 @@ const ClientDashboard = () => {
         />
         {/* Glowing orb */}
         <div 
-          className="absolute -top-20 -right-20 w-80 h-80 rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, transparent 70%)", filter: "blur(60px)" }}
+          className="absolute -top-24 -right-24 w-96 h-96 rounded-full pointer-events-none"
+          style={{ background: "radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, transparent 70%)", filter: "blur(70px)" }}
         />
 
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="space-y-3 max-w-2xl">
+        <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8">
+          <div className="space-y-4 max-w-2xl">
             {/* Location selector pill */}
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2.5">
               <button 
                 onClick={() => setShowLocationModal(true)}
-                className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all hover:scale-105"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all hover:scale-105 shadow-sm"
                 style={{
                   background: 'rgba(37, 99, 235, 0.18)',
                   border: '1px solid rgba(59, 130, 246, 0.4)',
                   color: '#60A5FA'
                 }}
               >
-                <Target size={13} className="text-cyan-400 animate-pulse" />
+                <Target size={14} className="text-cyan-400 animate-pulse" />
                 <span>{userLocation.address.split(',')[0]}</span>
-                <span className="text-[10px] text-blue-300 uppercase underline ml-1 font-semibold">Cambiar</span>
+                <span className="text-[10px] text-blue-300 uppercase underline ml-1 font-bold">Cambiar</span>
               </button>
 
-              <RadarIndicator label="Radar de Técnicos Activo" />
+              <div 
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold shadow-sm"
+                style={{
+                  background: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.28)',
+                  color: '#93C5FD'
+                }}
+              >
+                <ShieldCheck size={14} className="text-cyan-400" />
+                <span>Red de Especialistas Certificados</span>
+              </div>
             </div>
 
             <h1
@@ -192,19 +202,17 @@ const ClientDashboard = () => {
           </div>
 
           {/* Quick Schedule CTA button */}
-          <div className="shrink-0 flex flex-col sm:flex-row md:flex-col gap-3 w-full sm:w-auto">
+          <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3.5 w-full sm:w-auto">
             <button
               onClick={() => navigate('/appointments/schedule')}
-              className="btn-primary py-3.5 px-6 shadow-xl text-center"
-              style={{ borderRadius: 14 }}
+              className="btn-primary py-4 px-7 text-sm font-black uppercase tracking-wider rounded-2xl shadow-xl text-center"
             >
               <Calendar size={18} />
               <span>Agendar Reparación</span>
             </button>
             <Link
               to="/stores"
-              className="btn-ghost py-3.5 px-6 text-center text-xs font-bold"
-              style={{ borderRadius: 14 }}
+              className="btn-ghost py-4 px-7 text-center text-xs font-bold rounded-2xl"
             >
               <Store size={16} />
               <span>Ver Tiendas & Talleres</span>
@@ -213,7 +221,7 @@ const ClientDashboard = () => {
         </div>
 
         {/* Category Pills Bar */}
-        <div className="relative z-10 pt-8 border-t border-white/10 mt-6 flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        <div className="relative z-10 pt-8 border-t border-white/10 mt-8 flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
           {SERVICE_CATEGORIES.map((cat) => {
             const Icon = cat.icon;
             const isSelected = selectedCategory === cat.id;
@@ -222,10 +230,10 @@ const ClientDashboard = () => {
                 key={cat.id}
                 type="button"
                 onClick={() => setSelectedCategory(cat.id)}
-                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all duration-200"
+                className="flex items-center gap-2.5 px-4 py-2.5 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 shadow-sm"
                 style={{
-                  background: isSelected ? "rgba(37, 99, 235, 0.3)" : "rgba(255, 255, 255, 0.05)",
-                  border: isSelected ? "1px solid rgba(59, 130, 246, 0.6)" : "1px solid rgba(255, 255, 255, 0.08)",
+                  background: isSelected ? "rgba(37, 99, 235, 0.35)" : "rgba(255, 255, 255, 0.05)",
+                  border: isSelected ? "1px solid rgba(59, 130, 246, 0.7)" : "1px solid rgba(255, 255, 255, 0.08)",
                   color: isSelected ? "#38BDF8" : "var(--text-secondary)",
                 }}
               >
