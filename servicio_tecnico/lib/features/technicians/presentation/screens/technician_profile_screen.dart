@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/services/technician_service.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../../../core/constants/api_constants.dart';
+import '../../../../core/widgets/custom_avatar.dart';
+import '../../../../core/theme/app_colors.dart';
 
 class TechnicianProfileScreen extends StatefulWidget {
   const TechnicianProfileScreen({super.key});
@@ -15,6 +19,10 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
   Map<String, dynamic>? _technicianData;
   bool _isLoading = true;
   String? _errorMessage;
+  // Service location passed from the map
+  double? _serviceLat;
+  double? _serviceLng;
+  String? _serviceAddress;
 
   @override
   void initState() {
@@ -39,12 +47,30 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
     super.didChangeDependencies();
     if (_isLoading && _technicianData == null) {
       final extra = GoRouterState.of(context).extra;
-      if (extra != null && extra is String) {
-        _fetchDetails(int.parse(extra));
+      int? techId;
+
+      if (extra is int) {
+        techId = extra;
+      } else if (extra is String) {
+        techId = int.tryParse(extra);
+      } else if (extra is Map<String, dynamic>) {
+        // Mapa nuevo con coordenadas: {techId, serviceLat, serviceLng, serviceAddress}
+        final id = extra['techId'] ?? extra['id'];
+        if (id is int)
+          techId = id;
+        else if (id is String)
+          techId = int.tryParse(id);
+        _serviceLat = (extra['serviceLat'] as num?)?.toDouble();
+        _serviceLng = (extra['serviceLng'] as num?)?.toDouble();
+        _serviceAddress = extra['serviceAddress'] as String?;
+      }
+
+      if (techId != null) {
+        _fetchDetails(techId);
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'ID de técnico no proporcionado';
+          _errorMessage = 'ID de técnico no proporcionado o inválido';
         });
       }
     }
@@ -92,9 +118,18 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
     }
 
     final tech = _technicianData!;
-    final name = tech['person_type'] == 'natural'
-        ? '${tech['names'] ?? ''} ${tech['surnames'] ?? ''}'.trim()
-        : tech['company_name'] ?? 'Técnico';
+    final name =
+        ((tech['username'] != null &&
+            tech['username'].toString().trim().isNotEmpty)
+        ? tech['username'].toString().trim()
+        : (tech['company_name'] != null &&
+                  tech['company_name'].toString().trim().isNotEmpty
+              ? tech['company_name'].toString().trim()
+              : '${tech['names'] ?? ''} ${tech['surnames'] ?? ''}'
+                    .trim()
+                    .isEmpty
+              ? 'Técnico'
+              : '${tech['names'] ?? ''} ${tech['surnames'] ?? ''}'.trim()));
     final dniRuc = tech['dni'] ?? tech['ruc'] ?? 'N/A';
     final rating = double.tryParse(tech['rating']?.toString() ?? '') ?? 0.0;
     final profileImg = tech['profile_image_url'] ?? '';
@@ -122,26 +157,13 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
           children: [
             const SizedBox(height: 3),
             Center(
-              child: Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF3B28FF), width: 4),
-                ),
-                child: CircleAvatar(
-                  radius: 60,
-                  backgroundColor: Colors.white,
-                  backgroundImage: profileImg.isNotEmpty
-                      ? NetworkImage(profileImg)
-                      : null,
-                  child: profileImg.isEmpty
-                      ? const Icon(
-                          Icons.person_outline,
-                          size: 80,
-                          color: Color(0xFF3B28FF),
-                        )
-                      : null,
-                ),
+              child: CustomAvatar(
+                imageUrl: profileImg.isNotEmpty
+                    ? ApiConstants.getStorageUrl(profileImg)
+                    : null,
+                name: name,
+                size: 120,
+                fontSize: 48,
               ),
             ),
             const SizedBox(height: 16),
@@ -157,7 +179,28 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
               dniRuc,
               style: const TextStyle(color: Color(0xFF3B28FF), fontSize: 18),
             ),
-            const SizedBox(height: 5),
+            if (tech['company_name'] != null && tech['company_name'].toString().isNotEmpty && tech['company_name'] != tech['username']) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Empresa: ${tech['company_name']}',
+                style: const TextStyle(color: Colors.grey, fontSize: 14, fontStyle: FontStyle.italic),
+              ),
+            ],
+            if (tech['description'] != null && tech['description'].toString().isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Text(
+                  tech['description'].toString(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.black87,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 15),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(5, (index) {
@@ -206,7 +249,13 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
               child: ElevatedButton(
                 onPressed: () => context.push(
                   '/appointment-scheduling',
-                  extra: {'id': tech['id'], 'name': name},
+                  extra: {
+                    'id': tech['id'],
+                    'name': name,
+                    'serviceLat': _serviceLat,
+                    'serviceLng': _serviceLng,
+                    'serviceAddress': _serviceAddress,
+                  },
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF3B28FF),
@@ -224,38 +273,26 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
             const SizedBox(height: 24),
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: const Color(0xFFEEEEEE),
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Column(
-                children: [
-                  _buildReviewItem('Usuario Ejemplo', 5),
-                  const SizedBox(height: 10),
-                  _buildReviewItem('Otro Usuario', 4),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: 180,
-                    child: ElevatedButton(
-                      onPressed: () {},
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFD9D9D9),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Mostrar Más',
-                        style: TextStyle(
-                          color: Color(0xFF3B28FF),
-                          fontSize: 16,
-                        ),
+              child: const Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.rate_review_outlined, size: 40, color: Colors.grey),
+                    SizedBox(height: 12),
+                    Text(
+                      'No hay reseñas recientes\nSé el primero en valorar a este técnico.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 23),
@@ -264,7 +301,14 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () => context.push('/chat', extra: tech['id']),
+                  onPressed: () => context.push(
+                    '/chat',
+                    extra: {
+                      'receiverId': tech['id'],
+                      'receiverName': name,
+                      'receiverRole': 'tech',
+                    },
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFD9D9D9),
                     elevation: 0,
@@ -291,69 +335,9 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
     );
   }
 
-  Widget _buildReviewItem(String name, int stars) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(5),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF3B28FF), width: 2),
-            ),
-            child: const Icon(
-              Icons.person_outline,
-              size: 25,
-              color: Color(0xFF3B28FF),
-            ),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                name,
-                style: const TextStyle(
-                  color: Color(0xFF3B28FF),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              Row(
-                children: List.generate(5, (index) {
-                  return Icon(
-                    index < stars ? Icons.star : Icons.star_border,
-                    color: const Color(0xFFFFD700),
-                    size: 18,
-                  );
-                }),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showRatingDialog(BuildContext context, String techName) {
-    // Constraint removed as per user request
-    /* if (_validAppointmentId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Debes tener una cita registrada con este técnico para reseñar.',
-          ),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    } */
-
     int selectedStars = 5;
+    final commentController = TextEditingController();
 
     showDialog(
       context: context,
@@ -361,84 +345,88 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return Dialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Container(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              child: Padding(
                 padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD9D9D9),
-                  borderRadius: BorderRadius.circular(20),
-                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.star_rounded, color: AppColors.primary, size: 40),
+                    ),
+                    const SizedBox(height: 16),
                     Text(
-                      'Valora tu experiencia con\n$techName',
+                      'Valorar a $techName',
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFF3B28FF),
-                        fontSize: 18,
+                      style: GoogleFonts.outfit(
+                        fontSize: 20,
                         fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'Puntua tu satisfacción con el técnico de 1 a 5 estrellas',
+                    const SizedBox(height: 8),
+                    Text(
+                      '¿Cómo fue tu experiencia con el servicio?',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Color(0xFF3B28FF), fontSize: 14),
+                      style: GoogleFonts.outfit(color: AppColors.textSecondary),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: List.generate(5, (index) {
                         return GestureDetector(
-                          onTap: () {
-                            setDialogState(() {
-                              selectedStars = index + 1;
-                            });
-                          },
-                          child: Icon(
-                            Icons.star,
-                            color: index < selectedStars
-                                ? const Color(0xFFFFD700)
-                                : const Color(0xFFBDBDBD),
-                            size: 40,
+                          onTap: () => setDialogState(() => selectedStars = index + 1),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: Icon(
+                              Icons.star_rounded,
+                              color: index < selectedStars ? Colors.amber : Colors.grey[300],
+                              size: 44,
+                            ),
                           ),
                         );
                       }),
                     ),
-                    const SizedBox(height: 30),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: commentController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Cuéntanos más detalles (opcional)...',
+                        hintStyle: GoogleFonts.outfit(fontSize: 14),
+                        filled: true,
+                        fillColor: AppColors.getSurfaceColor(context),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      style: TextStyle(color: AppColors.getTextPrimary(context)),
+                    ),
+                    const SizedBox(height: 32),
                     Row(
                       children: [
                         Expanded(
                           child: TextButton(
                             onPressed: () => Navigator.pop(context),
-                            style: TextButton.styleFrom(
-                              backgroundColor: const Color(0xFFBDBDBD),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text(
-                              'Cancelar',
-                              style: TextStyle(
-                                color: Color(0xFF3B28FF),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: Text('Cancelar', style: GoogleFonts.outfit(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: TextButton(
+                          child: ElevatedButton(
                             onPressed: () async {
                               final techId = _technicianData!['id'];
                               final response = await _technicianService.addReview(
                                 technicianId: techId,
                                 rating: selectedStars,
-                                comment:
-                                    '', // User didn't ask for comment field yet
+                                comment: commentController.text,
                                 appointmentId: null,
                               );
 
@@ -446,37 +434,23 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                                 Navigator.pop(context);
                                 if (response.success) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Reseña enviada con éxito'),
-                                    ),
+                                    const SnackBar(content: Text('✅ Reseña enviada con éxito'), backgroundColor: Colors.green),
                                   );
-                                  _fetchDetails(techId); // Refresh profile
+                                  _fetchDetails(techId);
                                 } else {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        response.message ??
-                                            'Error al enviar reseña',
-                                      ),
-                                    ),
+                                    SnackBar(content: Text('❌ ${response.message ?? "Error al enviar reseña"}')),
                                   );
                                 }
                               }
                             },
-                            style: TextButton.styleFrom(
-                              backgroundColor: const Color(0xFFEEEEEE),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              side: const BorderSide(color: Color(0xFFBDBDBD)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                             ),
-                            child: const Text(
-                              'Valorar',
-                              style: TextStyle(
-                                color: Color(0xFF3B28FF),
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            child: Text('Enviar', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
                           ),
                         ),
                       ],

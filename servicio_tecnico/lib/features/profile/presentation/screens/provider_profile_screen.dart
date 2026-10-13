@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/services/user_service.dart';
 
 class ProviderProfileScreen extends StatefulWidget {
@@ -222,7 +224,10 @@ class _ProviderProfileScreenState extends State<ProviderProfileScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                        onPressed: () => context.go('/login'),
+                        onPressed: () async {
+                          await context.read<AuthProvider>().logout();
+                          if (mounted) context.go('/login');
+                        },
                         child: const Text(
                           'Cerrar Sesión',
                           style: TextStyle(
