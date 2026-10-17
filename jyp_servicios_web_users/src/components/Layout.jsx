@@ -176,19 +176,14 @@ const Layout = ({ user, onLogout }) => {
 
   return (
     <div
-      className="flex min-h-screen overflow-hidden"
-      style={{
-        background: "var(--bg)",
-        color: "var(--text-primary)",
-        fontFamily: "'Inter', sans-serif"
-      }}
+      className="flex min-h-screen overflow-hidden jyp-page"
     >
       {/* ══════════ SIDEBAR ══════════════════════════════════════ */}
       <motion.aside
         initial={false}
         animate={{ width: SIDEBAR_W }}
         transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
-        className="fixed left-0 top-0 h-full flex flex-col z-40 select-none"
+        className="fixed left-0 top-0 h-full flex flex-col z-40 select-none sidebar"
         style={{
           background: isDark ? "rgba(6, 9, 19, 0.94)" : "rgba(255, 255, 255, 0.95)",
           borderRight: "1px solid var(--border)",
@@ -221,26 +216,12 @@ const Layout = ({ user, onLogout }) => {
                 key={item.path}
                 to={item.path}
                 onClick={() => item.path === "/chat" && setUnreadCount?.(0)}
-                className="flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all duration-200 relative group"
-                style={{
-                  color: active ? "#FFFFFF" : "var(--text-secondary)",
-                  background: active 
-                    ? "linear-gradient(90deg, rgba(37, 99, 235, 0.22) 0%, rgba(6, 182, 212, 0.08) 100%)" 
-                    : "transparent",
-                  border: active ? "1px solid rgba(59, 130, 246, 0.35)" : "1px solid transparent",
-                  textDecoration: "none",
-                  fontSize: 13.5,
-                  fontWeight: active ? 700 : 600,
-                }}
+                className={`flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all duration-200 relative group ${active ? "text-white bg-blue-600/20 border-blue-500/30 font-bold" : "text-slate-400 hover:text-white hover:bg-white/5 border-transparent font-semibold"}`}
               >
                 <Icon
                   size={19}
                   strokeWidth={active ? 2.4 : 1.8}
-                  style={{
-                    color: active ? "#38BDF8" : "inherit",
-                    filter: active ? "drop-shadow(0 0 6px rgba(56, 189, 248, 0.5))" : "none",
-                    flexShrink: 0
-                  }}
+                  className={`${active ? "text-cyan-400 drop-shadow-[0_0_6px_rgba(56,189,248,0.5)]" : "text-slate-400"}`}
                 />
                 
                 <AnimatePresence>
@@ -282,13 +263,9 @@ const Layout = ({ user, onLogout }) => {
               >
                 <div className="flex items-center gap-2">
                   <span
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{
-                      background: isConnected ? "var(--success)" : "var(--warning)",
-                      boxShadow: isConnected ? "0 0 8px var(--secondary-glow)" : "none",
-                    }}
+                    className={`w-2 h-2 rounded-full shrink-0 ${isConnected ? "bg-success shadow-[0_0_8px_var(--secondary-glow)]" : "bg-warning"}`}
                   />
-                  <span className="text-[11px]" style={{ color: isConnected ? "var(--success)" : "var(--warning)" }}>
+                  <span className={`text-[11px] ${isConnected ? "text-success" : "text-warning"}`}>
                     {isConnected ? "Telemetría Activa" : "Reconectando..."}
                   </span>
                 </div>
@@ -301,8 +278,7 @@ const Layout = ({ user, onLogout }) => {
           <button
             type="button"
             onClick={() => setCollapsed(!collapsed)}
-            className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl transition-all duration-200 text-slate-400 hover:text-white hover:bg-white/5"
-            style={{ fontSize: 13, fontWeight: 600, background: "transparent" }}
+            className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl transition-all duration-200 text-slate-400 hover:text-white hover:bg-white/5 text-sm font-semibold bg-transparent"
           >
             {collapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
             {!collapsed && <span>Contraer Menú</span>}
@@ -312,8 +288,7 @@ const Layout = ({ user, onLogout }) => {
           <button
             type="button"
             onClick={onLogout}
-            className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl transition-all duration-200 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
-            style={{ fontSize: 13, fontWeight: 600, background: "transparent" }}
+            className="flex items-center gap-3 w-full px-3.5 py-2.5 rounded-xl transition-all duration-200 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 text-sm font-semibold bg-transparent"
           >
             <LogOut size={18} />
             {!collapsed && <span>Cerrar Sesión</span>}
@@ -328,7 +303,7 @@ const Layout = ({ user, onLogout }) => {
       >
         {/* ──── STICKY TOPBAR ─────────────────────────────────── */}
         <header
-          className="sticky top-0 z-30 flex items-center justify-between px-6 sm:px-8"
+          className="sticky top-0 z-30 flex items-center justify-between px-6 sm:px-8 topbar"
           style={{
             height: 72,
             background: isDark ? "rgba(6, 9, 19, 0.88)" : "rgba(255, 255, 255, 0.9)",
@@ -340,18 +315,18 @@ const Layout = ({ user, onLogout }) => {
           {/* Left: Location & System Status */}
           <div className="flex items-center gap-3">
             <div
-              className="flex items-center gap-2 px-4 py-2 rounded-full shadow-sm"
-              style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+              className="flex items-center gap-2 px-4 py-2 rounded-full shadow-sm border border-white/10"
+              style={{ background: "var(--bg-input)" }}
             >
               <MapPin size={14} className="text-blue-500" />
-              <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>
+              <span className="text-xs font-bold text-slate-100">
                 Lima Metropolitana
               </span>
             </div>
 
             <div
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold text-slate-300 shadow-sm"
-              style={{ background: "rgba(37, 99, 235, 0.08)", border: "1px solid rgba(59, 130, 246, 0.2)" }}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold text-slate-300 shadow-sm border border-blue-500/20"
+              style={{ background: "rgba(37, 99, 235, 0.08)" }}
             >
               <ShieldCheck size={14} className="text-emerald-400" />
               <span>Soporte Garantizado</span>
@@ -364,10 +339,15 @@ const Layout = ({ user, onLogout }) => {
             <button
               type="button"
               onClick={toggleTheme}
-              className="theme-toggle"
-              title={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+              className="jyp-theme-toggle"
+              title={isDark ? "Activar modo claro" : "Activar modo oscuro"}
+              aria-label={isDark ? "Activar modo claro" : "Activar modo oscuro"}
             >
-              {isDark ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} className="text-blue-500" />}
+              {isDark ? (
+                <Sun size={19} className="text-amber-400" />
+              ) : (
+                <Moon size={19} className="text-blue-500" />
+              )}
             </button>
 
             {/* Notifications Popover */}
@@ -516,8 +496,7 @@ const Layout = ({ user, onLogout }) => {
               </div>
               <div className="hidden md:block leading-tight text-left">
                 <p
-                  className="text-xs font-black truncate max-w-[130px]"
-                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: "var(--text-primary)" }}
+                  className="text-xs font-black truncate max-w-[130px] font-heading text-slate-100"
                 >
                   {user?.names || user?.username || "Usuario"}
                 </p>

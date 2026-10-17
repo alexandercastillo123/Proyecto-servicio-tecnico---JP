@@ -33,8 +33,7 @@ const StatCard = ({ icon: Icon, label, value, sublabel, color, delay }) => (
     initial={{ opacity: 0, y: 15 }}
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay, duration: 0.35 }}
-    className="glass-card p-7 rounded-3xl flex items-center gap-5 relative overflow-hidden shadow-lg hover:shadow-xl transition-all"
-    style={{ border: `1px solid rgba(255, 255, 255, 0.08)` }}
+    className="glass-card p-7 rounded-3xl flex items-center gap-5 relative overflow-hidden shadow-lg hover:shadow-xl transition-all border border-white/10"
   >
     <div
       className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-md"
@@ -211,10 +210,9 @@ const TechDashboard = () => {
       <motion.header
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-card p-10 sm:p-12 rounded-[32px] flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative overflow-hidden shadow-2xl"
+        className="glass-card p-10 sm:p-12 rounded-[32px] flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative overflow-hidden shadow-2xl border border-cyan-500/25"
         style={{
           background: "linear-gradient(135deg, rgba(13, 22, 41, 0.85) 0%, rgba(6, 9, 19, 0.95) 100%)",
-          border: "1px solid rgba(6, 182, 212, 0.25)"
         }}
       >
         <div className="space-y-4">
@@ -226,8 +224,7 @@ const TechDashboard = () => {
           </div>
 
           <h1 
-            className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight"
-            style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}
+            className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight font-heading"
           >
             Hola, <span className="gradient-tech">{user?.names?.split(" ")[0] || "Especialista"}</span> 👋
           </h1>
@@ -248,13 +245,13 @@ const TechDashboard = () => {
             className="flex items-center gap-3 px-6 py-4 rounded-full font-bold text-xs uppercase tracking-wider transition-all duration-200 border shadow-lg hover:scale-105 active:scale-95"
             style={{
               background: isAvailable ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.05)",
-              borderColor: isAvailable ? "rgba(16, 185, 129, 0.4)" : "rgba(255, 255, 255, 0.1)",
+              borderColor: isAvailable ? "rgba(16, 185, 129, 0.4)" : "var(--border)",
               color: isAvailable ? "#34D399" : "var(--text-secondary)",
               boxShadow: isAvailable ? "0 0 25px rgba(16, 185, 129, 0.25)" : "none",
             }}
           >
             <span
-              className="w-3 h-3 rounded-full"
+              className="w-3 h-3 rounded-full shrink-0"
               style={{
                 background: isAvailable ? "#10B981" : "#64748B",
                 boxShadow: isAvailable ? "0 0 10px #10B981" : "none",
@@ -274,18 +271,16 @@ const TechDashboard = () => {
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="p-8 sm:p-10 rounded-[32px] flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden shadow-2xl"
+          className="p-8 sm:p-10 rounded-[32px] flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden shadow-2xl border border-blue-500/35"
           style={{
             background: "linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(6, 182, 212, 0.1) 100%)",
-            border: "1px solid rgba(59, 130, 246, 0.35)",
             boxShadow: "0 15px 35px rgba(37, 99, 235, 0.15)",
           }}
         >
           <div className="flex items-center gap-5">
-            <div 
-              className="w-16 h-16 rounded-3xl flex items-center justify-center text-white shrink-0 shadow-lg"
-              style={{ background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)" }}
-            >
+              <div 
+                className="w-16 h-16 rounded-3xl flex items-center justify-center text-white shrink-0 shadow-lg bg-gradient-to-br from-blue-600 to-cyan-500"
+              >
               <Clock size={28} className="animate-pulse" />
             </div>
             <div>

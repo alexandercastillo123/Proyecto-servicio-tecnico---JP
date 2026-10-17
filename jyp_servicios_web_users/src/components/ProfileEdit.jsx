@@ -12,12 +12,12 @@ import { useTheme } from "../context/ThemeContext";
 /* ── Standalone Input Component (Must be outside to preserve focus) ── */
 const InputField = ({ label, name, type = "text", placeholder, value, onChange, icon: Icon, disabled = false }) => (
   <div className="space-y-1.5">
-    <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-secondary)" }}>
+    <label className="jyp-form-label">
       {label}
     </label>
     <div className="relative">
       {Icon && (
-        <Icon size={15} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: "var(--text-dim)", pointerEvents: "none" }} />
+        <Icon size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
       )}
       <input
         type={type}
@@ -26,7 +26,7 @@ const InputField = ({ label, name, type = "text", placeholder, value, onChange, 
         value={value ?? ""}
         onChange={onChange}
         disabled={disabled}
-        className="input-field"
+        className="jyp-form-input"
         style={{ paddingLeft: Icon ? 40 : 16, opacity: disabled ? 0.6 : 1 }}
       />
     </div>
@@ -216,7 +216,7 @@ const ProfileEdit = () => {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto pb-4 space-y-6" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="max-w-3xl mx-auto pb-4 space-y-6 font-sans">
 
       {/* Hidden File Input for Avatar */}
       <input
@@ -229,10 +229,10 @@ const ProfileEdit = () => {
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
-        <p style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--primary)", marginBottom: 4 }}>
+        <p className="text-[11px] font-black tracking-widest uppercase text-blue-400 mb-1">
           Centro de Configuración
         </p>
-        <h1 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: "clamp(1.75rem,3.5vw,2.25rem)", fontWeight: 800, letterSpacing: "-0.02em", color: "var(--text-primary)" }}>
+        <h1 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-black tracking-tight text-slate-100 font-heading">
           Mi Perfil
         </h1>
         <p className="text-xs sm:text-sm text-slate-400">
@@ -280,8 +280,7 @@ const ProfileEdit = () => {
             onClick={handlePhotoClick}
             disabled={uploadingPhoto}
             title="Cambiar foto de perfil"
-            className="absolute bottom-0 right-0 w-10 h-10 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-110 active:scale-95"
-            style={{ background: "var(--primary)", border: "3px solid var(--bg-card)", color: "white" }}
+            className="absolute bottom-0 right-0 w-10 h-10 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-110 active:scale-95 bg-blue-600 border-3 border-slate-900 text-white"
           >
             <Camera size={16} />
           </button>
@@ -289,10 +288,10 @@ const ProfileEdit = () => {
 
         {/* Info */}
         <div className="flex-1 text-center sm:text-left space-y-1.5">
-          <h2 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", fontSize: 24, fontWeight: 800, color: "var(--text-primary)" }}>
+          <h2 className="text-lg sm:text-2xl font-black text-slate-100 font-heading">
             {user.names || user.username || "Usuario"} {user.surnames || ""}
           </h2>
-          <p style={{ fontSize: 13, color: "var(--text-secondary)" }}>{user.email}</p>
+          <p className="text-sm text-slate-400">{user.email}</p>
           
           <div className="flex flex-wrap gap-2.5 pt-2 justify-center sm:justify-start items-center">
             <span className={`status-badge ${user.role === "client" ? "status-confirmed" : user.role === "tech" ? "status-in_progress" : "status-completed"}`}>

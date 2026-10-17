@@ -162,10 +162,10 @@ const StoreDashboard = () => {
       {/* Header & Recent Activity Banner */}
       <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2" style={{ color: 'var(--text-primary)' }}>
-            Sucursal <span style={{ color: 'var(--primary)' }}>{user.branchName || 'Principal JyP'}</span>
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2 text-slate-100">
+            Sucursal <span className="text-blue-400">{user.branchName || 'Principal JyP'}</span>
           </h1>
-          <p className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
+          <p className="text-sm font-medium text-slate-400">
             Control de inventario de repuestos y despacho de pedidos en tiempo real.
           </p>
         </div>
@@ -175,22 +175,20 @@ const StoreDashboard = () => {
             initial={{ opacity: 0, x: 15 }}
             animate={{ opacity: 1, x: 0 }}
             onClick={() => navigate(`/chat?user=${recentChat.other_user_id}`)}
-            className="flex-1 max-w-sm p-4 rounded-3xl border shadow-md flex items-center justify-between cursor-pointer transition-all hover:border-primary/40"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+            className="flex-1 max-w-sm p-4 rounded-3xl border shadow-md flex items-center justify-between cursor-pointer transition-all hover:border-blue-500/40 jyp-card"
           >
             <div className="flex items-center gap-3.5">
               <div 
-                className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-white text-sm shadow-md"
-                style={{ backgroundColor: 'var(--primary)' }}
+                className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-white text-sm shadow-md bg-blue-600"
               >
                 {recentChat.username?.[0] || 'C'}
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--primary)' }}>Consulta de Cliente</p>
-                <p className="font-bold text-xs truncate max-w-[200px]" style={{ color: 'var(--text-primary)' }}>{recentChat.last_message}</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-blue-400">Consulta de Cliente</p>
+                <p className="font-bold text-xs truncate max-w-[200px] text-slate-100">{recentChat.last_message}</p>
               </div>
             </div>
-            <ChevronRight size={16} style={{ color: 'var(--text-muted)' }} />
+            <ChevronRight size={16} className="text-slate-400" />
           </motion.div>
         )}
       </section>
@@ -205,8 +203,7 @@ const StoreDashboard = () => {
         ].map((stat, i) => (
           <div 
             key={i} 
-            className="p-6 rounded-3xl border shadow-lg flex items-center gap-4 transition-all hover:-translate-y-1"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+            className="p-6 rounded-3xl border shadow-lg flex items-center gap-4 transition-all hover:-translate-y-1 jyp-card"
           >
             <div 
               className="w-13 h-13 rounded-2xl flex items-center justify-center shrink-0 shadow-sm"
@@ -215,10 +212,10 @@ const StoreDashboard = () => {
               <stat.icon size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 {stat.label}
               </p>
-              <h3 className="text-xl sm:text-2xl font-black" style={{ color: 'var(--text-primary)' }}>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-100">
                 {stat.val}
               </h3>
             </div>
@@ -337,8 +334,7 @@ const StoreDashboard = () => {
                             if (resp.data.exito) fetchDashboardData();
                           } catch (e) { console.error(e); }
                         }}
-                        className="flex-1 py-1.5 text-white text-[11px] font-bold rounded-lg uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm"
-                        style={{ backgroundColor: '#A855F7' }}
+                        className="flex-1 py-1.5 text-white text-[11px] font-bold rounded-lg uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm bg-purple-500 hover:bg-purple-600"
                       >
                         <Truck size={14} /> 
                         <span>Despachar</span>
@@ -352,8 +348,7 @@ const StoreDashboard = () => {
                             if (resp.data.exito) fetchDashboardData();
                           } catch (e) { console.error(e); }
                         }}
-                        className="flex-1 py-1.5 text-white text-[11px] font-bold rounded-lg uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm"
-                        style={{ backgroundColor: '#22C55E' }}
+                        className="flex-1 py-1.5 text-white text-[11px] font-bold rounded-lg uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm bg-emerald-500 hover:bg-emerald-600"
                       >
                         <CheckCircle size={14} /> 
                         <span>Entregado</span>
@@ -380,12 +375,7 @@ const StoreDashboard = () => {
                   placeholder="Buscar en catálogo..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full rounded-2xl py-2.5 pl-10 pr-4 text-xs outline-none border transition-all"
-                  style={{
-                    backgroundColor: 'var(--bg)',
-                    borderColor: 'var(--border)',
-                    color: 'var(--text-primary)'
-                  }}
+                  className="jyp-form-input w-full rounded-2xl py-2.5 pl-10 pr-4 text-xs outline-none border"
                 />
               </div>
               <button 
@@ -399,20 +389,19 @@ const StoreDashboard = () => {
           </div>
 
           <div 
-            className="rounded-3xl border shadow-lg overflow-hidden"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+            className="rounded-3xl border shadow-lg overflow-hidden jyp-card"
           >
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full text-left text-xs jyp-table">
                 <thead>
-                  <tr className="border-b" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg)' }}>
-                    <th className="p-4 font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Producto</th>
-                    <th className="p-4 font-bold uppercase tracking-wider text-center" style={{ color: 'var(--text-muted)' }}>Stock</th>
-                    <th className="p-4 font-bold uppercase tracking-wider text-center" style={{ color: 'var(--text-muted)' }}>Precio</th>
-                    <th className="p-4 font-bold uppercase tracking-wider text-right" style={{ color: 'var(--text-muted)' }}>Acciones</th>
+                  <tr className="border-b">
+                    <th className="p-4 font-bold uppercase tracking-wider text-slate-500">Producto</th>
+                    <th className="p-4 font-bold uppercase tracking-wider text-center text-slate-500">Stock</th>
+                    <th className="p-4 font-bold uppercase tracking-wider text-center text-slate-500">Precio</th>
+                    <th className="p-4 font-bold uppercase tracking-wider text-right text-slate-500">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
+                <tbody className="divide-y">
                   {isLoading ? (
                     [...Array(4)].map((_, i) => (
                       <tr key={i} className="animate-pulse">
@@ -437,18 +426,18 @@ const StoreDashboard = () => {
                             >
                               <Box size={18} />
                             </div>
-                            <span className="font-bold" style={{ color: 'var(--text-primary)' }}>{p.name}</span>
+                            <span className="font-bold text-slate-100">{p.name}</span>
                           </div>
                         </td>
                         <td className="p-4 text-center">
                           <span 
-                            className="font-bold"
+                            className="font-bold text-slate-400"
                             style={{ color: p.stock < 5 ? '#EF4444' : 'var(--text-secondary)' }}
                           >
                             {p.stock} unid.
                           </span>
                         </td>
-                        <td className="p-4 text-center font-bold" style={{ color: 'var(--text-primary)' }}>
+                        <td className="p-4 text-center font-bold text-slate-100">
                           S/. {parseFloat(p.price || 0).toFixed(2)}
                         </td>
                         <td className="p-4 text-right">
@@ -494,83 +483,67 @@ const StoreDashboard = () => {
             >
               <button 
                 onClick={() => setShowProductModal(false)} 
-                className="absolute top-5 right-5 transition-colors hover:opacity-80"
-                style={{ color: 'var(--text-muted)' }}
+                className="absolute top-5 right-5 transition-colors hover:opacity-80 text-slate-400"
               >
                 <X size={20} />
               </button>
 
               <div className="flex items-center gap-3 mb-6">
-                <div 
-                  className="w-10 h-10 rounded-xl flex items-center justify-center"
-                  style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
-                >
-                  {editingProduct ? <Edit size={20} /> : <Plus size={20} />}
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-                    {editingProduct ? 'Editar Producto' : 'Nuevo Producto en Inventario'}
-                  </h3>
-                  <p className="text-xs" style={{ color: 'var(--text-secondary)' }}>
-                    Completa la información técnica del repuesto.
-                  </p>
-                </div>
+                              <div 
+                                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                                style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
+                              >
+                                {editingProduct ? <Edit size={20} /> : <Plus size={20} />}
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-bold text-slate-100">
+                                  {editingProduct ? 'Editar Producto' : 'Nuevo Producto en Inventario'}
+                                </h3>
+                                <p className="text-xs text-slate-400">
+                                  Completa la información técnica del repuesto.
+                                </p>
+                              </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2 space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-muted)' }}>
+                    <label className="jyp-form-label">
                     Nombre del Producto
                   </label>
                   <input 
                     type="text" 
                     placeholder="Ej: Pantalla OLED iPhone 13 Pro"
-                    className="w-full py-2.5 px-3 rounded-xl border text-xs outline-none transition-all"
-                    style={{
-                      backgroundColor: 'var(--bg)',
-                      borderColor: 'var(--border)',
-                      color: 'var(--text-primary)'
-                    }}
+                    className="jyp-form-input rounded-xl py-2.5 px-3 text-xs border outline-none"
                     value={productForm.name}
                     onChange={(e) => setProductForm({...productForm, name: e.target.value})}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-muted)' }}>
+                    <label className="jyp-form-label">
                     Stock Disponible
                   </label>
                   <input 
                     type="number" 
                     placeholder="0"
-                    className="w-full py-2.5 px-3 rounded-xl border text-xs outline-none transition-all"
-                    style={{
-                      backgroundColor: 'var(--bg)',
-                      borderColor: 'var(--border)',
-                      color: 'var(--text-primary)'
-                    }}
+                    className="jyp-form-input rounded-xl py-2.5 px-3 text-xs border outline-none"
                     value={productForm.stock}
                     onChange={(e) => setProductForm({...productForm, stock: e.target.value})}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-muted)' }}>
+                    <label className="jyp-form-label">
                     Precio (S/.)
                   </label>
                   <input 
                     type="number" 
                     placeholder="0.00"
-                    className="w-full py-2.5 px-3 rounded-xl border text-xs outline-none transition-all"
-                    style={{
-                      backgroundColor: 'var(--bg)',
-                      borderColor: 'var(--border)',
-                      color: 'var(--text-primary)'
-                    }}
+                    className="jyp-form-input rounded-xl py-2.5 px-3 text-xs border outline-none"
                     value={productForm.price}
                     onChange={(e) => setProductForm({...productForm, price: e.target.value})}
                   />
                 </div>
                 <div className="md:col-span-2 space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-muted)' }}>
+                    <label className="jyp-form-label">
                     Descripción
                   </label>
                   <textarea 
@@ -591,12 +564,7 @@ const StoreDashboard = () => {
               <div className="mt-6 flex gap-3">
                 <button 
                   onClick={() => setShowProductModal(false)}
-                  className="flex-1 py-3 border font-bold text-xs uppercase rounded-xl transition-colors hover:opacity-80"
-                  style={{ 
-                    backgroundColor: 'var(--bg)', 
-                    borderColor: 'var(--border)', 
-                    color: 'var(--text-secondary)' 
-                  }}
+                  className="flex-1 py-3 border font-bold text-xs uppercase rounded-xl transition-colors hover:opacity-80 jyp-btn-ghost"
                 >
                   Cancelar
                 </button>

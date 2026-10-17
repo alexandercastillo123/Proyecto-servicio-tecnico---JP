@@ -34,95 +34,84 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
-      style={{ backgroundColor: 'var(--bg)', color: 'var(--text-primary)' }}
+    <div
+      className="jyp-page jyp-container flex items-center justify-center p-6 relative overflow-hidden"
     >
       {/* Background Glow */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div 
+        <div
           className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full blur-[140px] opacity-20"
           style={{ backgroundColor: 'var(--primary)' }}
         />
-        <div 
+        <div
           className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full blur-[140px] opacity-15"
           style={{ backgroundColor: 'var(--secondary)' }}
         />
       </div>
 
-      {/* Theme toggle in top right */}
+      {/* Theme toggle (identico al login) */}
       <button
+        type="button"
+        className="jyp-theme-toggle"
         onClick={toggleTheme}
-        className="fixed top-6 right-6 p-3 rounded-xl border transition-all z-20 flex items-center gap-2"
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          borderColor: 'var(--border)',
-          color: 'var(--text-secondary)'
-        }}
-        title={`Cambiar a modo ${isDark ? 'claro' : 'oscuro'}`}
+        aria-label={isDark ? "Activar modo claro" : "Activar modo oscuro"}
+        title={isDark ? "Activar modo claro" : "Activar modo oscuro"}
       >
-        {isDark ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-blue-500" />}
+        {isDark ? (
+          <Sun size={19} className="text-amber-400" />
+        ) : (
+          <Moon size={19} className="text-blue-500" />
+        )}
       </button>
 
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-2xl relative z-10 mx-auto"
       >
-        <div 
-          className="p-8 md:p-10 rounded-[32px] border shadow-2xl backdrop-blur-xl"
-          style={{ 
-            backgroundColor: 'var(--bg-card)', 
-            borderColor: 'var(--border)' 
-          }}
-        >
-          <div className="flex justify-between items-center mb-8">
-            <Link 
-              to="/login" 
-              className="p-3 rounded-2xl border transition-colors flex items-center justify-center hover:scale-105"
-              style={{ 
-                backgroundColor: 'var(--bg)', 
-                borderColor: 'var(--border)',
-                color: 'var(--text-secondary)' 
-              }}
+        <div className="jyp-card p-10 md:p-12 rounded-[36px] shadow-2xl backdrop-blur-xl border border-white/10">
+          <div className="flex items-center justify-between mb-10 px-2">
+            <Link
+              to="/login"
+              className="flex items-center justify-center transition-colors hover:scale-105 text-slate-400 hover:text-white hover:border-white/20"
             >
-              <ArrowLeft size={18} />
+              <div className="p-4 rounded-2xl border border-white/10 bg-white/5 flex items-center justify-center">
+                <ArrowLeft size={20} />
+              </div>
             </Link>
-            
-            <div className="flex items-center gap-2.5">
-              <div 
-                className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-md"
-                style={{ backgroundColor: 'var(--primary)' }}
+
+            <div className="flex items-center gap-3">
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br from-blue-600 to-cyan-500"
               >
-                <Cpu size={22} className="text-white" />
+                <Cpu size={24} className="text-white" />
               </div>
               <div>
-                <span className="font-extrabold tracking-tight text-lg" style={{ color: 'var(--text-primary)' }}>JyP</span>
-                <span className="block text-[10px] uppercase tracking-wider -mt-1 font-semibold" style={{ color: 'var(--primary)' }}>Servicios</span>
+                <span className="font-extrabold tracking-tight text-lg text-slate-100 font-heading">JyP</span>
+                <span className="block text-[10px] uppercase tracking-wider -mt-1 font-semibold text-blue-400">Servicios</span>
               </div>
             </div>
 
-            <div className="w-10" />
+            <div className="w-14 h-14" />
           </div>
 
           <div className="text-center mb-8">
-            <h1 className="text-2xl md:text-3xl font-black mb-2 tracking-tight" style={{ color: 'var(--text-primary)' }}>
+            <h1 className="text-2xl md:text-3xl font-black mb-2 tracking-tight text-slate-100 font-heading">
               Recuperar Acceso
             </h1>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
+            <p className="text-sm text-slate-400">
               Ingresa tu correo para recibir un código seguro de verificación.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider ml-1" style={{ color: 'var(--text-secondary)' }}>
+              <label className="jyp-form-label">
                 Correo Electrónico
               </label>
               <div className="relative group">
-                <div 
-                  className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"
-                  style={{ color: 'var(--text-muted)' }}
+                <div
+                  className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500"
                 >
                   <Mail size={18} />
                 </div>
@@ -130,12 +119,7 @@ const ForgotPassword = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full py-3.5 pl-11 pr-4 rounded-2xl border transition-all text-sm outline-none"
-                  style={{
-                    backgroundColor: 'var(--bg)',
-                    borderColor: 'var(--border)',
-                    color: 'var(--text-primary)'
-                  }}
+                  className="jyp-form-input w-full py-3.5 pl-11 pr-4 rounded-2xl border outline-none"
                   placeholder="ejemplo@correo.com"
                   required
                 />
@@ -143,14 +127,14 @@ const ForgotPassword = () => {
             </div>
 
             {error && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="p-4 rounded-2xl flex items-center gap-3 text-sm"
-                style={{ 
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-                  border: '1px solid rgba(239, 68, 68, 0.25)',
-                  color: '#EF4444' 
+                className="p-4 rounded-2xl flex items-center gap-3 text-sm jyp-badge jyp-badge-outline"
+                style={{
+                  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                  borderColor: 'rgba(239, 68, 68, 0.25)',
+                  color: '#EF4444'
                 }}
               >
                 <AlertCircle size={18} className="shrink-0" />
@@ -161,11 +145,7 @@ const ForgotPassword = () => {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full h-12 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 group text-white shadow-xl hover:scale-[1.01]"
-              style={{
-                backgroundColor: 'var(--primary)',
-                boxShadow: '0 8px 24px rgba(45, 107, 255, 0.35)'
-              }}
+              className="jyp-btn-primary w-full h-12 shadow-xl shadow-blue-600/20 hover:scale-[1.01]"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -178,9 +158,9 @@ const ForgotPassword = () => {
             </button>
           </form>
 
-          <p className="mt-8 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
+          <p className="mt-8 text-center text-sm text-slate-400">
             ¿Recordaste tu contraseña?{' '}
-            <Link to="/login" className="font-bold hover:underline" style={{ color: 'var(--primary)' }}>
+            <Link to="/login" className="font-bold hover:underline text-blue-400">
               Inicia Sesión
             </Link>
           </p>
