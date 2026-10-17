@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -41,7 +40,6 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _isOtherTyping = false;
   Timer? _typingDebounce;
   final ImagePicker _picker = ImagePicker();
-  bool _isUploadingMedia = false;
   List<dynamic> _messages = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -586,7 +584,6 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_otherUserId == null) return;
 
     setState(() {
-      _isUploadingMedia = true;
       _messages = List.from(_messages)..add({
         'message_text': filePath,
         'message_type': type,
@@ -620,12 +617,6 @@ class _ChatScreenState extends State<ChatScreen> {
           SnackBar(content: Text('Error de conexión al enviar: $e')),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isUploadingMedia = false;
-        });
-      }
     }
   }
 
@@ -639,15 +630,6 @@ class _ChatScreenState extends State<ChatScreen> {
         );
       }
     });
-  }
-
-  String _getSubtitleRole() {
-    if (_otherUserRole == 'tech' || _otherUserRole == 'technician') {
-      return 'Técnico Especialista';
-    } else if (_otherUserRole == 'store' || _otherUserRole == 'provider') {
-      return 'Sucursal J&P';
-    }
-    return 'Cliente';
   }
 
   Widget _buildAppBarAvatar() {

@@ -6,7 +6,6 @@ import '../../../../core/services/store_service.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
-import '../../../../core/services/message_service.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -102,8 +101,6 @@ class _AppointmentSchedulingScreenState
     }
   }
 
-  final MessageService _messageService = MessageService();
-
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -164,7 +161,9 @@ class _AppointmentSchedulingScreenState
     
     try {
       Position position = await Geolocator.getCurrentPosition(
-          desiredAccuracy: LocationAccuracy.high);
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+          ));
       setState(() {
         _serviceLat = position.latitude;
         _serviceLng = position.longitude;

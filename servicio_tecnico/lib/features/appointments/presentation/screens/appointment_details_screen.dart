@@ -185,7 +185,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
-                color: _getStatusColor(app['status']).withOpacity(0.1),
+                color: _getStatusColor(app['status']).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
@@ -376,9 +376,9 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.green.withOpacity(0.1),
+                  color: Colors.green.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.green.withOpacity(0.3)),
+                  border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
                 ),
                 child: const Row(
                   children: [
@@ -415,9 +415,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
     final currentUser = authProvider.user;
     
     // Get ID and Role from multiple sources to be absolutely sure
-    final String? currentUserId = currentUser?.id.toString() ?? 
-                                 LocalCacheService.getUserId()?.toString();
-    final String? userRole = currentUser?.role ?? 
+    final String? userRole = currentUser?.role ??
                             LocalCacheService.getRole();
 
     // Role verification (simplified, trusting backend auth)
@@ -572,7 +570,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.green.withOpacity(0.1),
+            color: Colors.green.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: const Row(
@@ -843,7 +841,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: isDark ? [] : [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: Colors.black.withValues(alpha: 0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -869,7 +867,6 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
               final step = steps[index];
               final bool isPast = index < currentIndex;
               final bool isCurrent = index == currentIndex;
-              final bool isFuture = index > currentIndex;
               
               Color color;
               if (isPast) color = const Color(0xFF4CAF50);
@@ -907,7 +904,7 @@ class _AppointmentDetailsScreenState extends State<AppointmentDetailsScreen> {
                             ),
                             boxShadow: isCurrent ? [
                               BoxShadow(
-                                color: color.withOpacity(0.3),
+                                color: color.withValues(alpha: 0.3),
                                 blurRadius: 8,
                                 spreadRadius: 2,
                               )
