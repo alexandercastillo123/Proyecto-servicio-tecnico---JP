@@ -159,35 +159,7 @@ const ClientDashboard = () => {
         />
 
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-10">
-          <div className="space-y-5 max-w-2xl">
-            {/* Location selector pill */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <button 
-                onClick={() => setShowLocationModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all hover:scale-105 shadow-sm"
-                style={{
-                  background: 'rgba(37, 99, 235, 0.18)',
-                  border: '1px solid rgba(59, 130, 246, 0.4)',
-                  color: '#60A5FA'
-                }}
-              >
-                <Target size={14} className="text-cyan-400 animate-pulse" />
-                <span>{userLocation.address.split(',')[0]}</span>
-                <span className="text-[10px] text-blue-300 uppercase underline ml-1 font-bold">Cambiar</span>
-              </button>
-
-              <div 
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold shadow-sm"
-                style={{
-                  background: 'rgba(59, 130, 246, 0.12)',
-                  border: '1px solid rgba(59, 130, 246, 0.28)',
-                  color: '#93C5FD'
-                }}
-              >
-                <ShieldCheck size={14} className="text-cyan-400" />
-                <span>Red de Especialistas Certificados</span>
-              </div>
-            </div>
+          <div className="space-y-4 max-w-2xl">
 
             <h1
               className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-white"

@@ -84,7 +84,7 @@ const Layout = ({ user, onLogout }) => {
   const { isConnected, unreadCount, setUnreadCount } = useSocket();
   const { theme, toggleTheme, isDark } = useTheme();
 
-  const SIDEBAR_W = collapsed ? 76 : 260;
+  const SIDEBAR_W = collapsed ? 80 : 335;
 
   // ── Notifications Logic ──────────────────────────────────
   const unreadNotifCount = notifications.filter(n => !n.read && !n.is_read).length;
@@ -199,14 +199,25 @@ const Layout = ({ user, onLogout }) => {
       >
         {/* Brand Header */}
         <div
-          className="flex items-center px-4 overflow-hidden"
-          style={{ height: 72, borderBottom: "1px solid var(--border)" }}
+          className="flex items-center overflow-hidden"
+          style={{
+            height: 72,
+            borderBottom: "1px solid var(--border)",
+            paddingLeft: collapsed ? "1rem" : "2cm",
+            paddingRight: "1rem",
+          }}
         >
           <JyPLogo collapsed={collapsed} />
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto no-scrollbar">
+        <nav
+          className="flex-1 py-6 space-y-1.5 overflow-y-auto no-scrollbar"
+          style={{
+            paddingLeft: collapsed ? "0.75rem" : "2cm",
+            paddingRight: collapsed ? "0.75rem" : "1.25rem",
+          }}
+        >
           {!collapsed && (
             <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
               Navegación Principal
@@ -269,7 +280,14 @@ const Layout = ({ user, onLogout }) => {
         </nav>
 
         {/* Sidebar Footer Controls */}
-        <div className="px-3 pb-5 space-y-2 border-t pt-4" style={{ borderColor: "var(--border)" }}>
+        <div
+          className="pb-5 space-y-2 border-t pt-4"
+          style={{
+            borderColor: "var(--border)",
+            paddingLeft: collapsed ? "0.75rem" : "2cm",
+            paddingRight: collapsed ? "0.75rem" : "1.25rem",
+          }}
+        >
           {/* Socket Connection Badge */}
           <AnimatePresence>
             {!collapsed && (
@@ -328,13 +346,15 @@ const Layout = ({ user, onLogout }) => {
       >
         {/* ──── STICKY TOPBAR ─────────────────────────────────── */}
         <header
-          className="sticky top-0 z-30 flex items-center justify-between px-6 sm:px-8"
+          className="sticky top-0 z-30 flex items-center justify-between"
           style={{
             height: 72,
             background: isDark ? "rgba(6, 9, 19, 0.88)" : "rgba(255, 255, 255, 0.9)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             borderBottom: "1px solid var(--border)",
+            paddingLeft: "1.75rem",
+            paddingRight: "2cm",
           }}
         >
           {/* Left: Location & System Status */}
@@ -347,14 +367,6 @@ const Layout = ({ user, onLogout }) => {
               <span className="text-xs font-bold" style={{ color: "var(--text-primary)" }}>
                 Lima Metropolitana
               </span>
-            </div>
-
-            <div
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold text-slate-300 shadow-sm"
-              style={{ background: "rgba(37, 99, 235, 0.08)", border: "1px solid rgba(59, 130, 246, 0.2)" }}
-            >
-              <ShieldCheck size={14} className="text-emerald-400" />
-              <span>Soporte Garantizado</span>
             </div>
           </div>
 

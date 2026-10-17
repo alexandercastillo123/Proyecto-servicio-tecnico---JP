@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import toast from "react-hot-toast";
+import { authService } from "../services/api";
 import {
   ShieldCheck,
   User,
@@ -10,212 +12,295 @@ import {
   Lock,
   Eye,
   EyeOff,
-  Sun,
-  Moon,
   ArrowRight,
   Cpu,
   Server,
   Laptop,
-  CheckCircle2,
-  Clock,
-  Star,
+  AlertCircle,
+  Loader2,
 } from "lucide-react";
 
-const Login = () => {
+const Login = ({ onLogin }) => {
   const navigate = useNavigate();
   const [role, setRole] = useState("cliente"); // 'cliente' | 'tecnico' | 'tienda'
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
+
+  const demoUsers = {
+    cliente: {
+      email: "alekeycastillo1@gmail.com",
+      password: "123456",
+      label: "Cliente",
+    },
+    tecnico: {
+      email: "alekeycastillo2@gmail.com",
+      password: "123456",
+      label: "Técnico",
+    },
+    tienda: {
+      email: "alekeycastillo3@gmail.com",
+      password: "123456",
+      label: "Tienda",
+    },
+  };
+
+  const handleRoleSelect = (selectedRole) => {
+    setRole(selectedRole);
+    if (demoUsers[selectedRole]) {
+      setFormData({
+        email: demoUsers[selectedRole].email,
+        password: demoUsers[selectedRole].password,
+      });
+      setError("");
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
+    if (error) setError("");
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Lógica de inicio de sesión
-    console.log("Iniciando sesión con:", { role, ...formData });
+    if (!formData.email || !formData.password) {
+      setError("Por favor, ingresa tu correo y contraseña.");
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const res = await authService.login(formData.email.trim(), formData.password);
+      const result = res.data?.resultado || res.data;
+
+      if (!result) {
+        throw new Error("Respuesta no válida del servidor.");
+      }
+
+      const token = result.token;
+      const user = {
+        id: result.userId || result.id,
+        userId: result.userId || result.id,
+        email: result.email,
+        username: result.username,
+        role: result.role,
+      };
+
+      if (token) {
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+      }
+
+      if (onLogin) {
+        onLogin(user);
+      }
+
+      toast.success(res.data?.mensaje || "¡Inicio de sesión exitoso!");
+      navigate(user.role === "admin" ? "/admin" : "/");
+    } catch (err) {
+      console.error("Error al iniciar sesión:", err);
+      const msg =
+        err.response?.data?.mensaje ||
+        err.response?.data?.message ||
+        err.message ||
+        "Credenciales incorrectas o error en la conexión con el servidor.";
+      setError(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-[#0b0f17] text-white font-sans antialiased selection:bg-blue-600 selection:text-white">
-      {/* Sección Izquierda - Hero / Banner Promocional */}
-      <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden p-12 lg:flex">
-        {/* Imagen de fondo con overlay degradado */}
+    <div className="flex min-h-screen w-full bg-[#080d17] text-white font-sans antialiased selection:bg-blue-600 selection:text-white">
+      {/* Sección Izquierda - Hero Promocional con margen mínimo de 5.2cm desde el borde */}
+      <div
+        className="relative hidden w-1/2 flex-col justify-between overflow-hidden lg:flex"
+        style={{
+          paddingLeft: "5.2cm",
+          paddingRight: "3cm",
+          paddingTop: "4rem",
+          paddingBottom: "4rem",
+        }}
+      >
+        {/* Imagen de fondo nítida y visible con overlays armoniosos */}
         <div className="absolute inset-0 z-0">
           <img
-            src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=2070&auto=format&fit=crop"
+            src="/tech_service_hero.jpg"
+            onError={(e) => {
+              e.currentTarget.onerror = null;
+              e.currentTarget.src =
+                "https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=2070&auto=format&fit=crop";
+            }}
             alt="Laboratorio de Microelectrónica"
-            className="h-full w-full object-cover opacity-30 mix-blend-luminosity"
+            className="h-full w-full object-cover opacity-65 transition-all duration-700"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0b0f17] via-[#0b0f17]/70 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent to-[#0b0f17]" />
+          {/* Overlays elegantes que garantizan contraste de texto sin perder la imagen */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#080d17] via-[#080d17]/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#080d17]/45 to-[#080d17]" />
+          <div className="absolute inset-0 bg-blue-950/20 pointer-events-none" />
         </div>
 
         {/* Branding Superior */}
-        <div className="relative z-10 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-600/30">
-              <Cpu className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-white">
-                JyP <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">PRO V3.0</span>
-              </h1>
-              <p className="text-[10px] tracking-wider text-gray-400 uppercase font-medium">
-                Servicios Técnicos Especializados
-              </p>
-            </div>
+        <div className="relative z-10 flex items-center gap-3.5 mb-auto">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-tr from-blue-600 to-cyan-500 shadow-xl shadow-blue-500/25 ring-1 ring-white/20">
+            <Cpu className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-white leading-none">
+              JyP
+            </h1>
+            <p className="text-xs tracking-wider text-slate-300 uppercase font-semibold mt-1">
+              Servicios Técnicos Especializados
+            </p>
           </div>
         </div>
 
-        {/* Mensaje Principal */}
-        <div className="relative z-10 my-auto max-w-lg space-y-6 pt-12">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-400 backdrop-blur-md">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
-            </span>
-            Red de Especialistas Certificados · Lima, Perú
-          </div>
-
-          <h2 className="text-4xl font-extrabold leading-tight tracking-tight text-white lg:text-5xl">
+        {/* Mensaje Principal - Centrado verticalmente y balanceado */}
+        <div className="relative z-10 my-auto space-y-7 max-w-xl py-8">
+          <h2 className="text-4xl xl:text-5xl font-extrabold leading-[1.18] tracking-tight text-white">
             Soporte & Reparación de{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500">
               Hardware y Servidores
             </span>
           </h2>
 
-          <p className="text-sm leading-relaxed text-gray-300">
+          <p className="text-base leading-relaxed text-slate-300/90 font-normal">
             Plataforma integral para diagnóstico, mantenimiento preventivo y
             reparación electrónica con garantía escrita y seguimiento satelital de técnicos.
           </p>
 
-          <div className="flex flex-wrap gap-3 pt-2">
-            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
-              <Cpu size={14} className="text-blue-400" />
+          <div className="flex flex-wrap gap-3 pt-1">
+            <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold backdrop-blur-md text-slate-200">
+              <Cpu size={16} className="text-blue-400" />
               Microelectrónica
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
-              <Server size={14} className="text-cyan-400" />
+            <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold backdrop-blur-md text-slate-200">
+              <Server size={16} className="text-cyan-400" />
               Servidores & Redes
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
-              <Laptop size={14} className="text-emerald-400" />
+            <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold backdrop-blur-md text-slate-200">
+              <Laptop size={16} className="text-emerald-400" />
               Laptops & PCs
             </div>
           </div>
         </div>
 
-        {/* Métricas / Estadísticas */}
-        <div className="relative z-10 border-t border-white/10 pt-6">
-          <div className="flex items-center gap-2 mb-3 text-xs text-emerald-400 font-medium">
-            <CheckCircle2 size={14} />
-            Repuestos Garantizados
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <p className="text-2xl font-bold text-white">15,200+</p>
-              <p className="text-[11px] text-gray-400">Equipos Reparados</p>
-            </div>
-            <div>
-              <div className="flex items-center gap-1">
-                <p className="text-2xl font-bold text-white">4.9</p>
-                <span className="text-xs text-yellow-400">/ 5</span>
-              </div>
-              <p className="text-[11px] text-gray-400">Satisfacción Clientes</p>
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white">15 min</p>
-              <p className="text-[11px] text-gray-400">Tiempo de Respuesta</p>
-            </div>
-          </div>
+        {/* Pie inferior discreto para estabilizar el equilibrio vertical */}
+        <div className="relative z-10 mt-auto text-xs text-slate-500 font-medium">
+          © {new Date().getFullYear()} JyP Servicios · Todos los derechos reservados
         </div>
       </div>
 
-      {/* Sección Derecha - Formulario de Login */}
-      <div className="flex w-full items-center justify-center p-6 lg:w-1/2 sm:p-12">
+      {/* Sección Derecha - Formulario de Login Amplio, Centrado y Separado */}
+      <div className="relative flex w-full items-center justify-center p-6 sm:p-12 lg:w-1/2 lg:p-16">
+        {/* Glow de fondo para eliminar la sensación de vacío */}
+        <div
+          className="absolute w-[500px] h-[500px] rounded-full pointer-events-none -z-0"
+          style={{
+            background: "radial-gradient(circle, rgba(37,99,235,0.14) 0%, transparent 70%)",
+            filter: "blur(90px)",
+          }}
+        />
+
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="w-full max-w-md space-y-8"
+          className="relative z-10 w-full max-w-[640px] rounded-[36px] bg-[#0e1524]/95 border border-white/10 shadow-2xl backdrop-blur-2xl space-y-8"
+          style={{
+            paddingLeft: "3.2cm",
+            paddingRight: "3.2cm",
+            paddingTop: "3.5rem",
+            paddingBottom: "3.5rem",
+          }}
         >
           {/* Header Formulario */}
-          <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs text-blue-400 font-medium mb-3">
-              <ShieldCheck size={14} />
+          <div className="text-center space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/25 bg-blue-500/10 px-4 py-1.5 text-xs text-blue-400 font-bold tracking-wide">
+              <ShieldCheck size={15} />
               PORTAL DE ACCESO
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-white">
+            <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white pt-1">
               Iniciar Sesión
             </h2>
-            <p className="mt-2 text-xs text-gray-400">
+            <p className="text-sm text-slate-400 text-center w-full leading-relaxed">
               Ingresa tus credenciales para administrar tus servicios técnicos.
             </p>
           </div>
 
-          {/* Selector de Rol */}
-          <div className="space-y-2">
-            <label className="text-[11px] font-bold tracking-wider text-gray-400 uppercase text-center block">
-              PRUEBA RÁPIDA CON 1 CLICK (CUENTAS DEMO)
-            </label>
-            <div className="grid grid-cols-3 gap-2 rounded-xl bg-[#141a26] p-1.5 border border-white/5">
-              <button
-                type="button"
-                onClick={() => setRole("cliente")}
-                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all ${
-                  role === "cliente"
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <User size={14} />
-                Cliente
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("tecnico")}
-                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all ${
-                  role === "tecnico"
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <Wrench size={14} />
-                Técnico
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("tienda")}
-                className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition-all ${
-                  role === "tienda"
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
-                    : "text-gray-400 hover:text-white hover:bg-white/5"
-                }`}
-              >
-                <Store size={14} />
-                Tienda / Empresa
-              </button>
-            </div>
+          {/* Selector de Rol en pestañas amplias y cómodas */}
+          <div className="grid grid-cols-3 gap-2.5 rounded-2xl bg-[#070b13] p-1.5 border border-white/10 my-2">
+            <button
+              type="button"
+              onClick={() => handleRoleSelect("cliente")}
+              className={`flex items-center justify-center gap-2 rounded-xl py-3.5 text-xs font-bold transition-all duration-200 cursor-pointer ${
+                role === "cliente"
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/35"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <User size={16} />
+              <span>Cliente</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRoleSelect("tecnico")}
+              className={`flex items-center justify-center gap-2 rounded-xl py-3.5 text-xs font-bold transition-all duration-200 cursor-pointer ${
+                role === "tecnico"
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/35"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Wrench size={16} />
+              <span>Técnico</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleRoleSelect("tienda")}
+              className={`flex items-center justify-center gap-2 rounded-xl py-3.5 text-xs font-bold transition-all duration-200 cursor-pointer ${
+                role === "tienda"
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/35"
+                  : "text-slate-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <Store size={16} />
+              <span>Tienda</span>
+            </button>
           </div>
 
-          {/* Formulario */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold tracking-wider text-gray-300 uppercase mb-1.5">
-                CORREO ELECTRÓNICO
+          {/* Mensaje de error si falla la autenticación */}
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2.5 rounded-xl border border-red-500/30 bg-red-500/10 p-3.5 text-xs text-red-300"
+            >
+              <AlertCircle size={16} className="text-red-400 shrink-0" />
+              <span>{error}</span>
+            </motion.div>
+          )}
+
+          {/* Formulario con campos separados y espaciados */}
+          <form onSubmit={handleSubmit} className="pt-2">
+            <div style={{ marginBottom: "26px" }}>
+              <label
+                className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
+                style={{ marginBottom: "12px" }}
+              >
+                Correo Electrónico
               </label>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-500">
-                  <Mail size={16} />
-                </div>
+              <div className="relative flex items-center">
+                <Mail size={19} className="absolute left-4 text-slate-400 pointer-events-none" />
                 <input
                   type="email"
                   name="email"
@@ -223,27 +308,29 @@ const Login = () => {
                   onChange={handleChange}
                   placeholder="usuario@ejemplo.com"
                   required
-                  className="w-full rounded-xl border border-white/10 bg-[#141a26] py-3 pl-10 pr-4 text-sm text-white placeholder-gray-500 outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  style={{ paddingLeft: "3.2rem", paddingRight: "1.2rem" }}
+                  className="w-full h-14 rounded-xl border border-white/10 bg-[#070b13] text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25"
                 />
               </div>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold tracking-wider text-gray-300 uppercase">
-                  CONTRASEÑA
+            <div style={{ marginBottom: "28px" }}>
+              <div
+                className="flex items-center justify-between"
+                style={{ marginBottom: "12px" }}
+              >
+                <label className="block text-xs font-bold tracking-wider text-slate-300 uppercase">
+                  Contraseña
                 </label>
                 <Link
                   to="/forgot-password"
-                  className="text-xs text-blue-400 hover:underline font-medium"
+                  className="text-xs text-blue-400 hover:text-blue-300 hover:underline font-semibold transition-colors"
                 >
                   ¿Olvidaste tu contraseña?
                 </Link>
               </div>
-              <div className="relative">
-                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-gray-500">
-                  <Lock size={16} />
-                </div>
+              <div className="relative flex items-center">
+                <Lock size={19} className="absolute left-4 text-slate-400 pointer-events-none" />
                 <input
                   type={showPassword ? "text" : "password"}
                   name="password"
@@ -251,48 +338,51 @@ const Login = () => {
                   onChange={handleChange}
                   placeholder="••••••••"
                   required
-                  className="w-full rounded-xl border border-white/10 bg-[#141a26] py-3 pl-10 pr-10 text-sm text-white placeholder-gray-500 outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  style={{ paddingLeft: "3.2rem", paddingRight: "3.2rem" }}
+                  className="w-full h-14 rounded-xl border border-white/10 bg-[#070b13] text-sm text-white placeholder-slate-500 outline-none transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/25"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 hover:text-white"
+                  className="absolute right-4 text-slate-400 hover:text-white transition-colors cursor-pointer p-1"
                 >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
                 </button>
               </div>
             </div>
 
-            <button
-              type="submit"
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 py-3.5 text-sm font-semibold text-white shadow-lg shadow-blue-600/30 transition-all hover:bg-blue-500 active:scale-[0.99]"
-            >
-              Ingresar a JyP
-              <ArrowRight size={16} />
-            </button>
+            <div className="pt-3">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full h-14 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-sm font-bold text-white shadow-xl shadow-blue-600/30 transition-all hover:from-blue-500 hover:to-blue-400 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={19} className="animate-spin text-white" />
+                    <span>Iniciando sesión...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Ingresar a JyP</span>
+                    <ArrowRight size={19} />
+                  </>
+                )}
+              </button>
+            </div>
           </form>
 
           {/* Enlace de Registro */}
-          <div className="text-center pt-2">
-            <p className="text-xs text-gray-400">
+          <div className="text-center pt-4 border-t border-white/[0.08]">
+            <p className="text-xs text-slate-400">
               ¿Aún no tienes una cuenta?{" "}
               <Link
                 to="/register"
-                className="font-medium text-blue-400 hover:underline"
-                style={{ color: "var(--primary-light)" }}
+                className="font-bold text-blue-400 hover:text-blue-300 hover:underline transition-colors ml-1"
               >
                 Regístrate aquí
               </Link>
             </p>
-          </div>
-
-          {/* SSL Badge */}
-          <div
-            className="mt-5 flex items-center justify-center gap-2 text-[11px] font-semibold text-gray-400"
-            style={{ color: "var(--text-dim)" }}
-          >
-            <ShieldCheck size={13} className="text-emerald-400" />
-            <span>Conexión cifrada SSL · JyP Seguridad Certificada</span>
           </div>
         </motion.div>
       </div>
