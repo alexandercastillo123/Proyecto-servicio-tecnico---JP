@@ -1,4 +1,4 @@
-import '../services/api_service.dart';
+import 'api_service.dart';
 import '../constants/api_constants.dart';
 import '../../features/technicians/domain/models/technician.dart';
 

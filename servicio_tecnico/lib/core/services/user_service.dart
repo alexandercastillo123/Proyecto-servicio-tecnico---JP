@@ -1,4 +1,6 @@
-import '../services/api_service.dart';
+import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
+import 'api_service.dart';
 import '../constants/api_constants.dart';
 
 class UserService {
@@ -15,6 +17,7 @@ class UserService {
 
   /// Update user profile
   Future<ApiResponse<Map<String, dynamic>>> updateProfile({
+    String? username,
     String? phone,
     String? address,
     String? city,
@@ -24,10 +27,12 @@ class UserService {
     String? companyName,
     String? ruc,
     String? referenceAddress,
+    String? description,
   }) async {
     return await _apiService.put<Map<String, dynamic>>(
       ApiConstants.updateProfile,
       {
+        if (username != null) 'username': username,
         if (phone != null) 'phone': phone,
         if (address != null) 'address': address,
         if (city != null) 'city': city,
@@ -37,6 +42,7 @@ class UserService {
         if (companyName != null) 'companyName': companyName,
         if (ruc != null) 'ruc': ruc,
         if (referenceAddress != null) 'referenceAddress': referenceAddress,
+        if (description != null) 'description': description,
       },
       requiresAuth: true,
       fromJson: (data) => data as Map<String, dynamic>,
@@ -52,5 +58,34 @@ class UserService {
   }
 
   // Note: Photo upload requires multipart/form-data
-  // Will need a separate implementation with http.MultipartRequest
+  Future<ApiResponse<dynamic>> uploadPhoto(String filePath) async {
+    try {
+      final file = await http.MultipartFile.fromPath(
+        'photo',
+        filePath,
+        contentType: MediaType('image', 'jpeg'), // Ajustar según sea necesario
+      );
+
+      return await _apiService.postMultipart<dynamic>(
+        ApiConstants.uploadPhoto,
+        {},
+        file,
+        requiresAuth: true,
+      );
+    } catch (e) {
+      return ApiResponse(
+        success: false,
+        message: 'Error al preparar la foto: ${e.toString()}',
+      );
+    }
+  }
+
+  /// Change user password
+  Future<ApiResponse<dynamic>> changePassword(String newPassword) async {
+    return await _apiService.post<dynamic>(
+      '/auth/change-password',
+      {'newPassword': newPassword},
+      requiresAuth: true,
+    );
+  }
 }
