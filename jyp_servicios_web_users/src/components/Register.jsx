@@ -74,8 +74,7 @@ const Register = ({ onLogin }) => {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center p-4 sm:p-6 md:p-10 relative overflow-hidden"
-      style={{ background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: "'Inter',sans-serif" }}
+      className="jyp-page jyp-container flex items-center justify-center p-4 sm:p-6 md:p-10 relative overflow-hidden"
     >
       {/* Background Glows */}
       <div 
@@ -90,10 +89,15 @@ const Register = ({ onLogin }) => {
       {/* Theme toggle */}
       <button 
         onClick={toggleTheme} 
-        className="theme-toggle fixed top-5 right-5 z-40 shadow-lg"
-        title="Cambiar tema"
+        className="jyp-theme-toggle"
+        title={isDark ? "Activar modo claro" : "Activar modo oscuro"}
+        aria-label={isDark ? "Activar modo claro" : "Activar modo oscuro"}
       >
-        {isDark ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} className="text-blue-500" />}
+        {isDark ? (
+          <Sun size={19} className="text-amber-400" />
+        ) : (
+          <Moon size={19} className="text-blue-500" />
+        )}
       </button>
 
       <motion.div
@@ -101,8 +105,7 @@ const Register = ({ onLogin }) => {
         className="w-full max-w-xl z-10 my-8"
       >
         <div 
-          className="glass-card p-8 sm:p-10 md:p-12 rounded-[36px] relative"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-xl)' }}
+          className="jyp-card p-8 sm:p-10 md:p-12 rounded-[36px] relative"
         >
           {/* Header Brand */}
           <div className="flex items-center justify-between pb-6 mb-6 border-b" style={{ borderColor: 'var(--border)' }}>
@@ -224,7 +227,7 @@ const Register = ({ onLogin }) => {
                 <form onSubmit={handleRegister} className="space-y-4">
                   {/* Person type selector */}
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    <label className="jyp-form-label">
                       Tipo de Registro
                     </label>
                     <div className="grid grid-cols-2 gap-2.5">
@@ -251,30 +254,28 @@ const Register = ({ onLogin }) => {
                   {/* Two column inputs */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div className="space-y-1">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      <label className="jyp-form-label">
                         Usuario
                       </label>
                       <input 
                         required 
                         type="text" 
                         placeholder="ej. jperez"
-                        className="input-field"
-                        style={{ height: 48, borderRadius: 16 }}
+                        className="jyp-form-input"
                         value={formData.username}
                         onChange={(e) => setFormData({...formData, username: e.target.value})}
                       />
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      <label className="jyp-form-label">
                         Correo Electrónico
                       </label>
                       <input 
                         required 
                         type="email" 
                         placeholder="correo@ejemplo.com"
-                        className="input-field"
-                        style={{ height: 48, borderRadius: 16 }}
+                        className="jyp-form-input"
                         value={formData.email}
                         onChange={(e) => setFormData({...formData, email: e.target.value})}
                       />
@@ -283,29 +284,27 @@ const Register = ({ onLogin }) => {
                     {formData.personType === 'natural' ? (
                       <>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                          <label className="jyp-form-label">
                             Nombres
                           </label>
                           <input 
                             required 
                             type="text" 
                             placeholder="Juan Carlos"
-                            className="input-field" 
-                            style={{ height: 48, borderRadius: 16 }}
+                            className="jyp-form-input" 
                             value={formData.names} 
                             onChange={(e) => setFormData({...formData, names: e.target.value})} 
                           />
                         </div>
                         <div className="space-y-1">
-                          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                          <label className="jyp-form-label">
                             Apellidos
                           </label>
                           <input 
                             required 
                             type="text" 
                             placeholder="Pérez García"
-                            className="input-field" 
-                            style={{ height: 48, borderRadius: 16 }}
+                            className="jyp-form-input" 
                             value={formData.surnames} 
                             onChange={(e) => setFormData({...formData, surnames: e.target.value})} 
                           />
@@ -313,15 +312,14 @@ const Register = ({ onLogin }) => {
                       </>
                     ) : (
                       <div className="sm:col-span-2 space-y-1">
-                        <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                        <label className="jyp-form-label">
                           Razón Social / Nombre Comercial
                         </label>
                         <input 
                           required 
                           type="text" 
                           placeholder="Servicios Técnicos JyP S.A.C."
-                          className="input-field" 
-                          style={{ height: 48, borderRadius: 16 }}
+                          className="jyp-form-input" 
                           value={formData.companyName} 
                           onChange={(e) => setFormData({...formData, companyName: e.target.value})} 
                         />
@@ -329,7 +327,7 @@ const Register = ({ onLogin }) => {
                     )}
 
                     <div className="sm:col-span-2 space-y-1">
-                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                      <label className="jyp-form-label">
                         Contraseña
                       </label>
                       <div className="relative">
@@ -337,8 +335,8 @@ const Register = ({ onLogin }) => {
                           required 
                           type={showPassword ? "text" : "password"} 
                           placeholder="Mínimo 6 caracteres"
-                          className="input-field"
-                          style={{ paddingRight: 44, height: 48, borderRadius: 16 }}
+                          className="jyp-form-input"
+                          style={{ paddingRight: 44 }}
                           value={formData.password}
                           onChange={(e) => setFormData({...formData, password: e.target.value})}
                         />
@@ -363,8 +361,7 @@ const Register = ({ onLogin }) => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="btn-primary w-full mt-4 shadow-xl shadow-blue-600/20"
-                    style={{ height: 52, borderRadius: 20 }}
+                    className="jyp-btn-primary w-full mt-4 shadow-xl shadow-blue-600/20"
                   >
                     {loading ? (
                       <div className="spinner" />

@@ -1,0 +1,539 @@
+/* =============================================================
+   JyP SERVICIOS TÉCNICOS — UI DESIGN SYSTEM COMPONENTS
+   Estilos consistentes para todas las vistas (Register, Dashboards, Stores, etc.)
+   Sigue el mismo lenguaje visual del Login: dark tech, glassmorphism,
+   borders sutiles, gradientes azul/cyan, espaciado rítmico.
+   ============================================================= */
+
+/* ── Page / Section containers ── */
+.jyp-page {
+  min-height: 100svh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.jyp-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.jyp-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* ── Section header (title + description) ── */
+.jyp-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.jyp-section-title {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.jyp-section-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* ── Base cards / panels ── */
+.jyp-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  backdrop-filter: blur(12px);
+  transition: all 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+}
+
+.jyp-card:hover {
+  border-color: var(--border-primary);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg), 0 0 35px rgba(37, 99, 235, 0.1);
+}
+
+.jyp-panel {
+  background: rgba(11, 17, 32, 0.92);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  backdrop-filter: blur(28px);
+  box-shadow: var(--shadow-xl);
+}
+
+[data-theme="light"] .jyp-panel {
+  background: rgba(255, 255, 255, 0.94);
+}
+
+/* ── Stat cards (dashboard counters) ── */
+.jyp-stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.jyp-stat-card:hover {
+  border-color: var(--border-primary);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg), 0 0 35px rgba(37, 99, 235, 0.1);
+}
+
+.jyp-stat-icon {
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  shrink: 0;
+  box-shadow: var(--shadow-md);
+}
+
+.jyp-stat-body {
+  min-width: 0;
+}
+
+.jyp-stat-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin: 0 0 0.25rem;
+  line-height: 1.4;
+}
+
+.jyp-stat-value {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.jyp-stat-sublabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  margin: 0.25rem 0 0;
+  line-height: 1.4;
+}
+
+/* ── Empty states ── */
+.jyp-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+}
+
+.jyp-empty-icon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: var(--radius-lg);
+  display: grid;
+  place-items: center;
+  margin-bottom: 1rem;
+  color: var(--text-dim);
+}
+
+.jyp-empty-title {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 0.5rem;
+  line-height: 1.3;
+}
+
+.jyp-empty-text {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.6;
+  max-width: 24rem;
+}
+
+/* ── Badges ── */
+.jyp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  backdrop-filter: blur(8px);
+}
+
+.jyp-badge-outline {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+
+/* ── Form controls ── */
+.jyp-form-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.jyp-form-input {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  padding: 0.625rem 1rem;
+  height: 3rem;
+  border-radius: var(--radius-md);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  outline: none;
+  transition: all 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  appearance: none;
+}
+
+.jyp-form-input::placeholder {
+  color: var(--text-dim);
+  font-weight: 400;
+}
+
+.jyp-form-input:focus {
+  border-color: var(--primary-light);
+  background: rgba(37, 99, 235, 0.08);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.jyp-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ── Tables ── */
+.jyp-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  background: var(--bg-card);
+}
+
+.jyp-table thead th {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+  white-space: nowrap;
+}
+
+.jyp-table tbody td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.jyp-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.jyp-table tbody tr:hover {
+  background: var(--bg-hover);
+  cursor: pointer;
+}
+
+/* ── Buttons (extend index.css) ── */
+.jyp-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  color: #FFFFFF;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-md);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: var(--shadow-primary);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.jyp-btn-primary:hover {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  box-shadow: var(--shadow-primary-lg), 0 0 25px rgba(37, 99, 235, 0.4);
+  transform: translateY(-2px);
+}
+
+.jyp-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  padding: 0.6875rem 1.375rem;
+  border-radius: var(--radius-md);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all 200ms ease;
+  text-decoration: none;
+}
+
+.jyp-btn-ghost:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-hover);
+  color: #FFFFFF;
+}
+
+.jyp-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(239, 68, 68, 0.12);
+  color: #EF4444;
+  padding: 0.6875rem 1.375rem;
+  border-radius: var(--radius-md);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  cursor: pointer;
+  transition: all 200ms ease;
+  text-decoration: none;
+}
+
+.jyp-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+/* ── Modals ── */
+.jyp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 9, 19, 0.78);
+  backdrop-filter: blur(18px);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.jyp-modal {
+  width: 100%;
+  max-width: 28rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  padding: 1.75rem;
+  backdrop-filter: blur(28px);
+  box-shadow: var(--shadow-xl);
+  position: relative;
+}
+
+.jyp-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.jyp-modal-close:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.jyp-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.jyp-modal-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--radius-lg);
+  display: grid;
+  place-items: center;
+  shrink: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.jyp-modal-title {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.3;
+}
+
+.jyp-modal-subtitle {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin: 0.25rem 0 0;
+  line-height: 1.5;
+}
+
+/* ── Dividers ── */
+.jyp-divider {
+  height: 1px;
+  background: var(--border);
+  border: none;
+  margin: 1rem 0;
+}
+
+/* ── Theme Toggle (idéntico en todas las pantallas, diseño del Login) ── */
+.jyp-theme-toggle {
+  position: absolute;
+  z-index: 50;
+  top: 28px;
+  right: 32px;
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  color: #fbbf24;
+  background: rgba(15, 23, 42, 0.76);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 15px;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+
+.jyp-theme-toggle:hover {
+  transform: translateY(-1px);
+  background: rgba(30, 41, 59, 0.92);
+  border-color: rgba(96, 165, 250, 0.35);
+}
+
+/* Light mode variants */
+[data-theme="light"] .jyp-theme-toggle {
+  color: #2563eb;
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+[data-theme="light"] .jyp-theme-toggle:hover {
+  background: #f8fafc;
+  border-color: #93c5fd;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1050px) and (min-width: 961px) {
+  .jyp-theme-toggle {
+    top: 22px;
+    right: 22px;
+  }
+}
+
+@media (max-width: 960px) {
+  .jyp-theme-toggle {
+    top: 18px;
+    right: 20px;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+  }
+}
+
+@media (max-width: 560px) {
+  .jyp-theme-toggle {
+    top: 14px;
+    right: 16px;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+  }
+}
+
+/* ── Utils ── */
+.jyp-text-primary { color: var(--text-primary); }
+.jyp-text-secondary { color: var(--text-secondary); }
+.jyp-text-dim { color: var(--text-dim); }
+.jyp-bg-card { background: var(--bg-card); }
+.jyp-border { border-color: var(--border); }
+
+.font-heading {
+  font-family: var(--font-heading);
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

@@ -32,7 +32,6 @@ const ClientDashboard = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('user') || '{}'));
   
-  // Try to load from localStorage first
   const [userLocation, setUserLocation] = useState(() => {
     const saved = localStorage.getItem('user_location');
     return saved ? JSON.parse(saved) : { 
@@ -49,7 +48,6 @@ const ClientDashboard = () => {
     }
   }, []);
 
-  // Listen to socket events for real-time dashboard refresh
   useEffect(() => {
     if (!socketService) return;
 
@@ -136,92 +134,76 @@ const ClientDashboard = () => {
 
   const recentTechChat = conversations.find(c => c.other_user_role === 'tech' || c.other_user_role === 'technician');
 
+  if (isLoading) {
+    return (
+      <div className="jyp-page jyp-container flex items-center justify-center min-h-[60vh]">
+        <TechLoader 
+          title="Iniciando Experiencia JyP" 
+          subtitle="Cargando especialistas certificados cerca de ti..." 
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full space-y-12 pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="jyp-page jyp-container space-y-10 pb-8">
       
-      {/* ── HERO BANNER WITH CINEMATIC TECH BACKGROUND ─────────── */}
-      <div 
-        className="glass-card p-10 sm:p-12 md:p-16 rounded-[32px] relative overflow-hidden"
-        style={{
-          background: "linear-gradient(135deg, rgba(13, 22, 41, 0.9) 0%, rgba(6, 9, 19, 0.96) 100%)",
-          border: "1px solid rgba(59, 130, 246, 0.25)",
-          boxShadow: "0 24px 60px rgba(0, 0, 0, 0.5), 0 0 35px rgba(37, 99, 235, 0.15)",
-        }}
-      >
-        {/* Subtle grid pattern */}
-        <div 
-          className="absolute inset-0 bg-tech-circuit opacity-60 pointer-events-none" 
-        />
-        {/* Glowing orb */}
-        <div 
-          className="absolute -top-24 -right-24 w-96 h-96 rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(circle, rgba(37, 99, 235, 0.25) 0%, transparent 70%)", filter: "blur(70px)" }}
-        />
+      {/* ── HERO CARD ── */}
+      <div className="jyp-card rounded-[36px] p-8 sm:p-12 md:p-16 relative overflow-hidden border border-white/10 shadow-[0_24px_60px_rgba(0,0,0,0.6)]">
+        <div className="absolute inset-0 bg-tech-circuit opacity-50 pointer-events-none" />
+        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(37, 99, 235, 0.22) 0%, transparent 70%)", filter: "blur(80px)" }} />
+        <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full pointer-events-none" style={{ background: "radial-gradient(circle, rgba(6, 182, 212, 0.16) 0%, transparent 70%)", filter: "blur(80px)" }} />
 
         <div className="relative z-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-10">
           <div className="space-y-5 max-w-2xl">
-            {/* Location selector pill */}
             <div className="flex flex-wrap items-center gap-2.5">
               <button 
                 onClick={() => setShowLocationModal(true)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-all hover:scale-105 shadow-sm"
-                style={{
-                  background: 'rgba(37, 99, 235, 0.18)',
-                  border: '1px solid rgba(59, 130, 246, 0.4)',
-                  color: '#60A5FA'
-                }}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold border shadow-sm transition-all hover:scale-105"
+                style={{ background: 'rgba(37, 99, 235, 0.14)', borderColor: 'rgba(59, 130, 246, 0.5)', color: '#60A5FA' }}
               >
                 <Target size={14} className="text-cyan-400 animate-pulse" />
                 <span>{userLocation.address.split(',')[0]}</span>
                 <span className="text-[10px] text-blue-300 uppercase underline ml-1 font-bold">Cambiar</span>
               </button>
 
-              <div 
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold shadow-sm"
-                style={{
-                  background: 'rgba(59, 130, 246, 0.12)',
-                  border: '1px solid rgba(59, 130, 246, 0.28)',
-                  color: '#93C5FD'
-                }}
-              >
-                <ShieldCheck size={14} className="text-cyan-400" />
-                <span>Red de Especialistas Certificados</span>
+              <div className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold border shadow-sm"
+                style={{ background: 'rgba(255, 255, 255, 0.05)', borderColor: 'rgba(255, 255, 255, 0.1)', color: '#94A3B8' }}>
+                <ShieldCheck size={14} className="text-emerald-400" />
+                <span>Especialistas Certificados</span>
               </div>
             </div>
 
-            <h1
-              className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight leading-tight text-white"
-              style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}
-            >
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-tight text-white font-heading">
               Hola, <span className="gradient-tech">{user?.names?.split(' ')[0] || user?.username || 'Cliente'}</span>
             </h1>
 
-            <p className="text-sm sm:text-base text-slate-300 leading-relaxed max-w-xl mt-1">
+            <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-xl mt-2">
               Solicita asistencia técnica en tiempo real. Conectamos tu necesidad de hardware con especialistas certificados con garantía de 7 días.
             </p>
           </div>
 
-          {/* Quick Schedule CTA button */}
-          <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3.5 w-full sm:w-auto">
+          <div className="shrink-0 flex flex-col sm:flex-row lg:flex-col gap-3 w-full sm:w-auto">
             <button
               onClick={() => navigate('/appointments/schedule')}
-              className="btn-primary py-4 px-7 text-sm font-black uppercase tracking-wider rounded-2xl shadow-xl text-center"
+              className="jyp-btn-primary py-4 px-8 text-sm font-black uppercase tracking-wider rounded-2xl shadow-xl shadow-blue-600/25 text-center"
             >
-              <Calendar size={18} />
+              <Calendar size={18} className="mr-2" />
               <span>Agendar Reparación</span>
             </button>
             <Link
               to="/stores"
-              className="btn-ghost py-4 px-7 text-center text-xs font-bold rounded-2xl"
+              className="jyp-btn-ghost py-4 px-8 text-center text-xs font-bold rounded-2xl"
             >
-              <Store size={16} />
+              <Store size={16} className="mr-2" />
               <span>Ver Tiendas & Talleres</span>
             </Link>
           </div>
         </div>
 
         {/* Category Pills Bar */}
-        <div className="relative z-10 pt-10 border-t border-white/10 mt-10 flex gap-3 overflow-x-auto no-scrollbar pb-2">
+        <div className="relative z-10 pt-12 border-t border-white/10 mt-10 flex gap-3 overflow-x-auto no-scrollbar pb-4">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 -mt-2 text-[10px] font-black uppercase tracking-widest text-slate-500">Servicios</span>
           {SERVICE_CATEGORIES.map((cat) => {
             const Icon = cat.icon;
             const isSelected = selectedCategory === cat.id;
@@ -230,10 +212,10 @@ const ClientDashboard = () => {
                 key={cat.id}
                 type="button"
                 onClick={() => setSelectedCategory(cat.id)}
-                className="flex items-center gap-2.5 px-5 py-3 rounded-full text-xs font-bold whitespace-nowrap transition-all duration-200 shadow-sm"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold whitespace-nowrap border shadow-sm transition-all duration-200"
                 style={{
-                  background: isSelected ? "rgba(37, 99, 235, 0.35)" : "rgba(255, 255, 255, 0.05)",
-                  border: isSelected ? "1px solid rgba(59, 130, 246, 0.7)" : "1px solid rgba(255, 255, 255, 0.08)",
+                  background: isSelected ? "rgba(37, 99, 235, 0.3)" : "transparent",
+                  borderColor: isSelected ? "rgba(59, 130, 246, 0.6)" : "rgba(255, 255, 255, 0.08)",
                   color: isSelected ? "#38BDF8" : "var(--text-secondary)",
                   letterSpacing: "0.01em",
                 }}
@@ -246,29 +228,25 @@ const ClientDashboard = () => {
         </div>
       </div>
 
-      {/* ── ACTIVE SERVICE BANNER ───────────────────────────────── */}
+      {/* ── ACTIVE SERVICE BANNER ── */}
       {activeAppointment && (
         <motion.div 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="p-7 sm:p-8 rounded-3xl relative overflow-hidden"
-          style={{
-            background: "linear-gradient(135deg, rgba(37, 99, 235, 0.15) 0%, rgba(6, 182, 212, 0.1) 100%)",
-            border: "1px solid rgba(59, 130, 246, 0.35)",
-            boxShadow: "0 15px 35px rgba(37, 99, 235, 0.15)",
-          }}
+          className="jyp-card rounded-3xl p-8 sm:p-10 relative overflow-hidden border border-blue-500/30 shadow-[0_15px_35px_rgba(37,99,235,0.12)]"
+          style={{ background: "linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(6, 182, 212, 0.08) 100%)" }}
         >
-          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+          <div className="absolute inset-0 bg-tech-circuit opacity-30 pointer-events-none" />
+          <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <div 
-                className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg"
-                style={{ background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)" }}
+                className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg bg-gradient-to-br from-blue-600 to-cyan-500"
               >
                 <Clock size={28} className="animate-pulse" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400 block">
                     Servicio Activo en Progreso
                   </span>
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
@@ -276,25 +254,24 @@ const ClientDashboard = () => {
                 <h3 className="text-xl font-black text-white">
                   {activeAppointment.serviceType || 'Mantenimiento Especializado'}
                 </h3>
-                <p className="text-xs text-slate-300">
+                <p className="text-xs text-slate-400 mt-1">
                   Especialista asignado: <span className="text-white font-bold">{activeAppointment.techName || 'Técnico JyP'}</span>
                 </p>
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex items-center gap-3 w-full lg:w-auto">
               <button 
                 onClick={() => navigate(`/appointments/${activeAppointment.id}`)}
-                className="btn-ghost flex-1 lg:flex-none text-xs font-bold py-3"
+                className="jyp-btn-ghost flex-1 lg:flex-none text-xs font-bold py-3"
               >
                 Ver Detalle & Ruta
               </button>
               <button 
                 onClick={() => navigate(`/chat?user=${activeAppointment.techId}`)}
-                className="btn-primary flex-1 lg:flex-none text-xs font-black uppercase tracking-wider py-3"
+                className="jyp-btn-primary flex-1 lg:flex-none text-xs font-black uppercase tracking-wider py-3 shadow-xl"
               >
-                <MessageSquare size={15} />
+                <MessageSquare size={15} className="mr-2" />
                 <span>Chat Directo</span>
               </button>
             </div>
@@ -302,17 +279,16 @@ const ClientDashboard = () => {
         </motion.div>
       )}
 
-      {/* ── RECENT CONSULTATION BANNER ──────────────────────────── */}
+      {/* ── RECENT CONSULTATION BANNER ── */}
       {recentTechChat && !activeAppointment && (
         <motion.div 
           initial={{ opacity: 0, x: -15 }}
           animate={{ opacity: 1, x: 0 }}
           onClick={() => navigate(`/chat?user=${recentTechChat.other_user_id}`)}
-          className="glass-card p-6 rounded-2xl flex items-center gap-5 cursor-pointer group hover:border-blue-500/50 transition-all"
+          className="jyp-card p-6 rounded-2xl flex items-center gap-5 cursor-pointer group hover:border-blue-500/50 transition-all border border-white/5"
         >
           <div 
-            className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-lg shrink-0 shadow-md"
-            style={{ background: "linear-gradient(135deg, #2563EB 0%, #8B5CF6 100%)" }}
+            className="w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-lg shrink-0 shadow-md bg-gradient-to-br from-blue-600 to-purple-500"
           >
             {recentTechChat.username?.[0]?.toUpperCase() || "T"}
           </div>
@@ -329,58 +305,70 @@ const ClientDashboard = () => {
         </motion.div>
       )}
 
-      {/* ── TECHNICIAN LIST AREA ────────────────────────────────── */}
-      <section className="space-y-5">
+      {/* ── TECHNICIAN LIST AREA ── */}
+      <section className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-black text-white flex items-center gap-2.5">
-              <span>Especialistas Disponibles en tu Zona</span>
+            <h2 className="text-3xl font-black text-white flex items-center gap-2.5 font-heading">
+              <span>Especialistas en tu Zona</span>
               <ShieldCheck className="text-cyan-400" size={22} />
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="text-sm text-slate-400 mt-2">
               Filtra y visualiza la ubicación de técnicos certificados listos para acudir a domicilio o recibir tu equipo.
             </p>
           </div>
         </div>
 
+        {/* Search Pill */}
+        <div className="relative">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Buscar por nombre o especialidad (laptop, red, pantalla...)"
+            className="jyp-form-input pl-12 pr-8 py-3.5 rounded-full border"
+          />
+        </div>
+
         {/* Technician List Component */}
-        <TechnicianList 
-          userLocation={userLocation} 
-          onLocationUpdate={updateLocation}
-        />
+        <div className="relative h-[calc(100vh-320px)] min-h-[560px]">
+          <TechnicianList 
+            userLocation={userLocation} 
+            onLocationUpdate={updateLocation}
+          />
+        </div>
       </section>
 
-      {/* ── LOCATION SELECTOR MODAL ─────────────────────────────── */}
+      {/* ── LOCATION SELECTOR MODAL ── */}
       <AnimatePresence>
         {showLocationModal && (
-          <div className="modal-overlay">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="glass-panel w-full max-w-xl p-6 sm:p-8 rounded-3xl relative"
+              className="w-full max-w-2xl p-8 rounded-[36px] relative jyp-card shadow-2xl border border-white/10"
             >
               <button 
                 onClick={() => setShowLocationModal(false)} 
-                className="absolute top-6 right-6 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+                className="absolute top-8 right-8 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
               >
                 <X size={20} />
               </button>
 
               <div className="flex items-center gap-3 mb-2">
                 <div 
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-cyan-400"
-                  style={{ background: 'rgba(6, 182, 212, 0.15)', border: '1px solid rgba(6, 182, 212, 0.3)' }}
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-cyan-400 border border-cyan-500/30"
+                  style={{ background: 'rgba(6, 182, 212, 0.15)' }}
                 >
-                  <MapPin size={22} />
+                  <MapPin size={24} />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-white">Fijar Ubicación de Servicio</h3>
+                  <h3 className="text-xl font-black text-white font-heading">Fijar Ubicación de Servicio</h3>
                   <p className="text-xs text-slate-400">Ubica tu punto de referencia en el mapa interactivo.</p>
                 </div>
               </div>
               
-              <div className="mt-5 rounded-2xl overflow-hidden border border-white/10">
+              <div className="mt-6 rounded-2xl overflow-hidden border border-white/10">
                 <LocationPicker 
                   onLocationSelect={(loc) => updateLocation(loc)}
                   initialLocation={{ lat: userLocation.lat, lng: userLocation.lng }}
@@ -389,7 +377,7 @@ const ClientDashboard = () => {
               
               <button 
                 onClick={() => setShowLocationModal(false)} 
-                className="btn-primary w-full mt-6 py-4 font-black uppercase tracking-wider text-xs shadow-xl"
+                className="jyp-btn-primary w-full mt-8 py-4 font-black uppercase tracking-wider shadow-xl shadow-blue-600/25"
               >
                 Confirmar y Actualizar Radar
               </button>

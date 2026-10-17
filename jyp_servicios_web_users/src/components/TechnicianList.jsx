@@ -139,8 +139,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
 
   return (
     <div 
-      className="flex flex-col lg:flex-row gap-7 rounded-3xl min-h-[580px] lg:h-[calc(100vh-240px)] lg:min-h-[600px] lg:max-h-[820px]" 
-      style={{ fontFamily: "'Inter', sans-serif" }}
+      className="flex flex-col lg:flex-row gap-7 rounded-3xl min-h-[580px] lg:h-[calc(100vh-240px)] lg:min-h-[600px] lg:max-h-[820px] font-sans"
     >
       {/* ── Sidebar: Filter & Technician Cards ───────────────── */}
       <div className="w-full lg:w-[420px] flex flex-col gap-3.5 overflow-hidden">
@@ -156,7 +155,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
             placeholder="Buscar por nombre o especialidad (laptop, red...)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="input-field"
+            className="input-field jyp-form-input"
             style={{ paddingLeft: 44, height: 52, borderRadius: 18 }}
           />
         </div>
@@ -209,8 +208,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
             </div>
           ) : !hasSearched ? (
             <div
-              className="h-full flex flex-col items-center justify-center p-8 text-center rounded-3xl"
-              style={{ border: '2px dashed var(--border)', background: 'var(--bg-input)' }}
+              className="h-full flex flex-col items-center justify-center p-8 text-center rounded-3xl jyp-empty-state"
             >
               <div
                 className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
@@ -218,7 +216,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
               >
                 <Navigation size={28} className="text-blue-500 animate-pulse" />
               </div>
-              <h3 className="text-base font-black text-white mb-2" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+              <h3 className="text-base font-black text-white mb-2 font-heading">
                 Explorador de Técnicos
               </h3>
               <p className="text-xs text-slate-400 leading-relaxed max-w-xs mb-4">
@@ -260,9 +258,8 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
                       {name[0]?.toUpperCase() || 'T'}
                       {/* Availability status badge */}
                       <span
-                        className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2"
+                        className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-slate-900"
                         style={{
-                          borderColor: 'var(--bg)',
                           background: isAvailable ? 'var(--success)' : '#94A3B8',
                           boxShadow: isAvailable ? '0 0 8px #10B981' : 'none'
                         }}
@@ -325,8 +322,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
                           e.stopPropagation();
                           navigate(`/appointments/schedule?tech=${tech.id}`);
                         }}
-                        className="btn-primary py-1.5 px-3.5 text-[11px] font-bold rounded-xl"
-                        style={{ height: 34 }}
+                        className="btn-primary py-1.5 px-3.5 text-[11px] font-bold rounded-xl h-8"
                       >
                         <Calendar size={12} /> Agendar
                       </button>
@@ -336,8 +332,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
                           e.stopPropagation();
                           navigate(`/technician/${tech.id}`);
                         }}
-                        className="btn-ghost py-1.5 px-3.5 text-[11px] font-bold rounded-xl"
-                        style={{ height: 34 }}
+                        className="btn-ghost py-1.5 px-3.5 text-[11px] font-bold rounded-xl h-8"
                       >
                         Perfil
                       </button>
@@ -400,30 +395,20 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
               return (
                 <Marker key={tech.id} position={[lat, lng]} icon={techIcon}>
                   <Popup>
-                    <div style={{ fontFamily: "'Inter',sans-serif", textAlign: 'center', padding: '6px 4px' }}>
-                      <h4 style={{ fontWeight: 800, fontSize: 14, marginBottom: 4, color: 'var(--text-primary)' }}>
-                        {tech.names || tech.company_name || 'Técnico Especialista'}
-                      </h4>
-                      <p style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8 }}>
-                        {tech.city || 'Lima'}
-                      </p>
-                      <button
-                        onClick={() => navigate(`/technician/${tech.id}`)}
-                        style={{
-                          background: 'linear-gradient(135deg, #2563EB, #06B6D4)',
-                          color: 'white',
-                          border: 'none',
-                          padding: '6px 14px',
-                          borderRadius: 8,
-                          fontSize: 12,
-                          fontWeight: 700,
-                          cursor: 'pointer',
-                          width: '100%'
-                        }}
-                      >
-                        Ver Perfil Completo
-                      </button>
-                    </div>
+                      <div className="font-sans text-center p-2">
+                        <h4 className="font-black text-sm mb-1 text-slate-100">
+                          {tech.names || tech.company_name || 'Técnico Especialista'}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 mb-2">
+                          {tech.city || 'Lima'}
+                        </p>
+                        <button
+                          onClick={() => navigate(`/technician/${tech.id}`)}
+                          className="w-full py-2 px-4 rounded border-none text-xs font-bold bg-gradient-to-br from-blue-600 to-cyan-500 text-white cursor-pointer"
+                        >
+                          Ver Perfil Completo
+                        </button>
+                      </div>
                   </Popup>
                 </Marker>
               );
@@ -437,11 +422,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
             type="button"
             onClick={handleManualSearch}
             disabled={isSearching}
-            className="btn-primary shadow-2xl py-3 px-6 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2.5"
-            style={{
-              background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
-              boxShadow: '0 10px 30px rgba(37, 99, 235, 0.45)',
-            }}
+            className="btn-primary shadow-2xl py-3 px-6 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2.5 bg-gradient-to-br from-blue-600 to-cyan-500 shadow-[0_10px_30px_rgba(37,99,235,0.45)]"
           >
             {isSearching ? (
               <>

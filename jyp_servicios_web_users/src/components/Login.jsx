@@ -2,12 +2,11 @@ import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTheme } from "../context/ThemeContext";
+import { authService } from "../services/api";
+import { toast } from "react-hot-toast";
 import "./Login.css";
 import {
   ShieldCheck,
-  User,
-  Wrench,
-  Store,
   Mail,
   Lock,
   Eye,
@@ -21,9 +20,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
-const Login = () => {
+const Login = ({ onLogin }) => {
   const { isDark, toggleTheme } = useTheme();
-  const [role, setRole] = useState("cliente"); // 'cliente' | 'tecnico' | 'tienda'
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
@@ -37,10 +35,27 @@ const Login = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Lógica de inicio de sesión
-    console.log("Iniciando sesión con:", { role, ...formData });
+    try {
+      const res = await authService.login(formData.email, formData.password);
+      const { token, ...rawUser } = res.data.resultado;
+      const user = {
+        ...rawUser,
+        id: rawUser.id || rawUser.userId,
+        userId: rawUser.userId || rawUser.id,
+      };
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(user));
+      toast.success("Inicio de sesión exitoso");
+      onLogin(user);
+    } catch (err) {
+      const msg =
+        err.response?.data?.mensaje ||
+        err.response?.data?.message ||
+        "Credenciales inválidas. Intenta de nuevo.";
+      toast.error(msg);
+    }
   };
 
   return (
@@ -171,39 +186,6 @@ const Login = () => {
             <p className="mt-2 text-xs text-gray-400">
               Ingresa tus credenciales para administrar tus servicios técnicos.
             </p>
-          </div>
-
-          {/* Selector de Rol */}
-          <div className="login-role-section space-y-2">
-            <label className="login-section-label text-[11px] font-bold tracking-wider text-gray-400 uppercase text-center block">
-              PRUEBA RÁPIDA CON 1 CLICK (CUENTAS DEMO)
-            </label>
-            <div className="login-role-selector grid grid-cols-3 gap-2 rounded-xl bg-[#141a26] p-1.5 border border-white/5">
-              <button
-                type="button"
-                onClick={() => setRole("cliente")}
-                className={`login-role-button ${role === "cliente" ? "is-active" : ""}`}
-              >
-                <User size={14} />
-                Cliente
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("tecnico")}
-                className={`login-role-button ${role === "tecnico" ? "is-active" : ""}`}
-              >
-                <Wrench size={14} />
-                Técnico
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole("tienda")}
-                className={`login-role-button ${role === "tienda" ? "is-active" : ""}`}
-              >
-                <Store size={14} />
-                Tienda / Empresa
-              </button>
-            </div>
           </div>
 
           {/* Formulario */}
