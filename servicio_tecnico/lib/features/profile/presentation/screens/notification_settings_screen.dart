@@ -122,7 +122,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   elevation: 4,
-                  shadowColor: AppColors.primary.withOpacity(0.4),
+                  shadowColor: AppColors.primary.withValues(alpha: 0.4),
                 ),
                 child: Text('Guardar Preferencias', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 16)),
               ),
@@ -164,7 +164,7 @@ class _NotificationSettingsScreenState extends State<NotificationSettingsScreen>
         subtitle: Text(subtitle, style: GoogleFonts.outfit(fontSize: 12, color: AppColors.textSecondary)),
         value: value,
         onChanged: onChanged,
-        activeColor: AppColors.primary,
+        activeThumbColor: AppColors.primary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );

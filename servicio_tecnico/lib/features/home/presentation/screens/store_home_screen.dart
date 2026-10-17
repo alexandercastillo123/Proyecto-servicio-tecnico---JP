@@ -161,7 +161,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
           color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(Theme.of(context).brightness == Brightness.dark ? 0.3 : 0.05),
+              color: Colors.black.withValues(alpha: Theme.of(context).brightness == Brightness.dark ? 0.3 : 0.05),
               blurRadius: 15,
               offset: const Offset(0, -4),
             ),
@@ -210,7 +210,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(activeIcon, size: 24),

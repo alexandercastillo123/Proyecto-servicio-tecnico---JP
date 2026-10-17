@@ -100,7 +100,7 @@ class SettingsScreen extends StatelessWidget {
               if (context.mounted) context.go('/login');
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent.withOpacity(0.1),
+              backgroundColor: Colors.redAccent.withValues(alpha: 0.1),
               foregroundColor: Colors.redAccent,
               elevation: 0,
               padding: const EdgeInsets.symmetric(vertical: 16),
@@ -128,7 +128,7 @@ class SettingsScreen extends StatelessWidget {
         style: GoogleFonts.outfit(
           fontSize: 14,
           fontWeight: FontWeight.w700,
-          color: AppColors.primary.withOpacity(0.6),
+          color: AppColors.primary.withValues(alpha: 0.6),
           letterSpacing: 1.2,
         ),
       ),
@@ -162,7 +162,7 @@ class SettingsScreen extends StatelessWidget {
         ),
         value: themeProvider.isDarkMode,
         onChanged: (val) => themeProvider.toggleTheme(val),
-        activeColor: AppColors.primary,
+        activeThumbColor: AppColors.primary,
       ),
     );
   }

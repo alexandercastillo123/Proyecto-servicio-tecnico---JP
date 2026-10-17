@@ -390,7 +390,7 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
                     return ListTile(
                       contentPadding: const EdgeInsets.symmetric(vertical: 8),
                       leading: CircleAvatar(
-                        backgroundColor: AppColors.primary.withOpacity(0.1),
+                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                         child: const Icon(
                           Icons.person,
                           color: AppColors.primary,
@@ -514,7 +514,7 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
                     point: _servicePoint!,
                     radius: _radius * 1000,
                     useRadiusInMeter: true,
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     borderColor: AppColors.primary,
                     borderStrokeWidth: 1.5,
                   ),
@@ -644,7 +644,7 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
                   borderRadius: BorderRadius.circular(20),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
+                      color: Colors.black.withValues(alpha: 0.15),
                       blurRadius: 15,
                       offset: const Offset(0, 5),
                     ),
@@ -654,7 +654,7 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
                   children: [
                     CircleAvatar(
                       radius: 30,
-                      backgroundColor: AppColors.primary.withOpacity(0.1),
+                      backgroundColor: AppColors.primary.withValues(alpha: 0.1),
                       child: const Icon(
                         Icons.person,
                         size: 35,
@@ -902,7 +902,7 @@ class _ServiceLocationMapState extends State<ServiceLocationMap> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
       ),

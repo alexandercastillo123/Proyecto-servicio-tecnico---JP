@@ -125,10 +125,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                           margin: const EdgeInsets.only(bottom: 12),
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: isRead ? Colors.white : AppColors.primary.withOpacity(0.03),
+                            color: isRead ? Colors.white : AppColors.primary.withValues(alpha: 0.03),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: isRead ? Colors.grey[200]! : AppColors.primary.withOpacity(0.1),
+                              color: isRead ? Colors.grey[200]! : AppColors.primary.withValues(alpha: 0.1),
                             ),
                           ),
                           child: Row(
@@ -137,7 +137,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: _getColor(notification['type']).withOpacity(0.1),
+                                  color: _getColor(notification['type']).withValues(alpha: 0.1),
                                   shape: BoxShape.circle,
                                 ),
                                 child: Icon(

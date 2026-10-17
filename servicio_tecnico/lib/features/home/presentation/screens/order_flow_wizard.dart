@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:animate_do/animate_do.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
@@ -491,7 +489,7 @@ class _OrderFlowWizardState extends State<OrderFlowWizard> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
+                    color: Colors.black.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Row(
@@ -553,7 +551,7 @@ class _OrderFlowWizardState extends State<OrderFlowWizard> {
                     final prod = widget.products[index];
                     final currentQty = _cart[prod.id] ?? 0;
                     final cardColor = currentQty > 0
-                        ? AppColors.primary.withOpacity(0.04)
+                        ? AppColors.primary.withValues(alpha: 0.04)
                         : AppColors.getCardBackground(context);
 
                     return Card(
@@ -778,9 +776,9 @@ class _OrderFlowWizardState extends State<OrderFlowWizard> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.04),
+                        color: AppColors.primary.withValues(alpha: 0.04),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../core/services/appointment_service.dart';
 import '../../../../core/services/message_service.dart';
 import '../../../../core/services/user_service.dart';
-import '../../../../core/services/api_service.dart';
 import '../../../../core/constants/assets.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -286,9 +285,9 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                                     return Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: isAvailable ? Colors.green.withOpacity(0.05) : Colors.red.withOpacity(0.05),
+                                        color: isAvailable ? Colors.green.withValues(alpha: 0.05) : Colors.red.withValues(alpha: 0.05),
                                         borderRadius: BorderRadius.circular(15),
-                                        border: Border.all(color: isAvailable ? Colors.green.withOpacity(0.3) : Colors.red.withOpacity(0.3)),
+                                        border: Border.all(color: isAvailable ? Colors.green.withValues(alpha: 0.3) : Colors.red.withValues(alpha: 0.3)),
                                       ),
                                       child: Row(
                                         children: [
@@ -322,10 +321,10 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                                               : Switch(
                                                   value: isAvailable,
                                                   onChanged: (_) => _toggleAvailability(),
-                                                  activeColor: Colors.green,
-                                                  activeTrackColor: Colors.green.withOpacity(0.2),
+                                                  activeThumbColor: Colors.green,
+                                                  activeTrackColor: Colors.green.withValues(alpha: 0.2),
                                                   inactiveThumbColor: Colors.red,
-                                                  inactiveTrackColor: Colors.red.withOpacity(0.2),
+                                                  inactiveTrackColor: Colors.red.withValues(alpha: 0.2),
                                                 ),
                                         ],
                                       ),

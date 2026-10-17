@@ -35,7 +35,7 @@ class PersonTypeSelectionScreen extends StatelessWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              AppColors.primary.withOpacity(0.05),
+              AppColors.primary.withValues(alpha: 0.05),
               Colors.white,
             ],
           ),
@@ -137,7 +137,7 @@ class PersonTypeSelectionScreen extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(32),
           border: Border.all(
-            color: isSecondary ? AppColors.border : AppColors.primary.withOpacity(0.1),
+            color: isSecondary ? AppColors.border : AppColors.primary.withValues(alpha: 0.1),
             width: 1,
           ),
           boxShadow: AppColors.premiumShadow,
@@ -147,7 +147,7 @@ class PersonTypeSelectionScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(icon, color: color, size: 32),
@@ -179,7 +179,7 @@ class PersonTypeSelectionScreen extends StatelessWidget {
             ),
             Icon(
               Icons.chevron_right_rounded,
-              color: AppColors.primary.withOpacity(0.3),
+              color: AppColors.primary.withValues(alpha: 0.3),
             ),
           ],
         ),

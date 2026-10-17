@@ -275,7 +275,7 @@ class _EditDataScreenState extends State<EditDataScreen> {
             ? (isDark ? Colors.black54 : const Color(0xFFF0F0F0))
             : (isDark ? const Color(0xFF1E293B) : const Color(0xFFE8E8E8)),
         borderRadius: BorderRadius.circular(12),
-        border: readOnly ? Border.all(color: Colors.grey.withOpacity(0.3)) : null,
+        border: readOnly ? Border.all(color: Colors.grey.withValues(alpha: 0.3)) : null,
       ),
       child: TextField(
         controller: controller,

@@ -347,7 +347,7 @@ class _StoreMapWidgetState extends State<StoreMapWidget> {
                     point: _searchPoint!,
                     radius: _radius * 1000,
                     useRadiusInMeter: true,
-                    color: AppColors.primary.withOpacity(0.1),
+                    color: AppColors.primary.withValues(alpha: 0.1),
                     borderColor: AppColors.primary,
                     borderStrokeWidth: 1,
                   ),
@@ -543,7 +543,7 @@ class _LocationMarker extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: color.withOpacity(0.2),
+        color: color.withValues(alpha: 0.2),
         shape: BoxShape.circle,
         border: Border.all(color: color, width: 2),
       ),
@@ -586,10 +586,10 @@ class _LegendChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.9),
+        color: Colors.white.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4),
         ],
       ),
       child: Row(
@@ -673,7 +673,7 @@ class _StorePreviewCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -683,7 +683,7 @@ class _StorePreviewCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 25,
-            backgroundColor: AppColors.primary.withOpacity(0.1),
+            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
             child: const Icon(Icons.store, color: AppColors.primary),
           ),
           const SizedBox(width: 12),

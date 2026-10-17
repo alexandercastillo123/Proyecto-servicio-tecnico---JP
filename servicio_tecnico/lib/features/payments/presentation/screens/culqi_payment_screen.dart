@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:lottie/lottie.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/constants/api_constants.dart';
+
 import '../../../../core/services/store_service.dart';
 import '../../../../core/services/appointment_service.dart';
 import 'order_details_screen.dart';
@@ -521,7 +521,7 @@ class _CulqiPaymentScreenState extends State<CulqiPaymentScreen>
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9),
+                color: Colors.white.withValues(alpha: 0.9),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Column(

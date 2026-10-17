@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -53,7 +53,7 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _otherUserAvailable = true;
   int? _otherStoreId;
   int? _currentUserId;
-  final Record _recorder = Record();
+  final AudioRecorder _recorder = AudioRecorder();
   bool _isRecordingAudio = false;
 
   String _formatTime(String? timestamp) {
@@ -134,10 +134,11 @@ class _ChatScreenState extends State<ChatScreen> {
     _typingDebounce?.cancel();
     _typingSubscription?.cancel();
     _messageSubscription?.cancel();
+    // record 7.x: stop() and dispose() return Future — fire-and-forget is fine here
     if (_isRecordingAudio) {
-      _recorder.stop();
+      _recorder.stop().ignore();
     }
-    _recorder.dispose();
+    _recorder.dispose().ignore();
     super.dispose();
   }
 
@@ -427,9 +428,9 @@ class _ChatScreenState extends State<ChatScreen> {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 shape: BoxShape.circle,
-                border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+                border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
               ),
               child: Icon(icon, color: color, size: 26),
             ),
@@ -504,10 +505,12 @@ class _ChatScreenState extends State<ChatScreen> {
     final path = '${dir.path}/audio_$timestamp.m4a';
 
     await _recorder.start(
+      const RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        bitRate: 128000,
+        sampleRate: 44100,
+      ),
       path: path,
-      encoder: AudioEncoder.aacLc,
-      bitRate: 128000,
-      samplingRate: 44100,
     );
 
     if (!mounted) return;
@@ -548,7 +551,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.15),
+                  color: Colors.red.withValues(alpha: 0.15),
                   shape: BoxShape.circle,
                   border: Border.all(color: Colors.red, width: 2),
                 ),
@@ -606,7 +609,7 @@ class _ChatScreenState extends State<ChatScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(res.message.isNotEmpty ? res.message : 'Error al enviar archivo'),
+              content: Text((res.message?.isNotEmpty == true) ? res.message! : 'Error al enviar archivo'),
             ),
           );
         }
@@ -989,7 +992,7 @@ if (!_otherUserAvailable &&
                        vertical: 10,
                        horizontal: 16,
                      ),
-                     color: isDark ? Colors.orange.shade900.withOpacity(0.3) : Colors.orange.shade50,
+                     color: isDark ? Colors.orange.shade900.withValues(alpha: 0.3) : Colors.orange.shade50,
                      child: Row(
                        children: [
                          Icon(
@@ -1031,7 +1034,7 @@ if (!_otherUserAvailable &&
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
+                            color: Colors.black.withValues(alpha: 0.06),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
@@ -1228,8 +1231,8 @@ if (!_otherUserAvailable &&
                       ),
                       decoration: BoxDecoration(
                         color: isPaid
-                            ? Colors.green.withOpacity(0.25)
-                            : Colors.orange.withOpacity(0.2),
+                            ? Colors.green.withValues(alpha: 0.25)
+                            : Colors.orange.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
@@ -1376,7 +1379,7 @@ if (!_otherUserAvailable &&
                         icon: const Icon(Icons.lock_outline, size: 16),
                         label: const Text('Cita Asegurada — No Cancelable'),
                         style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: Colors.grey.withOpacity(0.4)),
+                          side: BorderSide(color: Colors.grey.withValues(alpha: 0.4)),
                           foregroundColor: Colors.grey,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -1397,7 +1400,7 @@ if (!_otherUserAvailable &&
             child: Text(
               time,
               style: TextStyle(
-                color: Colors.blue.withOpacity(0.6),
+                color: Colors.blue.withValues(alpha: 0.6),
                 fontSize: 10,
               ),
             ),
@@ -1890,19 +1893,19 @@ if (!_otherUserAvailable &&
       margin: const EdgeInsets.symmetric(vertical: 20),
       child: Row(
         children: [
-          Expanded(child: Divider(color: Colors.grey.withOpacity(0.3))),
+          Expanded(child: Divider(color: Colors.grey.withValues(alpha: 0.3))),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Text(
               label,
               style: TextStyle(
-                color: Colors.grey.withOpacity(0.7),
+                color: Colors.grey.withValues(alpha: 0.7),
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
             ),
           ),
-          Expanded(child: Divider(color: Colors.grey.withOpacity(0.3))),
+          Expanded(child: Divider(color: Colors.grey.withValues(alpha: 0.3))),
         ],
       ),
     );
@@ -2038,7 +2041,7 @@ if (!_otherUserAvailable &&
                         style: TextButton.styleFrom(
                           backgroundColor: const Color(
                             0xFFBDBDBD,
-                          ).withOpacity(0.5),
+                          ).withValues(alpha: 0.5),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -2273,7 +2276,7 @@ if (!_otherUserAvailable &&
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),
@@ -2370,7 +2373,7 @@ if (!_otherUserAvailable &&
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.07),
+                  color: Colors.black.withValues(alpha: 0.07),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -2387,7 +2390,7 @@ if (!_otherUserAvailable &&
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.15),
+                          color: Colors.black.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -2475,7 +2478,7 @@ if (!_otherUserAvailable &&
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.07),
+                  color: Colors.black.withValues(alpha: 0.07),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -2492,7 +2495,7 @@ if (!_otherUserAvailable &&
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.15),
+                          color: Colors.black.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -2529,7 +2532,7 @@ if (!_otherUserAvailable &&
                                   decoration: BoxDecoration(
                                     color: isMe
                                         ? Colors.white54
-                                        : AppColors.primary.withOpacity(0.5),
+                                        : AppColors.primary.withValues(alpha: 0.5),
                                     borderRadius: BorderRadius.circular(2),
                                   ),
                                 ),
@@ -2595,7 +2598,7 @@ if (!_otherUserAvailable &&
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.07),
+                  color: Colors.black.withValues(alpha: 0.07),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),
@@ -2610,7 +2613,7 @@ if (!_otherUserAvailable &&
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.12),
+                      color: Colors.black.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Icon(
@@ -2690,7 +2693,7 @@ if (!_otherUserAvailable &&
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha: 0.05),
                     blurRadius: 5,
                     offset: const Offset(0, 2),
                   ),
@@ -2896,7 +2899,7 @@ if (!_otherUserAvailable &&
                 Text(
                   'Tarifa de servicio:',
                   style: TextStyle(
-                    color: (isMe ? Colors.white : Colors.blue).withOpacity(0.4),
+                    color: (isMe ? Colors.white : Colors.blue).withValues(alpha: 0.4),
                     fontSize: 12,
                   ),
                 ),
@@ -2934,13 +2937,13 @@ if (!_otherUserAvailable &&
                           },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isCanceled
-                          ? const Color(0xFFBDBDBD).withOpacity(0.5)
+                          ? const Color(0xFFBDBDBD).withValues(alpha: 0.5)
                           : (isMe
                                 ? Colors.transparent
                                 : const Color(0xFF3B28FF)),
                       disabledBackgroundColor: const Color(
                         0xFFBDBDBD,
-                      ).withOpacity(0.5),
+                      ).withValues(alpha: 0.5),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                         side: isMe && !isCanceled
@@ -2952,7 +2955,7 @@ if (!_otherUserAvailable &&
                       isMe ? 'Cancelar Oferta' : 'Pagar',
                       style: TextStyle(
                         color: isCanceled
-                            ? Colors.white.withOpacity(0.6)
+                            ? Colors.white.withValues(alpha: 0.6)
                             : Colors.white,
                         fontWeight: FontWeight.bold,
                       ),
@@ -2971,7 +2974,7 @@ if (!_otherUserAvailable &&
             child: Text(
               isCanceled ? 'El técnico ha cancelado esta oferta\n$time' : time,
               style: TextStyle(
-                color: Colors.blue.withOpacity(0.6),
+                color: Colors.blue.withValues(alpha: 0.6),
                 fontSize: 10,
               ),
             ),
@@ -3163,7 +3166,7 @@ if (!_otherUserAvailable &&
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -3178,7 +3181,7 @@ if (!_otherUserAvailable &&
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: const Icon(
@@ -3257,7 +3260,7 @@ if (!_otherUserAvailable &&
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF334155) : Colors.grey[50],
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]!),
+                border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey[200]!),
               ),
               child: Row(
                 children: [
@@ -3458,7 +3461,7 @@ if (!_otherUserAvailable &&
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.2),
+                        color: statusColor.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -3543,8 +3546,8 @@ if (!_otherUserAvailable &&
                       margin: const EdgeInsets.only(bottom: 8),
                       decoration: BoxDecoration(
                         color: isPaid
-                            ? Colors.green.withOpacity(0.25)
-                            : Colors.orange.withOpacity(0.2),
+                            ? Colors.green.withValues(alpha: 0.25)
+                            : Colors.orange.withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
@@ -3739,10 +3742,10 @@ if (!_otherUserAvailable &&
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -3756,7 +3759,7 @@ if (!_otherUserAvailable &&
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withOpacity(0.1),
+                  color: AppColors.primary.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(

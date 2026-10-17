@@ -91,7 +91,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         color: isDark ? const Color(0xFF0F172A) : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
             blurRadius: 15,
             offset: const Offset(0, -4),
           ),
@@ -140,7 +140,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.1),
+            color: AppColors.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(activeIcon, size: 24),
@@ -420,7 +420,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   Widget _buildLoadingOverlay(String message) {
     return anim.FadeIn(
       child: Container(
-        color: Colors.white.withOpacity(0.8),
+        color: Colors.white.withValues(alpha: 0.8),
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,

@@ -120,7 +120,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 onPressed: _isLoading ? null : _changePassword,
                 style: ElevatedButton.styleFrom(
                   elevation: 4,
-                  shadowColor: AppColors.primary.withOpacity(0.3),
+                  shadowColor: AppColors.primary.withValues(alpha: 0.3),
                 ),
                 child: _isLoading 
                   ? const CircularProgressIndicator(color: Colors.white)
