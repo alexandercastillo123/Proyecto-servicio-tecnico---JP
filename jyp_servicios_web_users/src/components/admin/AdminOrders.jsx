@@ -19,7 +19,7 @@ const OrderModal = ({ order, onClose }) => {
   if (!order) return null;
   const InfoItem = ({ label, value }) => (
     <div className="rounded-xl px-4 py-3" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-      <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
+      <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-dim)' }}>{label}</p>
       <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{value || '—'}</p>
     </div>
   );
@@ -52,20 +52,20 @@ const OrderModal = ({ order, onClose }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest pb-2" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Cliente</p>
+              <p className="text-[10px] font-black uppercase tracking-widest pb-2" style={{ color: 'var(--text-dim)', borderBottom: '1px solid var(--border)' }}>Cliente</p>
               <InfoItem label="Nombre completo" value={`${order.client_names} ${order.client_surnames}`} />
               <InfoItem label="Email"            value={order.client_email} />
               <InfoItem label="Teléfono"         value={order.client_phone} />
             </div>
             <div className="space-y-3">
-              <p className="text-[10px] font-black uppercase tracking-widest pb-2" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Tienda</p>
+              <p className="text-[10px] font-black uppercase tracking-widest pb-2" style={{ color: 'var(--text-dim)', borderBottom: '1px solid var(--border)' }}>Tienda</p>
               <InfoItem label="Sucursal"          value={order.store_name} />
               <InfoItem label="Dirección tienda"  value={order.store_address} />
             </div>
           </div>
 
           <div className="space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-widest pb-2" style={{ color: 'var(--text-muted)', borderBottom: '1px solid var(--border)' }}>Entrega</p>
+            <p className="text-[10px] font-black uppercase tracking-widest pb-2" style={{ color: 'var(--text-dim)', borderBottom: '1px solid var(--border)' }}>Entrega</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <InfoItem label="Dirección de envío" value={order.delivery_address || 'Recojo en tienda'} />
               <div className="rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
@@ -73,7 +73,7 @@ const OrderModal = ({ order, onClose }) => {
                   <MapPin size={15} />
                 </div>
                 <div>
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-muted)' }}>Coordenadas</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-dim)' }}>Coordenadas</p>
                   <p className="text-xs font-bold font-mono" style={{ color: 'var(--text-primary)' }}>{order.latitude}, {order.longitude}</p>
                 </div>
               </div>
@@ -139,7 +139,7 @@ const AdminOrders = () => {
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-3 mb-6">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-dim)' }} />
           <input
             type="text"
             placeholder="Buscar por cliente, producto o tienda..."
@@ -166,10 +166,10 @@ const AdminOrders = () => {
       ) : (
         <div className="glass-card overflow-hidden">
           <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
-            <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
+            <span className="text-sm font-bold" style={{ color: 'var(--text-dim)' }}>
               {filtered.length} pedido{filtered.length !== 1 ? 's' : ''}
             </span>
-            <Filter size={14} style={{ color: 'var(--text-muted)' }} />
+            <Filter size={14} style={{ color: 'var(--text-dim)' }} />
           </div>
           <div className="overflow-x-auto">
             <table className="admin-table">
@@ -191,7 +191,7 @@ const AdminOrders = () => {
                     <td className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>{o.store_name}</td>
                     <td>
                       <div className="font-bold text-xs" style={{ color: 'var(--text-primary)' }}>{o.product_name}</div>
-                      <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Cant: {o.quantity}</div>
+                      <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>Cant: {o.quantity}</div>
                     </td>
                     <td>
                       <div className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{new Date(o.created_at).toLocaleDateString('es-PE')}</div>
@@ -208,7 +208,7 @@ const AdminOrders = () => {
               </tbody>
             </table>
             {filtered.length === 0 && (
-              <div className="py-16 text-center font-bold text-sm" style={{ color: 'var(--text-muted)' }}>No se encontraron pedidos.</div>
+              <div className="py-16 text-center font-bold text-sm" style={{ color: 'var(--text-dim)' }}>No se encontraron pedidos.</div>
             )}
           </div>
         </div>

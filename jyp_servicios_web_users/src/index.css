@@ -191,6 +191,14 @@ h1, h2, h3, h4, h5, h6 {
   color: #FFFFFF;
 }
 
+/* -- UTILIDADES DE TEXTO ---------------------------------------
+   Tailwind v4 no genera utilidades a partir de `--color-text-*`
+   (el nombre de color quedaría como `text-text-*`), por lo que se
+   declaran explícitamente para Respectar la escala de texto del tema. */
+.text-dim { color: var(--text-dim); }
+.text-secondary { color: var(--text-secondary); }
+.text-primary { color: var(--text-primary); }
+
 /* -- GLASSMORPHISM & TECH PANELS --------------------------- */
 .glass {
   background: var(--bg-card);
