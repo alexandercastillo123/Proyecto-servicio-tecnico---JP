@@ -18,13 +18,13 @@ class Technician {
   });
 
   factory Technician.fromJson(Map<String, dynamic> json) {
-    // Determinar el nombre según persona natural o jurídica
-    String name = '';
-    if (json['person_type'] == 'natural') {
-      name = '${json['names'] ?? ''} ${json['surnames'] ?? ''}'.trim();
-    } else {
-      name = json['company_name'] ?? '';
-    }
+    // Determinar el nombre priorizando el nombre de usuario
+    String name =
+        (json['username'] != null && json['username'].toString().isNotEmpty)
+        ? json['username'].toString()
+        : (json['person_type'] == 'natural'
+              ? '${json['names'] ?? ''} ${json['surnames'] ?? ''}'.trim()
+              : json['company_name'] ?? '');
 
     // Determinar DNI/RUC
     String dniRuc = json['dni'] ?? json['ruc'] ?? '';

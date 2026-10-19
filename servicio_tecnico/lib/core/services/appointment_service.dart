@@ -1,4 +1,4 @@
-import '../services/api_service.dart';
+import 'api_service.dart';
 import '../constants/api_constants.dart';
 
 class AppointmentService {
@@ -10,6 +10,10 @@ class AppointmentService {
     required String scheduledDate,
     required String scheduledTime,
     String? description,
+    double? serviceLat,
+    double? serviceLng,
+    String? serviceAddress,
+    String? serviceType,
   }) async {
     return await _apiService.post<Map<String, dynamic>>(
       ApiConstants.appointments,
@@ -18,6 +22,10 @@ class AppointmentService {
         'scheduledDate': scheduledDate,
         'scheduledTime': scheduledTime,
         if (description != null) 'description': description,
+        if (serviceLat != null) 'serviceLat': serviceLat,
+        if (serviceLng != null) 'serviceLng': serviceLng,
+        if (serviceAddress != null) 'serviceAddress': serviceAddress,
+        if (serviceType != null) 'serviceType': serviceType,
       },
       requiresAuth: true,
       fromJson: (data) => data as Map<String, dynamic>,
@@ -66,6 +74,61 @@ class AppointmentService {
       ApiConstants.cancelAppointment(id),
       requiresAuth: true,
       fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  /// Set appointment price (By Tech)
+  Future<ApiResponse<Map<String, dynamic>>> setPrice(
+    int id,
+    double price,
+  ) async {
+    return await _apiService.patch<Map<String, dynamic>>(
+      '${ApiConstants.appointments}/$id/price',
+      {'price': price},
+      requiresAuth: true,
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  /// Pay appointment (By Client)
+  Future<ApiResponse<Map<String, dynamic>>> payAppointment(
+    int id,
+    String method,
+  ) async {
+    return await _apiService.post<Map<String, dynamic>>(
+      '${ApiConstants.appointments}/$id/pay',
+      {'paymentMethod': method},
+      requiresAuth: true,
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  /// Confirm payment (By Tech)
+  Future<ApiResponse<Map<String, dynamic>>> confirmPayment(int id) async {
+    return await _apiService.post<Map<String, dynamic>>(
+      '${ApiConstants.appointments}/$id/confirm-payment',
+      {},
+      requiresAuth: true,
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  /// Confirm work completion (By Client)
+  Future<ApiResponse<Map<String, dynamic>>> confirmCompletion(int id) async {
+    return await _apiService.post<Map<String, dynamic>>(
+      '${ApiConstants.appointments}/$id/confirm-completion',
+      {},
+      requiresAuth: true,
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  /// Pagar una cita con Culqi (TEST MODE)
+  Future<ApiResponse<dynamic>> culqiPayAppointment(int id, String culqiToken) async {
+    return await _apiService.post(
+      ApiConstants.culqiPayAppointment(id),
+      {'culqiToken': culqiToken},
+      requiresAuth: true,
     );
   }
 }
