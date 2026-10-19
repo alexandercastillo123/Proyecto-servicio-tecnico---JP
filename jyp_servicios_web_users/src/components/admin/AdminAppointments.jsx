@@ -26,7 +26,7 @@ const ApptModal = ({ appt, onClose }) => {
   if (!appt) return null;
   const InfoItem = ({ label, value }) => (
     <div className="rounded-xl px-4 py-3" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-      <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
+      <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-dim)' }}>{label}</p>
       <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{value || '—'}</p>
     </div>
   );
@@ -110,7 +110,7 @@ const AdminAppointments = () => {
       {/* Filters */}
       <div className="flex flex-col md:flex-row gap-3 mb-6">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }} />
+          <Search size={15} className="absolute left-4 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-dim)' }} />
           <input
             type="text"
             placeholder="Buscar por cliente o descripción..."
@@ -140,10 +140,10 @@ const AdminAppointments = () => {
       ) : (
         <div className="glass-card overflow-hidden">
           <div className="px-6 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid var(--border)' }}>
-            <span className="text-sm font-bold" style={{ color: 'var(--text-muted)' }}>
+            <span className="text-sm font-bold" style={{ color: 'var(--text-dim)' }}>
               {filtered.length} cita{filtered.length !== 1 ? 's' : ''} encontrada{filtered.length !== 1 ? 's' : ''}
             </span>
-            <Filter size={14} style={{ color: 'var(--text-muted)' }} />
+            <Filter size={14} style={{ color: 'var(--text-dim)' }} />
           </div>
           <div className="overflow-x-auto">
             <table className="admin-table">
@@ -159,21 +159,21 @@ const AdminAppointments = () => {
                     <td><span className="font-mono text-xs font-bold" style={{ color: 'var(--primary)' }}>#{a.id}</span></td>
                     <td>
                       <div className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{a.client_names} {a.client_surnames}</div>
-                      <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{a.client_email}</div>
+                      <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>{a.client_email}</div>
                     </td>
                     <td className="text-sm font-medium" style={{ color: 'var(--text-secondary)' }}>
-                      {a.tech_names ? `${a.tech_names} ${a.tech_surnames || ''}` : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                      {a.tech_names ? `${a.tech_names} ${a.tech_surnames || ''}` : <span style={{ color: 'var(--text-dim)' }}>—</span>}
                     </td>
                     <td><span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>{a.service_type === 'domicilio' ? '🏠 Dom.' : '🏢 Local'}</span></td>
                     <td>
                       <div className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{new Date(a.scheduled_date).toLocaleDateString('es-PE')}</div>
-                      <div className="text-xs" style={{ color: 'var(--text-muted)' }}>{a.scheduled_time}</div>
+                      <div className="text-xs" style={{ color: 'var(--text-dim)' }}>{a.scheduled_time}</div>
                     </td>
                     <td><StatusBadge status={a.status} /></td>
                     <td>
                       {a.price
                         ? <span className="font-black" style={{ color: 'var(--primary)' }}>S/ {parseFloat(a.price).toFixed(2)}</span>
-                        : <span className="text-xs" style={{ color: 'var(--text-muted)' }}>—</span>
+                        : <span className="text-xs" style={{ color: 'var(--text-dim)' }}>—</span>
                       }
                     </td>
                     <td>
@@ -187,7 +187,7 @@ const AdminAppointments = () => {
               </tbody>
             </table>
             {filtered.length === 0 && (
-              <div className="py-16 text-center font-bold text-sm" style={{ color: 'var(--text-muted)' }}>No se encontraron citas con ese filtro.</div>
+              <div className="py-16 text-center font-bold text-sm" style={{ color: 'var(--text-dim)' }}>No se encontraron citas con ese filtro.</div>
             )}
           </div>
         </div>

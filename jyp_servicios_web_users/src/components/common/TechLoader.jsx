@@ -20,7 +20,7 @@ export const TechLoader = ({
   useEffect(() => {
     const timer = setInterval(() => {
       setStepIndex((prev) => (prev + 1) % steps.length);
-    }, 1800);
+    }, 2500);
     return () => clearInterval(timer);
   }, []);
 
@@ -31,7 +31,7 @@ export const TechLoader = ({
         {/* Outer glowing pulse ring */}
         <motion.div
           animate={{ scale: [1, 1.25, 1], opacity: [0.3, 0.7, 0.3] }}
-          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
           className="absolute w-24 h-24 rounded-2xl"
           style={{
             background: "radial-gradient(circle, rgba(37, 99, 235, 0.35) 0%, transparent 70%)",
@@ -53,7 +53,7 @@ export const TechLoader = ({
           {/* Orbiting particle */}
           <motion.div
             animate={{ rotate: 360 }}
-            transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
             className="absolute inset-0 flex items-center justify-center pointer-events-none"
           >
             <div 
@@ -78,7 +78,7 @@ export const TechLoader = ({
       <div className="w-48 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255, 255, 255, 0.08)" }}>
         <motion.div
           animate={{ x: ["-100%", "100%"] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
           className="w-1/2 h-full rounded-full"
           style={{ background: "linear-gradient(90deg, #2563EB, #06B6D4)" }}
         />
