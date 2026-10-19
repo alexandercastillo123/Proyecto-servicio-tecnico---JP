@@ -53,7 +53,7 @@ const MapEvents = ({ onDblClick }) => {
   return null;
 };
 
-const TechnicianList = ({ userLocation, onLocationUpdate }) => {
+const TechnicianList = ({ userLocation, onLocationUpdate, isStandalone = true }) => {
   const navigate = useNavigate();
   const [technicians, setTechnicians] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -61,13 +61,21 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterAvailableOnly, setFilterAvailableOnly] = useState(false);
   const [filterMinRating, setFilterMinRating] = useState(0);
-  const [mapCenter, setMapCenter] = useState([-12.046374, -77.042793]);
-  const [tempMarker, setTempMarker] = useState(null);
+
+  const [effectiveLocation, setEffectiveLocation] = useState(() => {
+    if (userLocation) return userLocation;
+    const saved = localStorage.getItem('user_location');
+    return saved ? JSON.parse(saved) : { address: 'Lima Centro, Perú', lat: -12.046374, lng: -77.042793 };
+  });
+
+  const [mapCenter, setMapCenter] = useState([effectiveLocation.lat, effectiveLocation.lng]);
+  const [tempMarker, setTempMarker] = useState([effectiveLocation.lat, effectiveLocation.lng]);
   const [isSearching, setIsSearching] = useState(false);
   const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     if (userLocation) {
+       setEffectiveLocation(userLocation);
        setMapCenter([userLocation.lat, userLocation.lng]);
        setTempMarker([userLocation.lat, userLocation.lng]);
     }
@@ -75,10 +83,10 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
 
   useEffect(() => {
     setMapReady(true);
-    // Auto fetch technicians on mount if user location exists
-    if (userLocation?.lat && userLocation?.lng) {
-      fetchTechnicians([userLocation.lat, userLocation.lng]);
-    }
+    const coords = userLocation ? [userLocation.lat, userLocation.lng] : [effectiveLocation.lat, effectiveLocation.lng];
+    setMapCenter(coords);
+    setTempMarker(coords);
+    fetchTechnicians(coords);
   }, []);
 
   const fetchTechnicians = async (coords = tempMarker) => {
@@ -138,11 +146,39 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
   });
 
   return (
-    <div 
-      className="flex flex-col lg:flex-row gap-7 rounded-3xl min-h-[580px] lg:h-[calc(100vh-240px)] lg:min-h-[600px] lg:max-h-[820px] font-sans"
-    >
-      {/* ── Sidebar: Filter & Technician Cards ───────────────── */}
-      <div className="w-full lg:w-[420px] flex flex-col gap-3.5 overflow-hidden">
+    <div className="space-y-6">
+      {isStandalone && (
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                Red Satelital JyP
+              </span>
+              <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400">
+                <ShieldCheck size={14} className="text-emerald-400" /> Especialistas Verificados
+              </span>
+            </div>
+            <h1 className="text-3xl font-black text-white tracking-tight font-heading">
+              Explorar Técnicos en Lima
+            </h1>
+            <p className="text-sm text-slate-400 mt-1">
+              Filtra y visualiza la ubicación de técnicos certificados listos para acudir a domicilio o recibir tu equipo.
+            </p>
+          </div>
+          <button
+            onClick={() => navigate('/appointments/schedule')}
+            className="btn-primary py-3 px-6 text-xs font-black uppercase tracking-wider self-start sm:self-auto rounded-2xl shadow-xl shadow-blue-600/20"
+          >
+            <Calendar size={15} /> Agendar Cita
+          </button>
+        </div>
+      )}
+
+      <div 
+        className="flex flex-col lg:flex-row gap-6 rounded-3xl min-h-[580px] lg:h-[calc(100vh-230px)] lg:min-h-[620px] font-sans"
+      >
+        {/* ── Sidebar: Filter & Technician Cards ───────────────── */}
+        <div className="w-full lg:w-[420px] flex flex-col gap-3.5 overflow-hidden">
         {/* Search bar */}
         <div className="relative">
           <Search 
@@ -342,11 +378,13 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
               );
             })
           ) : (
-            <div className="glass-card text-center p-8 rounded-2xl space-y-3">
-              <Wrench size={32} className="text-slate-500 mx-auto" />
-              <h4 className="text-sm font-bold text-white">No se encontraron especialistas</h4>
-              <p className="text-xs text-slate-400">
-                Prueba cambiando los filtros o desplazando el mapa hacia otra zona de Lima.
+            <div className="glass-card text-center p-8 rounded-3xl space-y-3 border border-white/10">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                <Wrench size={26} />
+              </div>
+              <h4 className="text-sm font-bold text-white font-heading">No se encontraron especialistas</h4>
+              <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                Prueba cambiando los filtros o haciendo doble clic en otra zona del mapa para buscar técnicos disponibles.
               </p>
             </div>
           )}
@@ -366,8 +404,8 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
             zoomControl={false}
           >
             <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution="&copy; CARTO"
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             />
             <MapEvents onDblClick={(lat, lng) => setTempMarker([lat, lng])} />
             <RecenterMap coords={mapCenter} />
@@ -459,6 +497,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate }) => {
         </div>
       </div>
     </div>
+  </div>
   );
 };
 

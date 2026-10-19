@@ -668,6 +668,16 @@ h1, h2, h3, h4, h5, h6 {
   font-family: 'Inter', sans-serif !important;
 }
 
+/* Sleek dark mode styling for OpenStreetMap tiles without API keys or watermarks */
+:root:not([data-theme="light"]) .leaflet-tile-pane,
+[data-theme="dark"] .leaflet-tile-pane {
+  filter: brightness(0.65) invert(1) contrast(2.6) hue-rotate(200deg) saturate(0.35) brightness(0.75);
+}
+
+[data-theme="light"] .leaflet-tile-pane {
+  filter: none;
+}
+
 .leaflet-popup-content-wrapper, .leaflet-popup-tip {
   background: var(--bg-elevated) !important;
   color: var(--text-primary) !important;

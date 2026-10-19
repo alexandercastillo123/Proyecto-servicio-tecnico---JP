@@ -9,7 +9,7 @@ import {
 import { useTheme } from '../../context/ThemeContext';
 
 const NAV_ITEMS = [
-  { to: '/admin',           label: 'Dashboard',        icon: LayoutDashboard },
+  { to: '/admin',           label: 'Inicio / Panel',   icon: LayoutDashboard },
   { to: '/admin/citas',     label: 'Citas & Servicios',icon: Calendar },
   { to: '/admin/usuarios',  label: 'Usuarios',         icon: Users },
   { to: '/admin/pedidos',   label: 'Pedidos',          icon: Package },
