@@ -22,10 +22,10 @@ const ForgotPassword = () => {
 
     try {
       const response = await authService.forgotPassword(email);
-      if (response.success || response.exito) {
+      if (response.exito) {
         navigate('/verify-code', { state: { email } });
       } else {
-        setError(response.message || response.mensaje || 'Error al enviar el código de recuperación');
+        setError(response.mensaje || 'Error al enviar el código de recuperación');
       }
     } catch (err) {
       setError(err.response?.data?.mensaje || err.response?.data?.message || 'Error de conexión con el servidor');

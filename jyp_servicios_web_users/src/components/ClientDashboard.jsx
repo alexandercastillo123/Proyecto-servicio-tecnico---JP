@@ -7,6 +7,7 @@ import {
   CheckCircle2, Package, ArrowUpRight, ChevronRight, X, Phone
 } from 'lucide-react';
 import { clientService, messageService, storeService } from '../services/api';
+import { extractTechnicians } from '../services/formatters';
 import LocationPicker from './LocationPicker';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
@@ -116,23 +117,22 @@ const ClientDashboard = () => {
         storeService.getNearbyBranches({ lat: loc.lat, lng: loc.lng, radius: 25 }).catch(() => ({ data: {} }))
       ]);
 
-      let techs = techsResp.data?.resultado || [];
+      let techs = extractTechnicians(techsResp);
       // Si el filtro de proximidad por radio devuelve vacío (ej. técnicos sin coordenadas exactas),
       // cargamos los técnicos verificados de la plataforma para no dejar la vista vacía
       if (techs.length === 0) {
         const allTechs = await clientService.getTechnicians({ limit: 12 }).catch(() => ({ data: {} }));
-        if (allTechs.data?.exito) {
-          techs = allTechs.data.resultado || [];
-        }
+        /* GET /technicians devuelve { technicians: [...], pagination: {...} }, no un array */
+        techs = extractTechnicians(allTechs);
       }
       setFeaturedTechs(techs);
 
-      let stores = storesResp.data?.resultado || [];
+      let stores = Array.isArray(storesResp.data?.resultado) ? storesResp.data.resultado : [];
       if (stores.length === 0) {
         const allStores = await storeService.getBranches().catch(() => ({ data: {} }));
-        if (allStores.data?.exito) {
-          stores = allStores.data.resultado || [];
-        }
+          if (allStores.data?.exito && Array.isArray(allStores.data.resultado)) {
+            stores = allStores.data.resultado;
+          }
       }
       setFeaturedStores(stores);
     } catch (e) {
@@ -148,11 +148,11 @@ const ClientDashboard = () => {
         clientService.getMyAppointments().catch(() => ({ data: {} })),
       ]);
       
-      if (convsResp.data?.exito) {
-        setConversations(convsResp.data.resultado || []);
+      if (convsResp.data?.exito && Array.isArray(convsResp.data.resultado)) {
+        setConversations(convsResp.data.resultado);
       }
-      if (apptsResp.data?.exito) {
-        const appts = apptsResp.data.resultado || [];
+      if (apptsResp.data?.exito && Array.isArray(apptsResp.data.resultado)) {
+        const appts = apptsResp.data.resultado;
         const active = appts.find(a => 
           ['confirmed', 'paid', 'in_progress', 'on_the_way'].includes(a.status)
         );
@@ -168,7 +168,7 @@ const ClientDashboard = () => {
   };
 
   // Filtrado de especialistas destacados por especialidad seleccionada
-  const displayedTechs = featuredTechs.filter(tech => {
+  const displayedTechs = Array.isArray(featuredTechs) ? featuredTechs.filter(tech => {
     if (selectedCategory === 'all') return true;
     const specialties = (tech.specialties || tech.description || '').toLowerCase();
     if (selectedCategory === 'pc') return specialties.includes('laptop') || specialties.includes('pc') || specialties.includes('computadora') || specialties.includes('hardware');
@@ -177,7 +177,7 @@ const ClientDashboard = () => {
     if (selectedCategory === 'storage') return specialties.includes('disco') || specialties.includes('dato') || specialties.includes('almacenamiento') || specialties.includes('ssd');
     if (selectedCategory === 'maintenance') return specialties.includes('mantenimiento') || specialties.includes('limpieza') || specialties.includes('pasta');
     return true;
-  });
+  }) : [];
 
   if (isLoading) {
     return (
@@ -313,7 +313,7 @@ const ClientDashboard = () => {
                   {activeAppointment.serviceType || activeAppointment.service_type || 'Mantenimiento Especializado'}
                 </h3>
                 <p className="text-xs text-slate-300 mt-0.5">
-                  Especialista: <span className="text-white font-bold">{activeAppointment.techName || activeAppointment.tech_name || 'Técnico JyP'}</span>
+                    Especialista: <span className="text-white font-bold">{[activeAppointment.tech_names, activeAppointment.tech_surnames].filter(Boolean).join(' ').trim() || activeAppointment.tech_username || 'Técnico JyP'}</span>
                 </p>
               </div>
             </div>

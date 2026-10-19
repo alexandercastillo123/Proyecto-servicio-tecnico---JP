@@ -132,7 +132,9 @@ const AdminLayout = ({ user, onLogout }) => {
                   {user?.names?.[0] || user?.username?.[0] || 'A'}
                 </div>
                 <div className="overflow-hidden flex-1">
-                  <p className="text-sm font-black truncate leading-tight">{user?.names || user?.username || 'Admin'}</p>
+                  <p className="text-sm font-black truncate leading-tight">
+                    {[user?.names, user?.surnames].filter(Boolean).join(' ').trim() || user?.username || 'Admin'}
+                  </p>
                   <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Administrador</p>
                 </div>
               </motion.div>

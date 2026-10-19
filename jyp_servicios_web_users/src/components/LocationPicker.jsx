@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap, Circle } from 'react-leaflet';
 import L from 'leaflet';
 import { Search, MapPin, Check, Navigation, Target } from 'lucide-react';
@@ -8,6 +8,17 @@ const RecenterMap = ({ coords }) => {
   useEffect(() => {
     if (coords) map.setView(coords, 15);
   }, [coords, map]);
+  return null;
+};
+
+/* Handler del mapa a nivel de módulo: antes se definía dentro del componente y
+   React lo remontaba en cada render, perdiendo el listener de Leaflet. */
+const MapClickHandler = ({ onClick }) => {
+  useMapEvents({
+    click(e) {
+      onClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
   return null;
 };
 
@@ -31,23 +42,19 @@ const LocationPicker = ({ onLocationSelect, initialLocation = { lat: -12.046374,
   const [searchQuery, setSearchQuery] = useState('');
   const [searching, setSearching] = useState(false);
   const [detecting, setDetecting] = useState(false);
+  const onSelectRef = useRef(onLocationSelect);
+
+  /* Se guarda la callback en una ref para que el handler del mapa (definido fuera
+     del componente) no se vuelva a registrar en cada render de Leaflet. */
+  useEffect(() => {
+    onSelectRef.current = onLocationSelect;
+  }, [onLocationSelect]);
 
   useEffect(() => {
-     if (initialLocation && !address) {
-        reverseGeocode(initialLocation.lat, initialLocation.lng);
-     }
-  }, []);
-
-  const MapEvents = () => {
-    useMapEvents({
-      click(e) {
-        const newPos = { lat: e.latlng.lat, lng: e.latlng.lng };
-        setPosition(newPos);
-        reverseGeocode(newPos.lat, newPos.lng);
-      },
-    });
-    return null;
-  };
+    if (initialLocation && !address) {
+      reverseGeocode(initialLocation.lat, initialLocation.lng);
+    }
+  }, [initialLocation?.lat, initialLocation?.lng]);
 
   const reverseGeocode = async (lat, lng) => {
     try {
@@ -55,12 +62,17 @@ const LocationPicker = ({ onLocationSelect, initialLocation = { lat: -12.046374,
       const data = await response.json();
       if (data && data.display_name) {
         setAddress(data.display_name);
-        onLocationSelect({ lat, lng, address: data.display_name });
+        onSelectRef.current?.({ lat, lng, address: data.display_name });
       }
     } catch (error) {
       console.error('Error in reverse geocoding:', error);
     }
   };
+
+  const handleMapClick = useCallback((lat, lng) => {
+    setPosition({ lat, lng });
+    reverseGeocode(lat, lng);
+  }, []);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -73,7 +85,7 @@ const LocationPicker = ({ onLocationSelect, initialLocation = { lat: -12.046374,
         const newPos = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
         setPosition(newPos);
         setAddress(data[0].display_name);
-        onLocationSelect({ ...newPos, address: data[0].display_name });
+        onSelectRef.current?.({ ...newPos, address: data[0].display_name });
       }
     } catch (error) {
       console.error('Error in search:', error);
@@ -144,7 +156,7 @@ const LocationPicker = ({ onLocationSelect, initialLocation = { lat: -12.046374,
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           />
-          <MapEvents />
+          <MapClickHandler onClick={handleMapClick} />
           <Circle 
             center={position} 
             radius={200} 

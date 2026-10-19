@@ -4,14 +4,21 @@ import { motion } from 'framer-motion';
 import { 
   Star, MapPin, Phone, Mail, Calendar, 
   MessageSquare, ChevronLeft, ShieldCheck, Zap,
-  Clock, CheckCircle2, Wrench, Award
+  Clock, CheckCircle2, Wrench, Award, MessageCircle
 } from 'lucide-react';
 import { clientService } from '../services/api';
+import { extractSpecialties, cleanDescription, mediaUrl } from '../services/formatters';
+import toast from 'react-hot-toast';
 
 const TechnicianProfile = () => {
   const { id } = useParams();
   const [tech, setTech] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState([]);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [sendingReview, setSendingReview] = useState(false);
 
   useEffect(() => {
     fetchTechDetails();
@@ -27,6 +34,31 @@ const TechnicianProfile = () => {
       console.error('Error fetching tech details:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSubmitReview = async () => {
+    setSendingReview(true);
+    try {
+      const res = await clientService.addReview({
+        technicianId: parseInt(id, 10),
+        rating: reviewRating,
+        comment: reviewComment.trim() || undefined,
+      });
+      if (res.data?.exito) {
+        toast.success('¡Gracias por tu reseña!');
+        setShowReviewForm(false);
+        setReviewComment('');
+        setReviewRating(5);
+        fetchTechDetails();
+      } else {
+        toast.error(res.data?.mensaje || 'No se pudo registrar la reseña');
+      }
+    } catch (error) {
+      console.error('Error sending review:', error);
+      toast.error(error.response?.data?.mensaje || 'No se pudo registrar la reseña');
+    } finally {
+      setSendingReview(false);
     }
   };
 
@@ -73,6 +105,11 @@ const TechnicianProfile = () => {
     );
   }
 
+  const specialties = extractSpecialties(tech);
+  const aboutText = cleanDescription(tech);
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const canReview = user.role === 'client';
+
   return (
     <div className="w-full space-y-8 pb-4">
       {/* Back Button */}
@@ -97,11 +134,15 @@ const TechnicianProfile = () => {
               className="absolute top-0 left-0 right-0 h-32 opacity-20 pointer-events-none"
               style={{ background: 'linear-gradient(180deg, var(--primary) 0%, transparent 100%)' }}
             />
-            
-            <div className="relative mb-6 mx-auto w-28 h-28 rounded-full flex items-center justify-center text-white text-4xl font-extrabold shadow-2xl border-4 border-white/10"
+            <div 
+              className="w-28 h-28 rounded-full flex items-center justify-center text-white text-4xl font-extrabold shadow-2xl border-4 border-white/10 mx-auto"
               style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #00C6FF 100%)' }}
             >
-              {tech.names?.[0] || 'T'}
+              {tech.profile_image_url ? (
+                <img src={mediaUrl(tech.profile_image_url)} alt={tech.names} className="w-full h-full rounded-full object-cover" />
+              ) : (
+                tech.names?.[0] || 'T'
+              )}
             </div>
             
             <h1 className="text-2xl font-black mb-1.5 tracking-tight" style={{ color: 'var(--text-primary)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -130,9 +171,9 @@ const TechnicianProfile = () => {
               >
                 <p className="font-extrabold text-xl flex items-center justify-center gap-1.5 text-amber-400">
                   <Star size={18} fill="currentColor" />
-                  {tech.rating || '4.8'}
+                  {tech.rating ? Number(tech.rating).toFixed(1) : '—'}
                 </p>
-                <p className="text-[10px] uppercase font-bold tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[10px] uppercase font-bold tracking-wider mt-1" style={{ color: 'var(--text-dim)' }}>
                   Calificación
                 </p>
               </div>
@@ -141,10 +182,10 @@ const TechnicianProfile = () => {
                 style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
               >
                 <p className="font-extrabold text-xl" style={{ color: 'var(--text-primary)' }}>
-                  {tech.reviews_count || '120+'}
+                  {tech.reviews_count ?? 0}
                 </p>
-                <p className="text-[10px] uppercase font-bold tracking-wider mt-1" style={{ color: 'var(--text-muted)' }}>
-                  Servicios
+                <p className="text-[10px] uppercase font-bold tracking-wider mt-1" style={{ color: 'var(--text-dim)' }}>
+                  Reseñas
                 </p>
               </div>
             </div>
@@ -154,7 +195,7 @@ const TechnicianProfile = () => {
                 <div className="p-2.5 rounded-xl shrink-0" style={{ backgroundColor: 'var(--bg)', color: 'var(--primary)' }}>
                   <MapPin size={18} />
                 </div>
-                <span className="text-sm font-medium">{tech.city || 'Trujillo, Perú'}</span>
+                <span className="text-sm font-medium">{tech.city || 'Lima Metropolitana'}</span>
               </div>
               {tech.phone && (
                 <div className="flex items-center gap-3.5" style={{ color: 'var(--text-secondary)' }}>
@@ -215,19 +256,17 @@ const TechnicianProfile = () => {
               <span>Sobre el Especialista</span>
             </h3>
             <p className="text-sm sm:text-base leading-relaxed text-slate-300" style={{ color: 'var(--text-secondary)' }}>
-              {tech.description || 
+              {aboutText ||
                 'Técnico especialista certificado comprometido con la excelencia. Cuenta con amplia experiencia en diagnóstico, mantenimiento preventivo y correctivo, y reparación de dispositivos y equipos computacionales con repuestos originales y garantía de servicio.'}
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-8">
-              {[
+              {(specialties.length > 0 ? specialties : [
                 'Diagnóstico Integral de Hardware',
                 'Mantenimiento Preventivo y Limpieza',
                 'Instalación y Optimización de SO',
                 'Recuperación de Información',
-                'Reemplazo de Pantallas y Baterías',
-                'Asesoría y Garantía JyP'
-              ].map((skill, i) => (
+              ]).map((skill, i) => (
                 <div 
                   key={i} 
                   className="flex items-center gap-3 p-4 rounded-2xl border text-xs sm:text-sm font-semibold shadow-sm"
@@ -279,11 +318,104 @@ const TechnicianProfile = () => {
               )) : (
                 <div 
                   className="text-center py-10 rounded-2xl border border-dashed text-xs"
-                  style={{ borderColor: 'var(--border)', color: 'var(--text-muted)' }}
+                  style={{ borderColor: 'var(--border)', color: 'var(--text-dim)' }}
                 >
                   Atención disponible de Lunes a Sábado de 09:00 AM a 06:00 PM.
                 </div>
               )}
+            </div>
+          </section>
+
+          <section 
+            className="p-8 sm:p-10 rounded-[32px] border shadow-xl"
+            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+              <h3 className="text-xs font-black uppercase tracking-wider flex items-center gap-2.5" style={{ color: 'var(--primary)' }}>
+                <MessageCircle size={18} />
+                <span>Reseñas del Cliente</span>
+              </h3>
+              {canReview && !showReviewForm && (
+                <button
+                  onClick={() => setShowReviewForm(true)}
+                  className="btn-primary px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider"
+                >
+                  Dejar reseña
+                </button>
+              )}
+            </div>
+
+            {showReviewForm && (
+              <div 
+                className="p-6 rounded-2xl border mb-6 space-y-4"
+                style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
+              >
+                <div className="flex items-center gap-1.5">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <button key={n} type="button" onClick={() => setReviewRating(n)} aria-label={`${n} estrellas`}>
+                      <Star
+                        size={26}
+                        className={n <= reviewRating ? 'text-amber-400' : 'text-slate-600'}
+                        fill={n <= reviewRating ? 'currentColor' : 'none'}
+                      />
+                    </button>
+                  ))}
+                  <span className="ml-2 text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>
+                    {reviewRating} / 5
+                  </span>
+                </div>
+                <textarea
+                  rows={3}
+                  placeholder="Cuéntanos cómo fue el servicio (opcional)"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  className="w-full rounded-2xl p-4 text-sm outline-none resize-none"
+                  style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
+                />
+                <div className="flex gap-3 justify-end">
+                  <button
+                    onClick={() => setShowReviewForm(false)}
+                    className="px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider border"
+                    style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSubmitReview}
+                    disabled={sendingReview}
+                    className="btn-primary px-6 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-wider disabled:opacity-50"
+                  >
+                    {sendingReview ? 'Enviando...' : 'Publicar reseña'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-6 p-6 rounded-2xl border"
+              style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}>
+              <div className="text-center">
+                <p className="text-4xl font-black text-amber-400">
+                  {tech.rating ? Number(tech.rating).toFixed(1) : '—'}
+                </p>
+                <div className="flex items-center justify-center gap-0.5 mt-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <Star
+                      key={n}
+                      size={12}
+                      className={n <= Math.round(Number(tech.rating) || 0) ? 'text-amber-400' : 'text-slate-600'}
+                      fill={n <= Math.round(Number(tech.rating) || 0) ? 'currentColor' : 'none'}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
+                  {tech.reviews_count || 0} {tech.reviews_count === 1 ? 'reseña registrada' : 'reseñas registradas'}
+                </p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>
+                  Las reseñas se registran sobre citas completadas y verificadas.
+                </p>
+              </div>
             </div>
           </section>
 
@@ -303,7 +435,7 @@ const TechnicianProfile = () => {
               </div>
               <div>
                 <p className="font-black text-lg" style={{ color: 'var(--text-primary)' }}>
-                  {tech.city || 'Trujillo'}, Perú
+                  {tech.city || 'Lima Metropolitana'}, Perú
                 </p>
                 <p className="text-sm mt-1 text-slate-300" style={{ color: 'var(--text-secondary)' }}>
                   {tech.reference_address || tech.address || 'Zona céntrica, atención a domicilio y en taller registrado.'}

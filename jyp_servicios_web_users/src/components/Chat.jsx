@@ -10,8 +10,17 @@ import {
   Mic, Square, StopCircle
 } from 'lucide-react';
 import { messageService, clientService, techService, storeService } from '../services/api';
+import { mediaUrl, formatDateShort } from '../services/formatters';
 import { toast } from 'react-hot-toast';
 import { useSocket } from '../context/SocketContext';
+
+/* El backend no manda la fecha de la cita dentro del mensaje; la escribe en el texto
+   ("... para 2026-10-22 a las 14:30"), así que se extrae de ahí. */
+const appointmentScheduleLabel = (text = '') => {
+  const match = String(text).match(/para\s+(\d{4}-\d{2}-\d{2})\s+a\s+las\s+(\d{1,2}:\d{2})/i);
+  if (!match) return 'Fecha por confirmar';
+  return `${formatDateShort(match[1])} · ${match[2]}`;
+};
 
 const Chat = () => {
   const [searchParams] = useSearchParams();
@@ -28,6 +37,8 @@ const Chat = () => {
   const [offerPrice, setOfferPrice] = useState('');
   const [currentUser] = useState(JSON.parse(localStorage.getItem('user') || '{}'));
   const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [openMenuId, setOpenMenuId] = useState(null);
   
   // New States for Parity
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -81,6 +92,7 @@ const Chat = () => {
           updated[index] = {
             ...updated[index],
             last_message: data.message_text || (data.message_type === 'offer' ? `Oferta: S/ ${data.offer_price}` : 'Mensaje'),
+            last_message_text: data.message_text || (data.message_type === 'offer' ? `Oferta: S/ ${data.offer_price}` : 'Mensaje'),
             last_message_time: data.created_at || new Date().toISOString()
           };
           // Mover al principio
@@ -185,14 +197,17 @@ const Chat = () => {
       setSelectedConversation(existingConv);
       fetchMessages(userId);
     } else {
-      // It's a new chat, try to fetch user info to show in header
+      /* Chat nuevo: se resuelve el perfil real del usuario para no dejar "Cargando..." */
       try {
-        // Placeholder until we get messages
-        setSelectedConversation({ 
-          other_user_id: userId, 
-          username: 'Nuevo Chat', 
-          names: 'Cargando...',
-          isNew: true 
+        const profileResp = await clientService.getUserById(userId).catch(() => null);
+        const profile = profileResp?.data?.resultado || {};
+        setSelectedConversation({
+          other_user_id: userId,
+          username: profile.username || 'Nuevo Chat',
+          names: profile.names || profile.company_name || profile.username || 'Nuevo Chat',
+          surnames: profile.surnames || '',
+          other_user_role: profile.role,
+          isNew: true
         });
         fetchMessages(userId);
       } catch (error) {
@@ -200,6 +215,16 @@ const Chat = () => {
       }
     }
   };
+
+  const filteredConversations = conversations.filter((conv) => {
+    if (!searchTerm.trim()) return true;
+    const q = searchTerm.toLowerCase();
+    return (
+      (conv.username || '').toLowerCase().includes(q) ||
+      `${conv.names || ''} ${conv.surnames || ''}`.toLowerCase().includes(q) ||
+      (conv.last_message_text || '').toLowerCase().includes(q)
+    );
+  });
 
   const fetchMessages = async (userId) => {
     try {
@@ -377,6 +402,65 @@ const Chat = () => {
     }
   };
 
+  const handleAcceptOffer = async (offerId) => {
+    try {
+      const resp = await messageService.acceptOffer(offerId);
+      if (resp.data?.exito) {
+        toast.success('Oferta aceptada');
+        fetchMessages(selectedConversation.other_user_id);
+        fetchConversations();
+      }
+    } catch (error) {
+      console.error('Error accepting offer:', error);
+      toast.error(error.response?.data?.mensaje || 'No se pudo aceptar la oferta');
+    }
+  };
+
+  const handleCancelOffer = async (offerId) => {
+    try {
+      const resp = await messageService.cancelOffer(offerId);
+      if (resp.data?.exito) {
+        toast.success('Oferta cancelada');
+        fetchMessages(selectedConversation.other_user_id);
+      }
+    } catch (error) {
+      console.error('Error cancelling offer:', error);
+      toast.error(error.response?.data?.mensaje || 'No se pudo cancelar la oferta');
+    }
+  };
+
+  const handleEditMessage = async (messageId, currentText) => {
+    const nextText = window.prompt('Editar mensaje', currentText || '');
+    if (!nextText || nextText.trim() === currentText) return;
+    try {
+      const resp = await messageService.updateMessage(messageId, nextText.trim());
+      if (resp.data?.exito) {
+        toast.success('Mensaje actualizado');
+        fetchMessages(selectedConversation.other_user_id);
+      }
+    } catch (error) {
+      console.error('Error editing message:', error);
+      toast.error(error.response?.data?.mensaje || 'No se pudo editar el mensaje');
+    }
+  };
+
+  const handleDeleteMessage = async (messageId, forEveryone) => {
+    const confirmMsg = forEveryone
+      ? '¿Eliminar este mensaje para todos los participantes?'
+      : '¿Eliminar este mensaje solo para ti?';
+    if (!window.confirm(confirmMsg)) return;
+    try {
+      const resp = await messageService.deleteMessage(messageId, forEveryone);
+      if (resp.data?.exito) {
+        toast.success(forEveryone ? 'Mensaje eliminado para todos' : 'Mensaje eliminado');
+        fetchMessages(selectedConversation.other_user_id);
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      toast.error(error.response?.data?.mensaje || 'No se pudo eliminar el mensaje');
+    }
+  };
+
   const handleRejectOffer = async (offerId) => {
     try {
       const resp = await messageService.rejectOffer(offerId);
@@ -463,10 +547,12 @@ const Chat = () => {
         <div className="p-6 space-y-4" style={{ borderBottom: '1px solid var(--border)' }}>
           <h2 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>Mensajes</h2>
           <div className="relative">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2" size={16} style={{ color: 'var(--text-muted)' }} />
-            <input 
-              type="text" 
-              placeholder="Buscar conversaciones..." 
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2" size={16} style={{ color: 'var(--text-dim)' }} />
+            <input
+              type="text"
+              placeholder="Buscar conversaciones..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full rounded-2xl py-2.5 pl-10 pr-4 text-xs focus:outline-none transition-all"
               style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)' }}
             />
@@ -484,8 +570,8 @@ const Chat = () => {
                   </div>
                 </div>
              ))
-          ) : conversations.length > 0 ? (
-            conversations.map((conv) => {
+          ) : filteredConversations.length > 0 ? (
+            filteredConversations.map((conv) => {
               const isSelected = String(selectedConversation?.other_user_id) === String(conv.other_user_id);
               return (
                 <div 
@@ -515,8 +601,10 @@ const Chat = () => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start mb-1">
-                      <h3 className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>{conv.username || `${conv.names} ${conv.surnames}`}</h3>
-                      <span className="text-[10px] whitespace-nowrap" style={{ color: 'var(--text-muted)' }}>
+                      <h3 className="text-sm font-bold truncate" style={{ color: 'var(--text-primary)' }}>
+                        {conv.username || `${conv.names || ''} ${conv.surnames || ''}`.trim() || 'Conversación'}
+                      </h3>
+                      <span className="text-[10px] whitespace-nowrap" style={{ color: 'var(--text-dim)' }}>
                         {conv.last_message_time ? new Date(conv.last_message_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                       </span>
                     </div>
@@ -529,10 +617,10 @@ const Chat = () => {
             })
           ) : (
             <div className="p-12 text-center">
-               <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--bg-card)', color: 'var(--text-muted)' }}>
+               <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: 'var(--bg-card)', color: 'var(--text-dim)' }}>
                   <MessageSquare size={32} />
                </div>
-               <p className="text-xs italic" style={{ color: 'var(--text-muted)' }}>No tienes mensajes aún.</p>
+               <p className="text-xs italic" style={{ color: 'var(--text-dim)' }}>No tienes mensajes aún.</p>
             </div>
           )}
         </div>
@@ -564,7 +652,7 @@ const Chat = () => {
                     setSelectedConversation(null);
                   }}
                   className="md:hidden"
-                  style={{ color: 'var(--text-muted)' }}
+                  style={{ color: 'var(--text-dim)' }}
                 >
                   <ChevronLeft size={24} />
                 </button>
@@ -573,7 +661,9 @@ const Chat = () => {
                   {(selectedConversation.username || selectedConversation.names)?.[0]?.toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>{selectedConversation.username || `${selectedConversation.names} ${selectedConversation.surnames}`}</h2>
+                  <h2 className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>
+                    {selectedConversation.username || `${selectedConversation.names || ''} ${selectedConversation.surnames || ''}`.trim() || 'Conversación'}
+                  </h2>
                   <div className="flex items-center gap-1.5">
                     <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'}`} />
                     <span className={`text-[10px] font-black uppercase tracking-wider ${isConnected ? 'text-emerald-500' : 'text-amber-400'}`}>
@@ -594,7 +684,7 @@ const Chat = () => {
                     Enviar Presupuesto
                   </button>
                 )}
-                <button style={{ color: 'var(--text-muted)' }}>
+                <button style={{ color: 'var(--text-dim)' }}>
                   <MoreVertical size={20} />
                 </button>
               </div>
@@ -608,7 +698,7 @@ const Chat = () => {
                       style={{ background: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}>
                        <Zap size={32} />
                     </div>
-                    <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Di hola para iniciar la consulta técnica.</p>
+                    <p className="text-xs" style={{ color: 'var(--text-dim)' }}>Di hola para iniciar la consulta técnica.</p>
                  </div>
               ) : (
                 messages.map((msg, index) => {
@@ -622,7 +712,13 @@ const Chat = () => {
                       key={msg.id || index} 
                       className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className={`max-w-[80%] ${isMine ? 'items-end' : 'items-start'} flex flex-col gap-1`}>
+                        <div
+                          className={`max-w-[80%] ${isMine ? 'items-end' : 'items-start'} flex flex-col gap-1`}
+                          onContextMenu={(e) => {
+                            e.preventDefault();
+                            setOpenMenuId(openMenuId === (msg.id || index) ? null : msg.id || index);
+                          }}
+                        >
                         <div 
                           className={`p-4 rounded-2xl relative shadow-md ${isMine ? 'rounded-tr-none' : 'rounded-tl-none'}`}
                           style={
@@ -674,18 +770,18 @@ const Chat = () => {
                           ) : msg.message_type === 'appointment' ? (
                             <div className="space-y-4 min-w-[240px]">
                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
-                                 style={{ color: 'var(--text-muted)' }}>
+                                 style={{ color: 'var(--text-dim)' }}>
                                   <Calendar size={14} style={{ color: 'var(--primary)' }} />
                                   Detalles del Servicio
                                </div>
                                <div className="p-4 rounded-2xl space-y-3"
                                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
                                   <div className="flex items-center justify-between">
-                                     <div className="flex items-center gap-2 text-xs font-black"
-                                       style={{ color: 'var(--text-primary)' }}>
-                                        <Clock size={14} style={{ color: 'var(--primary)' }} />
-                                        {msg.appointment_date || 'Fecha pendiente'}
-                                     </div>
+                                      <div className="flex items-center gap-2 text-xs font-black"
+                                        style={{ color: 'var(--text-primary)' }}>
+                                         <Clock size={14} style={{ color: 'var(--primary)' }} />
+                                         {msg.appointment_date || appointmentScheduleLabel(msg.message_text)}
+                                      </div>
                                      <span className="text-[9px] font-black uppercase px-2 py-1 rounded-md" style={{
                                        background: msg.appointment_status === 'pending' ? 'rgba(234,179,8,0.15)' :
                                                    msg.appointment_status === 'confirmed' ? 'rgba(45,107,255,0.15)' :
@@ -703,7 +799,7 @@ const Chat = () => {
                                   {msg.appointment_price > 0 && (
                                     <div className="flex items-center justify-between pt-2"
                                       style={{ borderTop: '1px solid var(--border)' }}>
-                                      <span className="text-[10px] uppercase font-bold" style={{ color: 'var(--text-muted)' }}>Costo del servicio</span>
+                                      <span className="text-[10px] uppercase font-bold" style={{ color: 'var(--text-dim)' }}>Costo del servicio</span>
                                       <span className="text-sm font-black" style={{ color: 'var(--text-primary)' }}>S/.{msg.appointment_price}</span>
                                     </div>
                                   )}
@@ -746,9 +842,9 @@ const Chat = () => {
                                     <button 
                                       onClick={() => handleCancelAppointment(msg.appointment_id)}
                                       className="w-full py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all"
-                                      style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                                      style={{ background: 'var(--bg-surface)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}
                                       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#ef4444'; }}
-                                      onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
+                                      onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-surface)'; e.currentTarget.style.color = 'var(--text-dim)'; }}
                                     >
                                       Cancelar
                                     </button>
@@ -758,7 +854,7 @@ const Chat = () => {
                           ) : msg.message_type === 'order' ? (
                             <div className="space-y-4 min-w-[240px]">
                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest"
-                                 style={{ color: 'var(--text-muted)' }}>
+                                 style={{ color: 'var(--text-dim)' }}>
                                   <Package size={14} style={{ color: 'var(--primary)' }} />
                                   Pedido de Producto
                                </div>
@@ -770,21 +866,23 @@ const Chat = () => {
                                         <Package size={20} />
                                      </div>
                                      <div className="flex-1">
-                                        <h4 className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>{msg.product_name || 'Producto'}</h4>
-                                        <p className="text-[10px]" style={{ color: 'var(--text-muted)' }}>Cantidad: {msg.quantity || 1}</p>
+                                         <h4 className="text-xs font-black" style={{ color: 'var(--text-primary)' }}>{msg.order_product_name || msg.product_name || 'Producto'}</h4>
+                                         <p className="text-[10px]" style={{ color: 'var(--text-dim)' }}>
+                                           {msg.order_price ? `Total: S/ ${Number(msg.order_price).toFixed(2)}` : 'Cantidad: 1'}
+                                         </p>
                                      </div>
                                   </div>
                                   <div className="flex items-center justify-between text-[10px] pt-2"
                                     style={{ borderTop: '1px solid var(--border)' }}>
-                                     <span className="font-bold uppercase" style={{ color: 'var(--text-muted)' }}>Estado</span>
+                                     <span className="font-bold uppercase" style={{ color: 'var(--text-dim)' }}>Estado</span>
                                      <span className="font-black uppercase" style={{ color: 'var(--primary)' }}>{msg.order_status || 'Pendiente'}</span>
                                   </div>
-                                  {msg.delivery_address && (
-                                    <div className="flex items-start gap-2 pt-1">
-                                      <MapPin size={12} className="shrink-0 mt-0.5" style={{ color: 'var(--text-muted)' }} />
-                                      <p className="text-[10px] leading-tight" style={{ color: 'var(--text-muted)' }}>{msg.delivery_address}</p>
-                                    </div>
-                                  )}
+                                   {msg.order_address && (
+                                     <div className="flex items-start gap-2 pt-1">
+                                       <MapPin size={12} className="shrink-0 mt-0.5" style={{ color: 'var(--text-dim)' }} />
+                                       <p className="text-[10px] leading-tight" style={{ color: 'var(--text-dim)' }}>{msg.order_address}</p>
+                                     </div>
+                                   )}
                                </div>
                                <button 
                                  onClick={() => navigate('/orders')}
@@ -797,12 +895,12 @@ const Chat = () => {
                            ) : msg.message_type === 'image' ? (
                             <div className="space-y-2 max-w-[280px]">
                               <a 
-                                href={msg.message_text?.startsWith('http') ? msg.message_text : `http://localhost:3000/uploads/${msg.message_text}`} 
+                                href={mediaUrl(msg.message_text)} 
                                 target="_blank" 
                                 rel="noopener noreferrer"
                               >
                                 <img 
-                                  src={msg.message_text?.startsWith('http') ? msg.message_text : `http://localhost:3000/uploads/${msg.message_text}`} 
+                                  src={mediaUrl(msg.message_text)} 
                                   alt="Adjunto" 
                                   className="rounded-2xl max-h-60 w-full object-cover shadow-lg hover:opacity-90 transition-opacity"
                                   style={{ border: '1px solid var(--border)' }}
@@ -814,7 +912,7 @@ const Chat = () => {
                               <audio 
                                 controls 
                                 className="w-full h-10 rounded-xl" 
-                                src={msg.message_text?.startsWith('http') ? msg.message_text : `http://localhost:3000/uploads/${msg.message_text}`}
+                                src={mediaUrl(msg.message_text)}
                               >
                                 Tu navegador no soporta el reproductor de audio.
                               </audio>
@@ -825,7 +923,7 @@ const Chat = () => {
                                 controls 
                                 className="rounded-2xl w-full max-h-60 shadow-lg"
                                 style={{ border: '1px solid var(--border)' }}
-                                src={msg.message_text?.startsWith('http') ? msg.message_text : `http://localhost:3000/uploads/${msg.message_text}`}
+                                src={mediaUrl(msg.message_text)}
                               >
                                 Tu navegador no soporta el reproductor de video.
                               </video>
@@ -837,7 +935,7 @@ const Chat = () => {
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-bold truncate" style={{ color: 'var(--text-primary)' }}>{msg.message_text?.split('/').pop() || 'Documento adjunto'}</p>
                                 <a 
-                                  href={msg.message_text?.startsWith('http') ? msg.message_text : `http://localhost:3000/uploads/${msg.message_text}`} 
+                                  href={mediaUrl(msg.message_text)} 
                                   target="_blank" 
                                   rel="noopener noreferrer" 
                                   className="text-[10px] font-bold uppercase tracking-wider block mt-1 hover:underline"
@@ -854,7 +952,53 @@ const Chat = () => {
                           <div className={`absolute bottom-1 ${isMine ? 'right-2' : 'left-2'} text-[8px] opacity-40`}>
                              {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                           </div>
+                          {msg.is_edited && (
+                            <div className={`absolute top-1 ${isMine ? 'right-2' : 'left-2'} text-[8px] opacity-60`}>
+                              editado
+                            </div>
+                          )}
                         </div>
+
+                        {openMenuId === (msg.id || index) && (
+                          <div
+                            className="mt-1 rounded-xl overflow-hidden shadow-xl border"
+                            style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}
+                          >
+                            {isMine && msg.message_type === 'text' && !msg.deleted_at && (
+                              <button
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  handleEditMessage(msg.id, msg.message_text);
+                                }}
+                                className="block w-full text-left px-4 py-2.5 text-[11px] font-bold hover:bg-white/5"
+                                style={{ color: 'var(--text-primary)' }}
+                              >
+                                Editar mensaje
+                              </button>
+                            )}
+                            <button
+                              onClick={() => {
+                                setOpenMenuId(null);
+                                handleDeleteMessage(msg.id, false);
+                              }}
+                              className="block w-full text-left px-4 py-2.5 text-[11px] font-bold hover:bg-white/5"
+                              style={{ color: 'var(--text-secondary)' }}
+                            >
+                              Eliminar para mí
+                            </button>
+                            {isMine && !msg.deleted_at && (
+                              <button
+                                onClick={() => {
+                                  setOpenMenuId(null);
+                                  handleDeleteMessage(msg.id, true);
+                                }}
+                                className="block w-full text-left px-4 py-2.5 text-[11px] font-bold text-rose-400 hover:bg-rose-500/10"
+                              >
+                                Eliminar para todos
+                              </button>
+                            )}
+                          </div>
+                        )}
                         
                         {isMine && (
                           <div className="flex items-center gap-1 text-primary">
@@ -904,7 +1048,7 @@ const Chat = () => {
                   disabled={isUploading}
                   onClick={() => fileInputRef.current?.click()}
                   className="p-3.5 rounded-2xl transition-all cursor-pointer disabled:opacity-50 shrink-0 hover:bg-white/5"
-                  style={{ background: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                  style={{ background: 'var(--bg-card)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}
                   title="Adjuntar imagen, audio, video o documento"
                 >
                   <Paperclip size={18} className={isUploading ? 'animate-spin' : ''} />
@@ -957,7 +1101,7 @@ const Chat = () => {
                     onTouchEnd={stopRecording}
                     disabled={isUploading}
                     className="p-3.5 rounded-2xl transition-all cursor-pointer disabled:opacity-50 shrink-0 hover:bg-white/5"
-                    style={{ background: 'var(--bg-card)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}
+                    style={{ background: 'var(--bg-card)', color: 'var(--text-dim)', border: '1px solid var(--border)' }}
                     title="Grabar mensaje de voz"
                   >
                     <Mic size={18} />
@@ -973,7 +1117,7 @@ const Chat = () => {
               <MessageSquare size={48} className="animate-pulse" />
             </div>
             <h3 className="text-2xl font-black mb-2" style={{ color: 'var(--text-primary)' }}>Tus Conversaciones</h3>
-            <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--text-muted)' }}>Selecciona una conversación a la izquierda para empezar a chatear.</p>
+            <p className="text-sm max-w-xs mx-auto" style={{ color: 'var(--text-dim)' }}>Selecciona una conversación a la izquierda para empezar a chatear.</p>
           </div>
         )}
       </div>
@@ -993,9 +1137,9 @@ const Chat = () => {
               <button 
                 onClick={() => setShowPriceModal(false)} 
                 className="absolute top-6 right-6 transition-colors"
-                style={{ color: 'var(--text-muted)' }}
+                style={{ color: 'var(--text-dim)' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dim)'}
               >
                 <X size={24} />
               </button>
@@ -1006,7 +1150,7 @@ const Chat = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>Costo del Servicio</h3>
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Indica el monto a cobrar por este trabajo.</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>Indica el monto a cobrar por este trabajo.</p>
                 </div>
               </div>
               <div className="space-y-6">
@@ -1050,9 +1194,9 @@ const Chat = () => {
               <button 
                 onClick={() => setShowPaymentModal(false)} 
                 className="absolute top-6 right-6 transition-colors"
-                style={{ color: 'var(--text-muted)' }}
+                style={{ color: 'var(--text-dim)' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dim)'}
               >
                 <X size={24} />
               </button>
@@ -1063,7 +1207,7 @@ const Chat = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>Pagar Servicio</h3>
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Monto a pagar: <span className="font-black" style={{ color: 'var(--text-primary)' }}>S/.{selectedAppointment?.appointment_price}</span></p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>Monto a pagar: <span className="font-black" style={{ color: 'var(--text-primary)' }}>S/.{selectedAppointment?.appointment_price}</span></p>
                 </div>
               </div>
 
@@ -1089,9 +1233,9 @@ const Chat = () => {
                     </div>
                     <div className="flex-1 text-left">
                       <span className="text-sm font-black block" style={{ color: 'var(--text-primary)' }}>{method.name}</span>
-                      <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Pago inmediato</span>
+                      <span className="text-[10px] uppercase tracking-widest" style={{ color: 'var(--text-dim)' }}>Pago inmediato</span>
                     </div>
-                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-all" style={{ color: 'var(--text-muted)' }} />
+                    <ArrowRight size={18} className="group-hover:translate-x-1 transition-all" style={{ color: 'var(--text-dim)' }} />
                   </button>
                 ))}
               </div>
@@ -1123,9 +1267,9 @@ const Chat = () => {
               <button 
                 onClick={() => setShowOfferModal(false)} 
                 className="absolute top-6 right-6 transition-colors"
-                style={{ color: 'var(--text-muted)' }}
+                style={{ color: 'var(--text-dim)' }}
                 onMouseEnter={e => e.currentTarget.style.color = 'var(--text-primary)'}
-                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
+                onMouseLeave={e => e.currentTarget.style.color = 'var(--text-dim)'}
               >
                 <X size={24} />
               </button>
@@ -1137,13 +1281,13 @@ const Chat = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-black" style={{ color: 'var(--text-primary)' }}>Enviar Presupuesto</h3>
-                  <p className="text-xs mt-1" style={{ color: 'var(--text-muted)' }}>Propón una tarifa para este servicio.</p>
+                  <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>Propón una tarifa para este servicio.</p>
                 </div>
               </div>
               
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black uppercase tracking-widest pl-1" style={{ color: 'var(--text-muted)' }}>Monto en Soles (S/.)</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest pl-1" style={{ color: 'var(--text-dim)' }}>Monto en Soles (S/.)</label>
                   <input 
                     type="number" 
                     placeholder="0.00" 

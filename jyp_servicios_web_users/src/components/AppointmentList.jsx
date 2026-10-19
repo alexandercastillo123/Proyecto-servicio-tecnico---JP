@@ -6,6 +6,7 @@ import {
   ShieldCheck, AlertCircle, CheckCircle2
 } from "lucide-react";
 import { clientService, techService, authService } from "../services/api";
+import { formatDateShort } from "../services/formatters";
 import { useNavigate } from "react-router-dom";
 import { TechLoader } from "./common/TechLoader";
 
@@ -22,12 +23,12 @@ const STATUS = {
 };
 
 const TABS = ["Todas", "Pendientes", "Confirmadas", "Completadas", "Canceladas"];
-const TAB_FILTER = { 
-  "Todas": null, 
-  "Pendientes": "pending", 
-  "Confirmadas": "confirmed", 
-  "Completadas": "completed", 
-  "Canceladas": "cancelled" 
+const TAB_FILTER = {
+  "Todas": null,
+  "Pendientes": ["pending"],
+  "Confirmadas": ["confirmed", "paid", "on_the_way", "arrived", "in_progress"],
+  "Completadas": ["completed"],
+  "Canceladas": ["cancelled", "cancellation_pending", "expired"],
 };
 
 const AppointmentList = () => {
@@ -60,13 +61,14 @@ const AppointmentList = () => {
 
   const filtered = appointments.filter(a => {
     const tabFilter = TAB_FILTER[activeTab];
-    if (tabFilter && a.status !== tabFilter) return false;
+    if (tabFilter && !tabFilter.includes(a.status)) return false;
     if (search) {
       const q = search.toLowerCase();
       return (
         (a.serviceType || a.service_type || "").toLowerCase().includes(q) ||
-        (a.clientName || a.client_name || "").toLowerCase().includes(q) ||
-        (a.techName   || a.tech_name   || "").toLowerCase().includes(q)
+        (a.client_names || a.clientName || a.client_name || "").toLowerCase().includes(q) ||
+        (a.tech_names || a.techName || a.tech_name || "").toLowerCase().includes(q) ||
+        (a.description || "").toLowerCase().includes(q)
       );
     }
     return true;
@@ -76,9 +78,9 @@ const AppointmentList = () => {
     return {
       Todas: appointments.length,
       Pendientes: appointments.filter(a => a.status === "pending").length,
-      Confirmadas: appointments.filter(a => ["confirmed", "paid", "in_progress"].includes(a.status)).length,
+      Confirmadas: appointments.filter(a => ["confirmed", "paid", "on_the_way", "arrived", "in_progress"].includes(a.status)).length,
       Completadas: appointments.filter(a => a.status === "completed").length,
-      Canceladas: appointments.filter(a => a.status === "cancelled").length,
+      Canceladas: appointments.filter(a => ["cancelled", "cancellation_pending", "expired"].includes(a.status)).length,
     };
   };
   const counts = getCounts();
@@ -192,9 +194,14 @@ const AppointmentList = () => {
           <AnimatePresence>
             {filtered.map((appt, i) => {
               const st = STATUS[appt.status] || { label: appt.status, cls: "status-badge" };
-              const otherPerson = userRole === "client" 
-                ? (appt.techName || appt.tech_name || "Técnico Especialista") 
-                : (appt.clientName || appt.client_name || "Cliente");
+              const clientName = [appt.client_names, appt.client_surnames].filter(Boolean).join(' ').trim()
+                || appt.client_username || appt.clientName || appt.client_name || "Cliente";
+              const techName = [appt.tech_names, appt.tech_surnames].filter(Boolean).join(' ').trim()
+                || appt.tech_username || appt.techName || appt.tech_name || "Técnico Especialista";
+              const otherPerson = userRole === "client" ? techName : clientName;
+              const scheduledDate = appt.scheduled_date || appt.scheduledDate;
+              const scheduledTime = appt.scheduled_time || appt.scheduledTime;
+              const serviceAddress = appt.service_address || appt.location_address || appt.address;
 
               return (
                 <motion.div
@@ -231,16 +238,16 @@ const AppointmentList = () => {
                         </p>
 
                         <div className="flex flex-wrap items-center gap-3 mt-4 text-xs text-slate-400">
-                          {appt.scheduled_at && (
+                          {scheduledDate && (
                             <span className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
                               <Clock size={13} className="text-cyan-400" />
-                              <span>{new Date(appt.scheduled_at).toLocaleDateString("es-PE", { dateStyle: "medium" })} · {new Date(appt.scheduled_at).toLocaleTimeString("es-PE", { timeStyle: "short" })}</span>
+                              <span>{formatDateShort(scheduledDate)} · {String(scheduledTime || '').slice(0, 5)}</span>
                             </span>
                           )}
-                          {(appt.location_address || appt.address) && (
+                          {serviceAddress && (
                             <span className="flex items-center gap-1.5 truncate max-w-[260px] bg-white/5 px-3 py-1.5 rounded-full border border-white/5">
                               <MapPin size={13} className="text-blue-400" />
-                              <span>{appt.location_address || appt.address}</span>
+                              <span>{serviceAddress}</span>
                             </span>
                           )}
                         </div>
