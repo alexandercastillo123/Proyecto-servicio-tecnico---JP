@@ -41,11 +41,11 @@ const ResetPassword = () => {
 
     try {
       const response = await authService.resetPassword(email, code, password);
-      if (response.success || response.exito) {
+      if (response.exito) {
         setIsSuccess(true);
         setTimeout(() => navigate('/login'), 2500);
       } else {
-        setError(response.message || response.mensaje || 'Error al actualizar la contraseña');
+        setError(response.mensaje || 'Error al actualizar la contraseña');
       }
     } catch (err) {
       setError(err.response?.data?.mensaje || err.response?.data?.message || 'Error al procesar la solicitud');

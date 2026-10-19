@@ -52,7 +52,7 @@ const InfoRow = ({ icon, label, value }) => (
       {icon}
     </div>
     <div>
-      <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-muted)' }}>{label}</p>
+      <p className="text-[9px] font-black uppercase tracking-widest mb-0.5" style={{ color: 'var(--text-dim)' }}>{label}</p>
       <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{value || '—'}</p>
     </div>
   </div>
@@ -60,9 +60,9 @@ const InfoRow = ({ icon, label, value }) => (
 
 const AdminInput = ({ label, value, onChange, type = 'text', required, icon, onBlur, placeholder }) => (
   <div className="space-y-1.5">
-    <label className="block text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>{label}</label>
+    <label className="block text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--text-dim)' }}>{label}</label>
     <div className="relative">
-      {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-muted)' }}>{icon}</div>}
+      {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--text-dim)' }}>{icon}</div>}
       <input
         type={type} required={required} value={value} placeholder={placeholder}
         onChange={e => onChange(e.target.value)} onBlur={onBlur}
@@ -74,7 +74,7 @@ const AdminInput = ({ label, value, onChange, type = 'text', required, icon, onB
 
 const AdminTextarea = ({ label, value, onChange }) => (
   <div className="space-y-1.5">
-    <label className="block text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--text-muted)' }}>{label}</label>
+    <label className="block text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--text-dim)' }}>{label}</label>
     <textarea
       value={value} onChange={e => onChange(e.target.value)} rows={3}
       className="admin-input resize-none"
@@ -124,7 +124,7 @@ const OverviewTab = ({ store }) => (
       </div>
       {store.description && (
         <div className="p-5 rounded-2xl" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
-          <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Descripción</p>
+          <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-dim)' }}>Descripción</p>
           <p className="text-sm font-medium italic leading-relaxed" style={{ color: 'var(--text-secondary)' }}>"{store.description}"</p>
         </div>
       )}
@@ -221,7 +221,7 @@ const ProductsTab = ({ storeId }) => {
             <div className="flex gap-3">
               <button type="button" onClick={() => { setShowForm(false); setEditingId(null); setForm(emptyForm); }}
                 className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all"
-                style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)' }}>
+                style={{ background: 'var(--bg-surface)', color: 'var(--text-dim)' }}>
                 Cancelar
               </button>
               <button type="submit" className="btn-primary">
@@ -239,7 +239,7 @@ const ProductsTab = ({ storeId }) => {
             <div className="h-44 relative overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-surface)' }}>
               {p.image_url
                 ? <img src={getImageUrl(p.image_url)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={p.name} />
-                : <ImageIcon size={40} style={{ color: 'var(--text-muted)' }} />}
+                : <ImageIcon size={40} style={{ color: 'var(--text-dim)' }} />}
               <div className="absolute top-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button onClick={() => handleEdit(p)} className="p-2 rounded-lg bg-white/90 text-blue-600 hover:scale-110 transition-all shadow-lg"><Edit2 size={12} /></button>
                 <button onClick={() => handleDelete(p.id)} className="p-2 rounded-lg bg-rose-500 text-white hover:scale-110 transition-all shadow-lg"><Trash2 size={12} /></button>
@@ -252,7 +252,7 @@ const ProductsTab = ({ storeId }) => {
             </div>
             <div className="p-5 space-y-3">
               <h4 className="font-black line-clamp-1 transition-colors" style={{ color: 'var(--text-primary)' }}>{p.name}</h4>
-              <p className="text-xs line-clamp-2" style={{ color: 'var(--text-muted)' }}>{p.description || 'Sin descripción.'}</p>
+              <p className="text-xs line-clamp-2" style={{ color: 'var(--text-dim)' }}>{p.description || 'Sin descripción.'}</p>
               <div className="flex items-center justify-between pt-2" style={{ borderTop: '1px solid var(--border)' }}>
                 <span className="text-xl font-black" style={{ color: 'var(--primary)' }}>S/ {parseFloat(p.price).toFixed(2)}</span>
                 <span className={`text-[9px] font-black uppercase px-2 py-1 rounded-full ${p.is_available ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
@@ -265,8 +265,8 @@ const ProductsTab = ({ storeId }) => {
       </div>
       {products.length === 0 && !showForm && (
         <div className="py-20 text-center glass-card border-dashed" style={{ borderColor: 'var(--border)' }}>
-          <Package size={40} className="mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
-          <p className="font-bold" style={{ color: 'var(--text-muted)' }}>Sin productos registrados.</p>
+          <Package size={40} className="mx-auto mb-4" style={{ color: 'var(--text-dim)' }} />
+          <p className="font-bold" style={{ color: 'var(--text-dim)' }}>Sin productos registrados.</p>
         </div>
       )}
     </div>
@@ -297,9 +297,9 @@ const OrdersTab = ({ storeId }) => {
         <motion.div key={o.id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
           className="glass-card p-6 flex flex-col lg:flex-row gap-6 lg:items-center">
           <div className="shrink-0">
-            <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-muted)' }}>Pedido</p>
+            <p className="text-[9px] font-black uppercase tracking-widest mb-1" style={{ color: 'var(--text-dim)' }}>Pedido</p>
             <span className="font-mono text-sm font-black" style={{ color: 'var(--primary)' }}>#ORD-{o.id}</span>
-            <p className="text-[10px] mt-1" style={{ color: 'var(--text-muted)' }}>{new Date(o.created_at).toLocaleDateString('es-PE')}</p>
+            <p className="text-[10px] mt-1" style={{ color: 'var(--text-dim)' }}>{new Date(o.created_at).toLocaleDateString('es-PE')}</p>
           </div>
           <div className="flex-1">
             <h4 className="font-black mb-2" style={{ color: 'var(--text-primary)' }}>{o.product_name} <span className="text-sm" style={{ color: 'var(--primary)' }}>×{o.quantity}</span></h4>
@@ -321,14 +321,14 @@ const OrdersTab = ({ storeId }) => {
               <option value="completed">Completado</option>
               <option value="cancelled">Cancelado</option>
             </select>
-            <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-muted)' }} />
+            <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--text-dim)' }} />
           </div>
         </motion.div>
       ))}
       {orders.length === 0 && (
         <div className="py-20 text-center glass-card border-dashed" style={{ borderColor: 'var(--border)' }}>
-          <ShoppingBag size={40} className="mx-auto mb-4" style={{ color: 'var(--text-muted)' }} />
-          <p className="font-bold" style={{ color: 'var(--text-muted)' }}>Sin pedidos registrados.</p>
+          <ShoppingBag size={40} className="mx-auto mb-4" style={{ color: 'var(--text-dim)' }} />
+          <p className="font-bold" style={{ color: 'var(--text-dim)' }}>Sin pedidos registrados.</p>
         </div>
       )}
     </div>
@@ -359,15 +359,15 @@ const AppointmentsTab = ({ storeId }) => {
                 <td><span className="font-mono text-xs font-bold" style={{ color: 'var(--primary)' }}>#{a.id}</span></td>
                 <td><div className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{a.client_names} {a.client_surnames}</div></td>
                 <td className="text-sm" style={{ color: 'var(--text-secondary)' }}>{a.tech_names || '—'}</td>
-                <td><div className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{new Date(a.scheduled_date).toLocaleDateString('es-PE')}</div><div className="text-xs" style={{ color: 'var(--text-muted)' }}>{a.scheduled_time}</div></td>
+                <td><div className="text-sm font-bold" style={{ color: 'var(--text-primary)' }}>{new Date(a.scheduled_date).toLocaleDateString('es-PE')}</div><div className="text-xs" style={{ color: 'var(--text-dim)' }}>{a.scheduled_time}</div></td>
                 <td><span className={`status-badge status-${a.status}`}>{a.status}</span></td>
-                <td>{a.price ? <span className="font-black" style={{ color: 'var(--primary)' }}>S/ {parseFloat(a.price).toFixed(2)}</span> : <span style={{ color: 'var(--text-muted)' }}>—</span>}</td>
+                <td>{a.price ? <span className="font-black" style={{ color: 'var(--primary)' }}>S/ {parseFloat(a.price).toFixed(2)}</span> : <span style={{ color: 'var(--text-dim)' }}>—</span>}</td>
               </motion.tr>
             ))}
           </tbody>
         </table>
         {appts.length === 0 && (
-          <div className="py-16 text-center font-bold text-sm" style={{ color: 'var(--text-muted)' }}>Sin citas registradas para esta sucursal.</div>
+          <div className="py-16 text-center font-bold text-sm" style={{ color: 'var(--text-dim)' }}>Sin citas registradas para esta sucursal.</div>
         )}
       </div>
     </div>
@@ -398,7 +398,7 @@ const StoreDetail = ({ store, onBack }) => {
             style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
             {store.image_url
               ? <img src={getImageUrl(store.image_url)} className="w-full h-full object-cover" alt={store.name} />
-              : <StoreIcon size={32} style={{ color: 'var(--text-muted)' }} />}
+              : <StoreIcon size={32} style={{ color: 'var(--text-dim)' }} />}
           </div>
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.3em] mb-1" style={{ color: 'var(--primary)' }}>Sucursal #ST-{store.id}</p>
@@ -495,7 +495,7 @@ const AdminStores = () => {
   // Show detail view if an id is in the URL
   if (selectedId) {
     const store = stores.find(s => String(s.id) === selectedId);
-    if (!store && !loading) return <div className="py-20 text-center" style={{ color: 'var(--text-muted)' }}>Sucursal no encontrada.</div>;
+    if (!store && !loading) return <div className="py-20 text-center" style={{ color: 'var(--text-dim)' }}>Sucursal no encontrada.</div>;
     if (!store) return <Spinner />;
     return <StoreDetail store={store} onBack={() => navigate('/admin/sucursales')} />;
   }
@@ -542,7 +542,7 @@ const AdminStores = () => {
                   <AdminInput label="Ciudad *" icon={<Globe size={14} />} {...f('city')} required />
                   <AdminInput label="Teléfono *" icon={<Phone size={14} />} {...f('phone')} required />
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-muted)' }}>Geolocalización (click para ajustar)</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-2" style={{ color: 'var(--text-dim)' }}>Geolocalización (click para ajustar)</p>
                     <div className="h-48 rounded-2xl overflow-hidden" style={{ border: '1px solid var(--border)' }}>
                       <MapContainer center={[formData.latitude, formData.longitude]} zoom={14} style={{ height: '100%', width: '100%' }}>
                         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
@@ -559,13 +559,13 @@ const AdminStores = () => {
                 <div className="space-y-5">
                   <SectionLabel color="rose" icon={<ImageIcon size={13} />}>Branding & Horario</SectionLabel>
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: 'var(--text-muted)' }}>Logo / Imagen</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest mb-3" style={{ color: 'var(--text-dim)' }}>Logo / Imagen</p>
                     <div className="flex gap-4 items-center">
                       <div className="w-20 h-20 rounded-xl flex items-center justify-center overflow-hidden shrink-0"
                         style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
                         {formData.image_url
                           ? <img src={getImageUrl(formData.image_url)} className="w-full h-full object-cover" alt="preview" />
-                          : <StoreIcon size={28} style={{ color: 'var(--text-muted)' }} />}
+                          : <StoreIcon size={28} style={{ color: 'var(--text-dim)' }} />}
                       </div>
                       <div>
                         <input type="file" accept="image/*" onChange={handleImage} className="hidden" id="store-img" />
@@ -587,7 +587,7 @@ const AdminStores = () => {
               <div className="flex gap-3 pt-4" style={{ borderTop: '1px solid var(--border)' }}>
                 <button type="button" onClick={() => { setShowForm(false); setFormData(EMPTY); }}
                   className="px-5 py-2.5 rounded-xl font-bold text-sm transition-all"
-                  style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)' }}>
+                  style={{ background: 'var(--bg-surface)', color: 'var(--text-dim)' }}>
                   Cancelar
                 </button>
                 <button type="submit" className="btn-primary">
@@ -611,7 +611,7 @@ const AdminStores = () => {
               <div className="h-48 relative overflow-hidden flex items-center justify-center" style={{ background: 'var(--bg-surface)' }}>
                 {store.image_url
                   ? <img src={getImageUrl(store.image_url)} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={store.name} />
-                  : <StoreIcon size={48} className="group-hover:rotate-6 transition-transform duration-500" style={{ color: 'var(--text-muted)' }} />}
+                  : <StoreIcon size={48} className="group-hover:rotate-6 transition-transform duration-500" style={{ color: 'var(--text-dim)' }} />}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-400" />
                 <div className="absolute top-4 right-4 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-sm border border-white/10">
                   <div className={`w-1.5 h-1.5 rounded-full ${store.status === 'active' ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-rose-400'}`} />
@@ -622,16 +622,16 @@ const AdminStores = () => {
               <div className="p-6 space-y-4">
                 <div className="flex justify-between items-start">
                   <h3 className="font-black text-xl transition-colors leading-tight group-hover:text-blue-500" style={{ color: 'var(--text-primary)' }}>{store.name}</h3>
-                  <span className="text-[9px] font-black uppercase" style={{ color: 'var(--text-muted)' }}>#ST-{store.id}</span>
+                  <span className="text-[9px] font-black uppercase" style={{ color: 'var(--text-dim)' }}>#ST-{store.id}</span>
                 </div>
                 <div className="space-y-2 text-sm" style={{ color: 'var(--text-secondary)' }}>
-                  <div className="flex items-center gap-2"><MapPin size={12} style={{ color: 'var(--text-muted)' }} /> <span className="truncate">{store.address}, {store.city}</span></div>
-                  <div className="flex items-center gap-2"><Phone size={12} style={{ color: 'var(--text-muted)' }} /> {store.phone}</div>
+                  <div className="flex items-center gap-2"><MapPin size={12} style={{ color: 'var(--text-dim)' }} /> <span className="truncate">{store.address}, {store.city}</span></div>
+                  <div className="flex items-center gap-2"><Phone size={12} style={{ color: 'var(--text-dim)' }} /> {store.phone}</div>
                 </div>
                 <div className="flex items-center justify-between pt-3" style={{ borderTop: '1px solid var(--border)' }}>
-                  <span className="text-[9px] font-black uppercase tracking-widest truncate max-w-[160px]" style={{ color: 'var(--text-muted)' }}>{store.email}</span>
+                  <span className="text-[9px] font-black uppercase tracking-widest truncate max-w-[160px]" style={{ color: 'var(--text-dim)' }}>{store.email}</span>
                   <div className="w-9 h-9 rounded-xl flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white group-hover:translate-x-0.5 transition-all duration-400 shadow-sm"
-                    style={{ background: 'var(--bg-surface)', color: 'var(--text-muted)' }}>
+                    style={{ background: 'var(--bg-surface)', color: 'var(--text-dim)' }}>
                     <ChevronRight size={18} strokeWidth={2.5} />
                   </div>
                 </div>
@@ -643,9 +643,9 @@ const AdminStores = () => {
 
       {stores.length === 0 && !loading && !showForm && (
         <div className="py-28 text-center glass-card border-dashed rounded-3xl" style={{ borderColor: 'var(--border)' }}>
-          <StoreIcon size={48} className="mx-auto mb-5" style={{ color: 'var(--text-muted)' }} />
+          <StoreIcon size={48} className="mx-auto mb-5" style={{ color: 'var(--text-dim)' }} />
           <h3 className="text-xl font-black mb-2" style={{ color: 'var(--text-primary)' }}>Red desconectada</h3>
-          <p className="font-semibold" style={{ color: 'var(--text-muted)' }}>Registra tu primera sucursal para comenzar.</p>
+          <p className="font-semibold" style={{ color: 'var(--text-dim)' }}>Registra tu primera sucursal para comenzar.</p>
         </div>
       )}
     </motion.div>

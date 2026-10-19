@@ -46,6 +46,8 @@ api.interceptors.response.use((response) => {
 export const authService = {
   login: (email, password) => api.post('/auth/login', { email, password }),
   register: (data) => api.post('/auth/register', data),
+  validateEmail: (email) => api.post('/auth/validate-email', { email }),
+  validateUsername: (username) => api.post('/auth/validate-username', { username }),
   getProfile: () => api.get('/users/profile'),
   updateProfile: (data) => api.put('/users/profile', data),
   changePassword: (data) => api.post('/auth/change-password', { newPassword: data.newPassword || data }),
@@ -67,6 +69,7 @@ export const notificationService = {
   markAllAsRead: () => api.put('/notifications/read-all'),
   getSettings: () => api.get('/notifications/settings'),
   updateSettings: (data) => api.put('/notifications/settings', data),
+  saveDeviceToken: (token, platform = 'web') => api.post('/notifications/token', { token, platform }),
 };
 
 export const techService = {
@@ -78,33 +81,49 @@ export const techService = {
   updateSchedule: (schedules) => api.post('/technicians/schedule', { schedules }),
   toggleAvailability: (isAvailable) => api.patch('/users/availability', { is_available: isAvailable }),
 };
-
 export const clientService = {
   getTechnicians: (params) => api.get('/technicians', { params }),
   getNearbyTechnicians: (params) => api.get('/technicians/nearby', { params }),
   getTechnicianDetails: (id) => api.get(`/technicians/${id}`),
+  getTechnicianSchedule: (id) => api.get(`/technicians/${id}/schedule`),
   createAppointment: (data) => api.post('/appointments', data),
   getMyAppointments: () => api.get('/appointments'),
   getAppointmentDetails: (id) => api.get(`/appointments/${id}`),
   payAppointment: (id, method) => api.post(`/appointments/${id}/pay`, { paymentMethod: method }),
   cancelAppointment: (id) => api.delete(`/appointments/${id}`),
+  confirmCompletion: (id) => api.post(`/appointments/${id}/confirm-completion`),
   addReview: (data) => api.post('/technicians/review', data),
+  getUserById: (id) => api.get(`/users/${id}`),
 };
 
 export const storeService = {
   getBranches: () => api.get('/sucursales'),
   getNearbyBranches: (params) => api.get('/sucursales/nearby', { params }),
   getBranchDetails: (id) => api.get(`/sucursales/${id}`),
+  getMyStore: () => api.get('/sucursales/my-store'),
+  getStoreSchedules: (id) => api.get(`/sucursales/${id}/schedules`),
+  getStoreAppointments: (id) => api.get(`/sucursales/${id}/appointments`),
+  getStoreReviews: (id) => api.get(`/sucursales/${id}/reviews`),
+  addStoreReview: (id, data) => api.post(`/sucursales/${id}/reviews`, data),
   getCatalogProducts: (params) => api.get('/sucursales/products/catalog', { params }),
   getProducts: (branchId) => api.get(`/sucursales/${branchId}/products`),
   getOrders: (branchId) => api.get(`/sucursales/orders/store/${branchId}`),
   getMyOrders: () => api.get('/sucursales/orders/my-orders'),
   updateOrderStatus: (id, status) => api.patch(`/sucursales/orders/${id}/status`, { status }),
+  payOrder: (id, method) => api.post(`/sucursales/orders/${id}/pay`, { paymentMethod: method }),
+  confirmOrderPayment: (id) => api.post(`/sucursales/orders/${id}/confirm-payment`),
   createOrder: (data) => api.post('/sucursales/orders', data),
   createBranch: (data) => api.post('/sucursales', data),
+  updateBranch: (id, data) => api.put(`/sucursales/${id}`, data),
   addProduct: (data) => api.post('/sucursales/products', data),
   updateProduct: (id, data) => api.put(`/sucursales/products/${id}`, data),
   deleteProduct: (id) => api.delete(`/sucursales/products/${id}`),
+  uploadProductImage: (formData) => api.post('/sucursales/products/upload-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  uploadStoreImage: (formData) => api.post('/sucursales/upload-image', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
 
 export const messageService = {
@@ -118,6 +137,15 @@ export const messageService = {
   acceptOffer: (id) => api.put(`/messages/offer/${id}/accept`),
   rejectOffer: (id) => api.put(`/messages/offer/${id}/reject`),
   cancelOffer: (id) => api.put(`/messages/offer/${id}/cancel`),
+  updateMessage: (id, messageText) => api.put(`/messages/${id}`, { messageText }),
+  deleteMessage: (id, deleteForEveryone = false) => api.delete(`/messages/${id}`, { data: { deleteForEveryone } }),
+  markAsRead: (id) => api.put(`/messages/${id}/read`),
+};
+
+export const culqiService = {
+  getPublicKey: () => api.get('/culqi/public-key'),
+  payAppointment: (id, culqiToken) => api.post(`/culqi/pay-appointment/${id}`, { culqiToken }),
+  payOrder: (id, culqiToken) => api.post(`/culqi/pay-order/${id}`, { culqiToken }),
 };
 
 export const adminService = {

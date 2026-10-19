@@ -8,6 +8,7 @@ import {
 import LocationPicker from './LocationPicker';
 import { storeService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const StoreCreate = () => {
   const navigate = useNavigate();
@@ -15,11 +16,19 @@ const StoreCreate = () => {
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
+    email: '',
     address: '',
-    city: 'Trujillo',
+    city: 'Lima',
+    state: 'Lima',
+    zip_code: '15001',
+    country: 'Perú',
     description: 'Venta de repuestos y accesorios originales.',
-    latitude: -8.1116,
-    longitude: -79.0287,
+    specialties: '',
+    opening_time: '09:00:00',
+    closing_time: '18:00:00',
+    open_days: 'Lunes-Sábado',
+    latitude: -12.046374,
+    longitude: -77.042793,
   });
 
   const [loading, setLoading] = useState(false);
@@ -29,23 +38,38 @@ const StoreCreate = () => {
   const handleBack = () => setStep(step - 1);
 
   const handleSubmit = async () => {
+    if (!formData.name.trim()) {
+      setError('El nombre de la sucursal es obligatorio.');
+      setStep(1);
+      return;
+    }
     setLoading(true);
     setError('');
     try {
       const response = await storeService.createBranch(formData);
-      if (response.data.success || response.data.exito) {
-        navigate('/store-dashboard');
+      if (response.data?.exito || response.data?.success) {
+        toast.success('¡Sucursal registrada correctamente!');
+        navigate('/');
+      } else {
+        setError(response.data?.mensaje || 'No se pudo registrar la sucursal.');
       }
     } catch (err) {
-      setError('Error al crear la tienda. Por favor, verifica los datos ingresados.');
+      setError(err.response?.data?.mensaje || 'Error al crear la tienda. Por favor, verifica los datos ingresados.');
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const updateLocation = (lat, lng) => {
-    setFormData({ ...formData, latitude: lat, longitude: lng });
+  /* LocationPicker entrega { lat, lng, address } */
+  const updateLocation = (location) => {
+    if (!location) return;
+    setFormData((prev) => ({
+      ...prev,
+      latitude: location.lat ?? prev.latitude,
+      longitude: location.lng ?? prev.longitude,
+      address: location.address || prev.address,
+    }));
   };
 
   return (
@@ -116,7 +140,7 @@ const StoreCreate = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-muted)' }}>
+                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-dim)' }}>
                     Nombre de la Sucursal
                   </label>
                   <input 
@@ -127,13 +151,13 @@ const StoreCreate = () => {
                       borderColor: 'var(--border)',
                       color: 'var(--text-primary)'
                     }}
-                    placeholder="Ej: JyP Repuestos - Trujillo Centro"
+                    placeholder="Ej: JyP Repuestos - Lima Centro"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-muted)' }}>
+                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-dim)' }}>
                     Teléfono de Contacto
                   </label>
                   <input 
@@ -149,8 +173,68 @@ const StoreCreate = () => {
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
                   />
                 </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-dim)' }}>
+                    Correo de la Sucursal
+                  </label>
+                  <input 
+                    type="email" 
+                    className="w-full py-3 px-4 rounded-2xl border text-sm outline-none transition-all"
+                    style={{
+                      backgroundColor: 'var(--bg)',
+                      borderColor: 'var(--border)',
+                      color: 'var(--text-primary)'
+                    }}
+                    placeholder="sucursal@jypservicios.pe"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-dim)' }}>
+                    Especialidades (separadas por coma)
+                  </label>
+                  <input 
+                    type="text" 
+                    className="w-full py-3 px-4 rounded-2xl border text-sm outline-none transition-all"
+                    style={{
+                      backgroundColor: 'var(--bg)',
+                      borderColor: 'var(--border)',
+                      color: 'var(--text-primary)'
+                    }}
+                    placeholder="Repuestos, Accesorios, Service"
+                    value={formData.specialties}
+                    onChange={(e) => setFormData({...formData, specialties: e.target.value})}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-dim)' }}>
+                      Apertura
+                    </label>
+                    <input
+                      type="time"
+                      className="w-full py-3 px-4 rounded-2xl border text-sm outline-none transition-all"
+                      style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                      value={String(formData.opening_time).slice(0, 5)}
+                      onChange={(e) => setFormData({ ...formData, opening_time: `${e.target.value}:00` })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-dim)' }}>
+                      Cierre
+                    </label>
+                    <input
+                      type="time"
+                      className="w-full py-3 px-4 rounded-2xl border text-sm outline-none transition-all"
+                      style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
+                      value={String(formData.closing_time).slice(0, 5)}
+                      onChange={(e) => setFormData({ ...formData, closing_time: `${e.target.value}:00` })}
+                    />
+                  </div>
+                </div>
                 <div className="md:col-span-2 space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-muted)' }}>
+                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-dim)' }}>
                     Descripción del Local y Servicios
                   </label>
                   <textarea 
@@ -195,7 +279,7 @@ const StoreCreate = () => {
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-muted)' }}>
+                  <label className="text-[10px] font-bold uppercase tracking-wider block" style={{ color: 'var(--text-dim)' }}>
                     Dirección Referencial
                   </label>
                   <input 
@@ -206,7 +290,7 @@ const StoreCreate = () => {
                       borderColor: 'var(--border)',
                       color: 'var(--text-primary)'
                     }}
-                    placeholder="Av. España 123, Trujillo"
+                    placeholder="Av. España 123, Lima"
                     value={formData.address}
                     onChange={(e) => setFormData({...formData, address: e.target.value})}
                   />
@@ -254,15 +338,15 @@ const StoreCreate = () => {
                   style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
                 >
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Tienda</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>Tienda</p>
                     <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{formData.name}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Dirección</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>Dirección</p>
                     <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{formData.address}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Ciudad</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>Ciudad</p>
                     <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>{formData.city}</p>
                   </div>
                 </div>
