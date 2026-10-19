@@ -146,15 +146,19 @@ const Layout = ({ user, onLogout }) => {
       { path: "/technicians", icon: MapPin, label: "Explorar Técnicos" },
       { path: "/appointments", icon: Calendar, label: "Mis Citas" },
       { path: "/shop", icon: Package, label: "Tienda de Repuestos" },
+      { path: "/order/new", icon: ShoppingCart, label: "Nuevo Pedido" },
       { path: "/stores", icon: Store, label: "Tiendas & Talleres" },
       { path: "/orders", icon: ShoppingCart, label: "Mis Pedidos" },
       { path: "/chat", icon: MessageSquare, label: "Centro de Mensajes", badge: unreadCount },
+      { path: "/notifications", icon: Bell, label: "Notificaciones", badge: unreadNotifCount },
       { path: "/profile", icon: User, label: "Mi Perfil" },
     ],
     tech: [
       { path: "/", icon: Home, label: "Inicio" },
       { path: "/appointments", icon: Calendar, label: "Citas & Reparaciones" },
+      { path: "/schedule", icon: Clock, label: "Mi Horario" },
       { path: "/chat", icon: MessageSquare, label: "Mensajes Clientes", badge: unreadCount },
+      { path: "/notifications", icon: Bell, label: "Notificaciones", badge: unreadNotifCount },
       { path: "/profile", icon: User, label: "Mi Perfil Técnico" },
     ],
     store: [
@@ -162,6 +166,7 @@ const Layout = ({ user, onLogout }) => {
       { path: "/shop", icon: Package, label: "Catálogo & Repuestos" },
       { path: "/orders", icon: ShoppingCart, label: "Pedidos & Ventas" },
       { path: "/chat", icon: MessageSquare, label: "Mensajes", badge: unreadCount },
+      { path: "/notifications", icon: Bell, label: "Notificaciones", badge: unreadNotifCount },
       { path: "/profile", icon: User, label: "Perfil Empresa" },
     ],
   };
@@ -180,12 +185,12 @@ const Layout = ({ user, onLogout }) => {
     <div
       className="flex min-h-screen overflow-hidden jyp-page"
     >
-      {/* ══════════ SIDEBAR ══════════════════════════════════════ */}
+      {/* ══════════  ══════════════════════════════════════ */}
       <motion.aside
         initial={false}
         animate={{ width: SIDEBAR_W }}
         transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
-        className="fixed left-0 top-0 h-full flex flex-col z-40 select-none sidebar"
+        className="fixed left-0 top-0 h-full flex flex-col z-40 select-none "
         style={{
           background: isDark ? "rgba(6, 9, 19, 0.94)" : "rgba(255, 255, 255, 0.95)",
           borderRight: "1px solid var(--border)",
@@ -203,7 +208,7 @@ const Layout = ({ user, onLogout }) => {
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto no-scrollbar">
+        <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto no-scrollbar">
           {!collapsed && (
             <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
               Navegación Principal
@@ -220,7 +225,7 @@ const Layout = ({ user, onLogout }) => {
                 key={item.path}
                 to={item.path}
                 onClick={() => item.path === "/chat" && setUnreadCount?.(0)}
-                className={`flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all duration-200 relative group ${active ? "text-white bg-blue-600/20 border-blue-500/30 font-bold" : "text-slate-400 hover:text-white hover:bg-white/5 border-transparent font-semibold"}`}
+                 className={`flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all duration-200 relative group ${active ? "text-white bg-blue-600/20 border-l-4 border-blue-500 font-bold" : "text-slate-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent font-semibold"}`}
               >
                 <Icon
                   size={19}
@@ -253,7 +258,7 @@ const Layout = ({ user, onLogout }) => {
           })}
         </nav>
 
-        {/* Sidebar Footer Controls */}
+        {/*  Footer Controls */}
         <div className="px-3 pb-5 space-y-2 border-t pt-4" style={{ borderColor: "var(--border)" }}>
           {/* Socket Connection Badge */}
           <AnimatePresence>
@@ -278,7 +283,7 @@ const Layout = ({ user, onLogout }) => {
             )}
           </AnimatePresence>
 
-          {/* Collapse Sidebar Button */}
+          {/* Collapse  Button */}
           <button
             type="button"
             onClick={() => setCollapsed(!collapsed)}
@@ -310,9 +315,9 @@ const Layout = ({ user, onLogout }) => {
             : "#F8FAFC"
         }}
       >
-        {/* ──── STICKY TOPBAR ─────────────────────────────────── */}
+        {/* ──── STICKY  ─────────────────────────────────── */}
         <header
-          className="sticky top-0 z-30 flex items-center justify-between px-6 sm:px-8 topbar"
+          className="sticky top-0 z-30 flex items-center justify-between px-6 sm:px-8 "
           style={{
             height: 72,
             background: isDark ? "rgba(8, 13, 23, 0.92)" : "rgba(255, 255, 255, 0.92)",
@@ -348,7 +353,7 @@ const Layout = ({ user, onLogout }) => {
             <button
               type="button"
               onClick={toggleTheme}
-              className="topbar-btn"
+              className="-btn"
               title={isDark ? "Activar modo claro" : "Activar modo oscuro"}
               aria-label={isDark ? "Activar modo claro" : "Activar modo oscuro"}
             >
@@ -367,7 +372,7 @@ const Layout = ({ user, onLogout }) => {
                   setShowNotifications(!showNotifications);
                   if (!showNotifications) fetchNotifications();
                 }}
-                className="topbar-btn relative"
+                className="-btn relative"
                 title="Notificaciones"
               >
                 <Bell size={18} />
@@ -439,7 +444,7 @@ const Layout = ({ user, onLogout }) => {
                                 className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
                                 style={{
                                   background: isRead ? 'var(--bg-input)' : 'rgba(45,107,255,0.12)',
-                                  color: isRead ? 'var(--text-muted)' : '#2D6BFF',
+                                  color: isRead ? 'var(--text-dim)' : '#2D6BFF',
                                 }}
                               >
                                 <NIcon size={17} />
@@ -448,7 +453,7 @@ const Layout = ({ user, onLogout }) => {
                                 <p className={`text-xs leading-snug ${isRead ? 'font-medium' : 'font-bold'}`} style={{ color: 'var(--text-primary)' }}>
                                   {n.message || n.title || 'Notificación'}
                                 </p>
-                                <span className="text-[11px] mt-1 block" style={{ color: 'var(--text-muted)' }}>
+                                <span className="text-[11px] mt-1 block" style={{ color: 'var(--text-dim)' }}>
                                   {n.created_at ? new Date(n.created_at).toLocaleString('es-PE', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
                                 </span>
                               </div>
@@ -460,9 +465,9 @@ const Layout = ({ user, onLogout }) => {
                         })
                       ) : (
                         <div className="py-12 text-center space-y-2">
-                          <Bell size={28} className="mx-auto" style={{ color: 'var(--text-muted)' }} />
+                          <Bell size={28} className="mx-auto" style={{ color: 'var(--text-dim)' }} />
                           <p className="text-xs font-bold" style={{ color: 'var(--text-secondary)' }}>Sin notificaciones</p>
-                          <p className="text-[11px]" style={{ color: 'var(--text-muted)' }}>Aquí verás citas, pedidos y alertas.</p>
+                          <p className="text-[11px]" style={{ color: 'var(--text-dim)' }}>Aquí verás citas, pedidos y alertas.</p>
                         </div>
                       )}
                     </div>
@@ -471,11 +476,11 @@ const Layout = ({ user, onLogout }) => {
                     {notifications.length > 0 && (
                       <div className="px-5 py-3 border-t flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
                         <button
-                          onClick={() => { setShowNotifications(false); navigate('/chat'); }}
+                          onClick={() => { setShowNotifications(false); navigate('/notifications'); }}
                           className="flex items-center gap-1.5 text-[11px] font-bold text-blue-400 hover:text-blue-300 transition-colors"
                         >
                           <ExternalLink size={13} />
-                          <span>Ver Centro de Mensajes</span>
+                          <span>Ver todas las notificaciones</span>
                         </button>
                       </div>
                     )}
@@ -507,7 +512,7 @@ const Layout = ({ user, onLogout }) => {
                 <p
                   className="text-xs font-black truncate max-w-[130px] font-heading text-slate-100"
                 >
-                  {user?.names || user?.username || "Usuario"}
+                  {[user?.names, user?.surnames].filter(Boolean).join(' ').trim() || user?.username || "Usuario"}
                 </p>
                 <span className={`inline-block px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${roleBadge.color}`}>
                   {roleBadge.label}

@@ -76,7 +76,7 @@ const StoreList = () => {
     fetchStores();
   }, []);
 
-  const filteredStores = stores.filter(s =>
+  const filteredStores = (Array.isArray(stores) ? stores : []).filter(s =>
     (s.name && s.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (s.address && s.address.toLowerCase().includes(searchTerm.toLowerCase()))
   );
@@ -90,10 +90,18 @@ const StoreList = () => {
         radius: 10
       };
       const resp = await storeService.getNearbyBranches(params);
-      if (resp.data.exito) {
-        setStores(resp.data.resultado || []);
-        setHasSearched(true);
+      const nearby = Array.isArray(resp.data?.resultado) ? resp.data.resultado : [];
+
+      if (nearby.length > 0) {
+        setStores(nearby);
+      } else {
+        /* Si no hay sucursales en el radio, se listan las activas de la plataforma
+           para no dejar la vista vacía aunque el usuario no esté en la zona. */
+        const all = await storeService.getBranches().catch(() => null);
+        const list = Array.isArray(all?.data?.resultado) ? all.data.resultado : [];
+        setStores(list);
       }
+      setHasSearched(true);
     } catch (error) {
       console.error('Error fetching stores:', error);
     } finally {
@@ -220,7 +228,7 @@ const StoreList = () => {
                       </h3>
                       <p className="text-xs font-semibold mt-1 flex items-center gap-1.5" style={{ color: 'var(--text-secondary)' }}>
                         <MapPin size={13} style={{ color: 'var(--primary)' }} />
-                        <span className="truncate">{store.address || store.city || 'Trujillo'}</span>
+                        <span className="truncate">{store.address || store.city || 'Lima Centro'}</span>
                       </p>
                     </div>
                   </div>
@@ -331,11 +339,11 @@ const StoreList = () => {
               <MapPin size={18} />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+              <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>
                 Zona Seleccionada
               </p>
               <p className="text-xs font-bold truncate max-w-[200px]" style={{ color: 'var(--text-primary)' }}>
-                {userLocation.address ? userLocation.address.split(',')[0] : 'Trujillo'}
+                {userLocation.address ? userLocation.address.split(',')[0] : 'Lima Centro'}
               </p>
             </div>
           </div>

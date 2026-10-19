@@ -6,6 +6,7 @@ import {
   AlertCircle, ChevronRight, Store, Upload
 } from "lucide-react";
 import { authService, storeService } from "../services/api";
+import { mediaUrl } from "../services/formatters";
 import toast from "react-hot-toast";
 import { useTheme } from "../context/ThemeContext";
 
@@ -32,6 +33,43 @@ const InputField = ({ label, name, type = "text", placeholder, value, onChange, 
     </div>
   </div>
 );
+
+/* El backend no tiene columnas `specialties` ni `hourly_rate` para usuarios: solo
+   existen en `sucursales`. Ambas apps (web y Android) filtran técnicos por
+   `specialties || description`, así que se persisten dentro de `description`
+   con un formato estructurado que se puede volver a leer. */
+const SPECIALTIES_TAG = "Especialidades:";
+const RATE_TAG = "Tarifa base:";
+
+export const buildDescription = (formData) => {
+  const bio = (formData.bio || formData.description || "").trim();
+  const specs = (formData.specialties || "").trim();
+  const rate = (formData.hourly_rate || "").toString().trim();
+  const extras = [];
+  if (specs) extras.push(`${SPECIALTIES_TAG} ${specs}`);
+  if (rate) extras.push(`${RATE_TAG} S/ ${rate}`);
+  if (!extras.length) return bio;
+  return bio ? `${bio}\n\n${extras.join("\n")}` : extras.join("\n");
+};
+
+export const parseDescription = (description = "") => {
+  const text = String(description || "");
+  const lines = text.split("\n");
+  const clean = [];
+  let specialties = "";
+  let hourly_rate = "";
+  lines.forEach((line) => {
+    const t = line.trim();
+    if (t.startsWith(SPECIALTIES_TAG)) {
+      specialties = t.slice(SPECIALTIES_TAG.length).trim();
+    } else if (t.startsWith(RATE_TAG)) {
+      hourly_rate = t.slice(RATE_TAG.length).replace("S/", "").trim();
+    } else {
+      clean.push(line);
+    }
+  });
+  return { bio: clean.join("\n").trim(), specialties, hourly_rate };
+};
 
 const ProfileEdit = () => {
   const { isDark } = useTheme();
@@ -63,6 +101,7 @@ const ProfileEdit = () => {
     authService.getProfile().then(res => {
       if (res.data?.exito && res.data?.resultado) {
         const u = res.data.resultado;
+        const parsed = parseDescription(u.description || "");
         const merged = { ...user, ...u };
         setUser(merged);
         localStorage.setItem("user", JSON.stringify(merged));
@@ -73,8 +112,9 @@ const ProfileEdit = () => {
           email: u.email || prev.email,
           phone: u.phone || prev.phone,
           city: u.city || prev.city,
-          bio: u.description || u.bio || prev.bio,
-          specialties: u.specialties || prev.specialties,
+          bio: parsed.bio || prev.bio,
+          specialties: parsed.specialties || prev.specialties,
+          hourly_rate: parsed.hourly_rate || prev.hourly_rate,
           address: u.address || prev.address,
         }));
       }
@@ -116,18 +156,14 @@ const ProfileEdit = () => {
         const updated = { ...user, profile_image_url: newUrl };
         localStorage.setItem("user", JSON.stringify(updated));
         setUser(updated);
+        window.dispatchEvent(new CustomEvent('jyp:user-updated', { detail: updated }));
         toast.success("Foto de perfil actualizada con éxito", { id: toastId });
       } else {
         toast.error(res.data?.mensaje || "Error al subir foto", { id: toastId });
       }
     } catch (err) {
       console.error("Photo upload error:", err);
-      // Fallback local preview if mock or backend error
-      const localUrl = URL.createObjectURL(file);
-      const updated = { ...user, profile_image_url: localUrl };
-      localStorage.setItem("user", JSON.stringify(updated));
-      setUser(updated);
-      toast.success("Foto actualizada", { id: toastId });
+      toast.error(err.response?.data?.mensaje || "No se pudo subir la foto de perfil", { id: toastId });
     } finally {
       setUploadingPhoto(false);
     }
@@ -143,7 +179,7 @@ const ProfileEdit = () => {
         surnames: formData.surnames?.trim(),
         city: formData.city?.trim(),
         address: formData.address?.trim(),
-        description: (formData.bio || formData.description || "")?.trim(),
+        description: buildDescription(formData),
       };
 
       if (formData.companyName?.trim()) payload.companyName = formData.companyName.trim();
@@ -160,9 +196,16 @@ const ProfileEdit = () => {
 
       const res = await authService.updateProfile(payload);
       if (res.data?.exito) {
-        const updated = { ...user, ...formData };
+        const updated = {
+          ...user,
+          ...formData,
+          description: payload.description,
+          profile_image_url: user.profile_image_url,
+        };
         localStorage.setItem("user", JSON.stringify(updated));
         setUser(updated);
+        /* Avisa al App para que el header (chip de usuario/rol) se actualice sin recargar */
+        window.dispatchEvent(new CustomEvent('jyp:user-updated', { detail: updated }));
         setSaved(true);
         toast.success("Perfil actualizado correctamente");
         setTimeout(() => setSaved(false), 3000);
@@ -259,7 +302,7 @@ const ProfileEdit = () => {
           >
             {user.profile_image_url ? (
               <img
-                src={user.profile_image_url.startsWith('http') ? user.profile_image_url : `/api${user.profile_image_url}`}
+                src={mediaUrl(user.profile_image_url)}
                 alt="Avatar"
                 className="w-full h-full object-cover"
                 onError={(e) => {

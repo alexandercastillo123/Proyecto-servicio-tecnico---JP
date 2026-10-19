@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 import { clientService, techService } from '../services/api';
 import { useSocket } from '../context/SocketContext';
+import { toast } from 'react-hot-toast';
+import { formatDateLong } from '../services/formatters';
+import CulqiPaymentModal from './common/CulqiPaymentModal';
 
 import { TechLoader } from './common/TechLoader';
 
@@ -21,6 +24,7 @@ const AppointmentDetails = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [priceInput, setPriceInput] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCulqiModal, setShowCulqiModal] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('yape');
   const [currentUser] = useState(JSON.parse(localStorage.getItem('user')));
 
@@ -72,9 +76,11 @@ const AppointmentDetails = () => {
     setActionLoading(true);
     try {
       await techService.setPrice(id, priceInput);
+      toast.success('Presupuesto enviado al cliente');
       fetchDetails();
     } catch (error) {
       console.error('Error setting price:', error);
+      toast.error(error.response?.data?.mensaje || 'No se pudo guardar el presupuesto');
     } finally {
       setActionLoading(false);
     }
@@ -84,9 +90,11 @@ const AppointmentDetails = () => {
     setActionLoading(true);
     try {
       await techService.updateStatus(id, newStatus);
+      toast.success('Estado de la cita actualizado');
       fetchDetails();
     } catch (error) {
       console.error('Error updating status:', error);
+      toast.error(error.response?.data?.mensaje || 'No se pudo actualizar el estado');
     } finally {
       setActionLoading(false);
     }
@@ -96,10 +104,12 @@ const AppointmentDetails = () => {
     setActionLoading(true);
     try {
       await clientService.payAppointment(id, paymentMethod);
+      toast.success('Pago registrado. Esperando confirmación del técnico.');
       setShowPaymentModal(false);
       fetchDetails();
     } catch (error) {
       console.error('Error paying:', error);
+      toast.error(error.response?.data?.mensaje || 'No se pudo registrar el pago');
     } finally {
       setActionLoading(false);
     }
@@ -109,9 +119,25 @@ const AppointmentDetails = () => {
     setActionLoading(true);
     try {
       await techService.confirmPayment(id);
+      toast.success('Pago confirmado');
       fetchDetails();
     } catch (error) {
       console.error('Error confirming payment:', error);
+      toast.error(error.response?.data?.mensaje || 'No se pudo confirmar el pago');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleConfirmCompletion = async () => {
+    setActionLoading(true);
+    try {
+      await clientService.confirmCompletion(id);
+      toast.success('Trabajo confirmado. ¡Gracias por tu confianza!');
+      fetchDetails();
+    } catch (error) {
+      console.error('Error confirming completion:', error);
+      toast.error(error.response?.data?.mensaje || 'No se pudo confirmar la finalización');
     } finally {
       setActionLoading(false);
     }
@@ -153,8 +179,36 @@ const AppointmentDetails = () => {
     );
   }
 
-  const otherUser = currentUser?.role === 'client' ? appt.technician : appt.client;
-  const isTech = currentUser?.role === 'tech';
+  const userRole = currentUser?.role;
+  const isTech = userRole === 'tech' || userRole === 'store';
+  const isClient = userRole === 'client';
+
+  /* El backend devuelve los datos del otro usuario "aplanados" (client_names, tech_names…),
+     no como objetos anidados, por eso se reconstruyen aquí. */
+  const otherUser = isClient
+    ? {
+        id: appt.technician_id,
+        names: appt.tech_names,
+        surnames: appt.tech_surnames,
+        username: appt.tech_username,
+        phone: appt.tech_phone,
+        email: appt.tech_email,
+      }
+    : {
+        id: appt.client_id,
+        names: appt.client_names,
+        surnames: appt.client_surnames,
+        username: appt.client_username,
+        phone: appt.client_phone,
+        email: appt.client_email,
+      };
+
+  const otherUserName =
+    [otherUser.names, otherUser.surnames].filter(Boolean).join(' ').trim() ||
+    otherUser.username ||
+    (isClient ? 'Técnico Especialista' : 'Cliente');
+
+  const serviceAddress = appt.service_address || appt.address || null;
 
   const getStatusBadge = (status) => {
     const config = {
@@ -213,16 +267,16 @@ const AppointmentDetails = () => {
               </p>
               <div className="pt-4 border-t flex flex-wrap gap-8" style={{ borderColor: 'var(--border)' }}>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>
                     Fecha Programada
                   </p>
                   <p className="font-bold text-sm flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
                     <Calendar size={15} style={{ color: 'var(--primary)' }} />
-                    {new Date(appt.scheduled_date).toLocaleDateString()}
+                    {formatDateLong(appt.scheduled_date)}
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>
                     Hora
                   </p>
                   <p className="font-bold text-sm flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
@@ -231,12 +285,12 @@ const AppointmentDetails = () => {
                   </p>
                 </div>
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>
                     Ubicación
                   </p>
                   <p className="font-bold text-sm flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
                     <MapPin size={15} style={{ color: 'var(--primary)' }} />
-                    {appt.address || 'Servicio en Taller / Local'}
+                    {serviceAddress || 'Servicio en Taller / Local'}
                   </p>
                 </div>
               </div>
@@ -257,7 +311,7 @@ const AppointmentDetails = () => {
                 className="p-6 rounded-2xl border"
                 style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
               >
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[10px] font-bold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-dim)' }}>
                   Monto del Servicio
                 </p>
                 {isTech && appt.status === 'pending' ? (
@@ -293,7 +347,7 @@ const AppointmentDetails = () => {
                 className="p-6 rounded-2xl border"
                 style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
               >
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-muted)' }}>
+                <p className="text-[10px] font-bold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-dim)' }}>
                   Estado del Pago
                 </p>
                 <div className="flex items-center gap-2.5 mt-2">
@@ -335,13 +389,13 @@ const AppointmentDetails = () => {
                 className="w-20 h-20 rounded-3xl flex items-center justify-center font-bold text-2xl text-white mb-4 shadow-lg"
                 style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #00C6FF 100%)' }}
               >
-                {otherUser?.names?.[0] || 'U'}
+                {otherUser?.names?.[0]?.toUpperCase() || otherUserName?.[0]?.toUpperCase() || 'U'}
               </div>
               <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--primary)' }}>
                 {isTech ? 'Cliente' : 'Técnico Especialista'}
               </p>
               <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-                {otherUser?.names} {otherUser?.surnames}
+                {otherUserName}
               </h3>
             </div>
             
@@ -465,8 +519,8 @@ const AppointmentDetails = () => {
                     <span>Esperando a que el técnico proporcione el presupuesto.</span>
                   </div>
                 )}
-                {appt.status !== 'pending' && appt.price && appt.payment_status === 'pending' && (
-                  <button 
+                {appt.price && appt.payment_status === 'pending' && appt.status !== 'cancelled' && (
+                  <button
                     onClick={() => setShowPaymentModal(true)}
                     className="w-full py-4 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-xl shadow-emerald-600/25 flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform"
                     style={{ backgroundColor: '#16A34A' }}
@@ -485,8 +539,54 @@ const AppointmentDetails = () => {
                     Estoy En Camino al Local
                   </button>
                 )}
+                {appt.status === 'on_the_way' && appt.service_type === 'local' && (
+                  <button
+                    onClick={() => handleUpdateStatus('arrived')}
+                    disabled={actionLoading}
+                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg"
+                    style={{ backgroundColor: '#06B6D4' }}
+                  >
+                    He Llegado al Local
+                  </button>
+                )}
+                {appt.status === 'completed' && !appt.client_confirmed_completion && (
+                  <button
+                    onClick={handleConfirmCompletion}
+                    disabled={actionLoading}
+                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg transition-all hover:opacity-90"
+                    style={{ backgroundColor: '#16A34A' }}
+                  >
+                    Confirmar Trabajo Terminado
+                  </button>
+                )}
+                {appt.status === 'completed' && appt.client_confirmed_completion && (
+                  <div
+                    className="p-4 rounded-2xl border flex items-start gap-3 text-xs"
+                    style={{
+                      backgroundColor: 'rgba(34, 197, 94, 0.08)',
+                      borderColor: 'rgba(34, 197, 94, 0.25)',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
+                    <CheckCircle2 size={18} className="shrink-0 mt-0.5" style={{ color: '#22C55E' }} />
+                    <span>Trabajo finalizado y confirmado por el cliente.</span>
+                  </div>
+                )}
+                {appt.payment_status === 'waiting_confirmation' && (
+                  <div
+                    className="p-4 rounded-2xl border flex items-start gap-3 text-xs"
+                    style={{
+                      backgroundColor: 'rgba(6, 182, 212, 0.08)',
+                      borderColor: 'rgba(6, 182, 212, 0.25)',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
+                    <ShieldCheck size={18} className="shrink-0 mt-0.5" style={{ color: '#06B6D4' }} />
+                    <span>Tu pago fue registrado y está esperando la confirmación del técnico.</span>
+                  </div>
+                )}
                 {appt.status !== 'completed' && appt.status !== 'cancelled' && (
-                  <button 
+                  <button
                     onClick={handleCancel}
                     disabled={actionLoading}
                     className="w-full py-3 rounded-2xl font-bold text-xs text-red-500 transition-colors hover:bg-red-500/10 border border-transparent hover:border-red-500/20"
@@ -539,11 +639,22 @@ const AppointmentDetails = () => {
                         boxShadow: isSel ? '0 4px 15px rgba(37,99,235,0.25)' : 'none'
                       }}
                     >
-                      {method}
+                      {method === 'transfer' ? 'Transferencia' : method === 'cash' ? 'Efectivo' : method}
                     </button>
                   );
                 })}
               </div>
+
+              <button
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  setShowCulqiModal(true);
+                }}
+                className="w-full py-3.5 rounded-2xl border border-blue-500/30 bg-blue-600/10 text-blue-300 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:bg-blue-600/20"
+              >
+                <CreditCard size={15} />
+                Pagar con tarjeta (Culqi)
+              </button>
 
               <div 
                 className="p-6 rounded-2xl border text-center"
@@ -551,7 +662,7 @@ const AppointmentDetails = () => {
               >
                 {paymentMethod === 'yape' || paymentMethod === 'plin' ? (
                   <div className="space-y-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>
                       Número receptor
                     </p>
                     <p className="text-2xl font-black" style={{ color: 'var(--primary)' }}>987 654 321</p>
@@ -559,9 +670,9 @@ const AppointmentDetails = () => {
                   </div>
                 ) : paymentMethod === 'transfer' ? (
                   <div className="space-y-2 text-xs text-left">
-                    <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>Banco:</span> <span className="font-bold" style={{ color: 'var(--text-primary)' }}>BCP</span></div>
-                    <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>Cuenta:</span> <span className="font-bold" style={{ color: 'var(--text-primary)' }}>191-98765432-0-12</span></div>
-                    <div className="flex justify-between"><span style={{ color: 'var(--text-muted)' }}>CCI:</span> <span className="font-bold" style={{ color: 'var(--text-primary)' }}>00219119876543201254</span></div>
+                    <div className="flex justify-between"><span style={{ color: 'var(--text-dim)' }}>Banco:</span> <span className="font-bold" style={{ color: 'var(--text-primary)' }}>BCP</span></div>
+                    <div className="flex justify-between"><span style={{ color: 'var(--text-dim)' }}>Cuenta:</span> <span className="font-bold" style={{ color: 'var(--text-primary)' }}>191-98765432-0-12</span></div>
+                    <div className="flex justify-between"><span style={{ color: 'var(--text-dim)' }}>CCI:</span> <span className="font-bold" style={{ color: 'var(--text-primary)' }}>00219119876543201254</span></div>
                   </div>
                 ) : (
                   <div>
@@ -596,6 +707,15 @@ const AppointmentDetails = () => {
           </div>
         )}
       </AnimatePresence>
+
+      <CulqiPaymentModal
+        open={showCulqiModal}
+        onClose={() => setShowCulqiModal(false)}
+        amount={appt?.price}
+        type="appointment"
+        entityId={id}
+        onSuccess={fetchDetails}
+      />
     </div>
   );
 };

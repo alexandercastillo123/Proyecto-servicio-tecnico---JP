@@ -13,6 +13,8 @@ import { techService, messageService, authService } from "../services/api";
 import { useNavigate } from "react-router-dom";
 import { useSocket } from "../context/SocketContext";
 import { TechLoader } from "./common/TechLoader";
+import { formatDateShort } from "../services/formatters";
+import { toast } from "react-hot-toast";
 
 /* ── Status color map ──────────────────────────────────────────── */
 const STATUS = {
@@ -67,7 +69,13 @@ const StatCard = ({ icon: Icon, label, value, sublabel, color, delay }) => (
 /* ── Appointment Row Component ─────────────────────────────────── */
 const ApptRow = ({ appt, navigate }) => {
   const st = STATUS[appt.status] || { label: appt.status, cls: "status-badge" };
-  const clientName = appt.clientName || appt.client_name || "Cliente Solicitante";
+  const clientName =
+    [appt.client_names, appt.client_surnames].filter(Boolean).join(" ").trim() ||
+    appt.client_username ||
+    "Cliente Solicitante";
+  const scheduledDate = appt.scheduled_date || appt.scheduledDate;
+  const scheduledTime = appt.scheduled_time || appt.scheduledTime;
+  const serviceAddress = appt.service_address || appt.location_address;
 
   return (
     <motion.div
@@ -86,7 +94,7 @@ const ApptRow = ({ appt, navigate }) => {
           </div>
           <div className="min-w-0">
             <h4 className="text-base font-bold text-white truncate group-hover:text-blue-400 transition-colors">
-              {appt.serviceType || appt.service_type || "Mantenimiento & Reparación"}
+              {appt.description || (appt.service_type === "domicilio" ? "Servicio a domicilio" : "Atención en local")}
             </h4>
             <p className="text-xs text-slate-400 truncate mt-1">
               Cliente: <span className="text-slate-300 font-semibold">{clientName}</span>
@@ -99,15 +107,15 @@ const ApptRow = ({ appt, navigate }) => {
         </div>
       </div>
 
-      {appt.scheduled_at && (
+      {scheduledDate && (
         <div className="flex items-center gap-2 mt-4 pt-3 border-t border-white/5 text-xs text-slate-400">
           <Clock size={13} className="text-cyan-400 shrink-0" />
-          <span>{new Date(appt.scheduled_at).toLocaleString("es-PE", { dateStyle: "medium", timeStyle: "short" })}</span>
-          {appt.location_address && (
+          <span>{formatDateShort(scheduledDate)} · {String(scheduledTime || "").slice(0, 5)}</span>
+          {serviceAddress && (
             <>
               <span className="text-slate-600">·</span>
               <MapPin size={13} className="text-blue-400 shrink-0" />
-              <span className="truncate max-w-[280px]">{appt.location_address}</span>
+              <span className="truncate max-w-[280px]">{serviceAddress}</span>
             </>
           )}
         </div>
@@ -150,9 +158,9 @@ const TechDashboard = () => {
         authService.getProfile().catch(() => ({ data: {} })),
       ]);
       if (apptsResp.data?.exito) {
-        const appts = apptsResp.data.resultado || [];
+        const appts = Array.isArray(apptsResp.data.resultado) ? apptsResp.data.resultado : [];
         setAppointments(appts);
-        setActiveAppointment(appts.find(a => ["confirmed", "paid", "in_progress", "on_the_way"].includes(a.status)));
+        setActiveAppointment(appts.find(a => ["confirmed", "in_progress", "on_the_way", "arrived"].includes(a.status)));
       }
       if (convsResp.data?.exito) setConversations(convsResp.data.resultado || []);
       if (profileResp.data?.exito) {
@@ -167,15 +175,21 @@ const TechDashboard = () => {
     setTogglingAvailability(true);
     try {
       const res = await techService.toggleAvailability(!isAvailable);
-      if (res.data?.exito) setIsAvailable(!isAvailable);
-    } catch (err) { console.error(err); }
-    finally { setTogglingAvailability(false); }
+      if (res.data?.exito) {
+        setIsAvailable(!isAvailable);
+        toast.success(!isAvailable ? 'Ahora estás disponible para recibir citas' : 'Ahora estás inactivo');
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.mensaje || 'No se pudo cambiar tu disponibilidad');
+    } finally { setTogglingAvailability(false); }
   };
 
   const pending   = appointments.filter(a => a.status === "pending");
-  const confirmed = appointments.filter(a => ["confirmed", "paid", "in_progress"].includes(a.status));
+  const confirmed = appointments.filter(a => ["confirmed", "in_progress", "on_the_way", "arrived"].includes(a.status));
   const completed = appointments.filter(a => a.status === "completed");
-  const totalEarned = completed.reduce((s, a) => s + (parseFloat(a.price) || 85), 0);
+  /* Sin precio no se inventa un monto: se suma solo lo realmente cobrado */
+  const totalEarned = completed.reduce((s, a) => s + (parseFloat(a.price) || 0), 0);
   const todayAppts = appointments.filter(a => {
     if (!a.scheduled_at) return false;
     const d = new Date(a.scheduled_at);
@@ -433,7 +447,7 @@ const TechDashboard = () => {
               ) : (
                 conversations.slice(0, 3).map((conv, i) => (
                   <div
-                    key={conv.conversation_id || i}
+                    key={conv.other_user_id || i}
                     onClick={() => navigate(`/chat?user=${conv.other_user_id}`)}
                     className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-3.5 border border-white/5"
                   >
@@ -442,7 +456,7 @@ const TechDashboard = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-bold text-white truncate">{conv.username}</p>
-                      <p className="text-[11px] text-slate-400 truncate mt-0.5">{conv.last_message || "Iniciar chat..."}</p>
+                      <p className="text-[11px] text-slate-400 truncate mt-0.5">{conv.last_message_text || "Iniciar chat..."}</p>
                     </div>
                   </div>
                 ))

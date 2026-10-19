@@ -4,11 +4,13 @@ import { ShieldCheck, ArrowLeft, AlertCircle, Info, Cpu, Sun, Moon, CheckCircle2
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import { toast } from 'react-hot-toast';
 import './Login.css';
 
 const VerifyCode = () => {
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [error, setError] = useState(null);
   const [showInfo, setShowInfo] = useState(false);
   const navigate = useNavigate();
@@ -22,6 +24,24 @@ const VerifyCode = () => {
     }
   }, [email, navigate]);
 
+  const handleResend = async () => {
+    if (!email || isResending) return;
+    setIsResending(true);
+    try {
+      const res = await authService.forgotPassword(email);
+      if (res?.exito) {
+        setError(null);
+        toast.success('Código reenviado a tu correo');
+      } else {
+        setError(res?.mensaje || 'No se pudo reenviar el código');
+      }
+    } catch (err) {
+      setError(err.response?.data?.mensaje || 'No se pudo reenviar el código');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!code) return;
@@ -31,10 +51,10 @@ const VerifyCode = () => {
 
     try {
       const response = await authService.verifyCode(email, code);
-      if (response.success || response.exito) {
+      if (response.exito) {
         navigate('/reset-password', { state: { email, code } });
       } else {
-        setError(response.message || response.mensaje || 'Código inválido o expirado');
+        setError(response.mensaje || 'Código inválido o expirado');
       }
     } catch (err) {
       setError(err.response?.data?.mensaje || err.response?.data?.message || 'Error al validar el código');
@@ -214,12 +234,13 @@ const VerifyCode = () => {
               <ArrowLeft size={14} />
               <span>Cambiar Correo</span>
             </Link>
-            <button 
-              type="button" 
-              onClick={() => alert('Si el correo es válido, el código fue reenviado')}
-              className="text-blue-400 hover:underline font-bold bg-transparent border-none cursor-pointer"
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={isResending}
+              className="text-blue-400 hover:underline font-bold bg-transparent border-none cursor-pointer disabled:opacity-50"
             >
-              Reenviar Código
+              {isResending ? 'Reenviando...' : 'Reenviar Código'}
             </button>
           </div>
         </motion.div>
