@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -8,7 +8,9 @@ import {
   Search, User, X, Star, RefreshCw
 } from 'lucide-react';
 import { clientService, storeService } from '../services/api';
+import { extractTechnicians, localDateString, toLimaDate, WEEK_DAYS } from '../services/formatters';
 import { TechLoader } from './common/TechLoader';
+import { toast } from 'react-hot-toast';
 
 const AppointmentScheduling = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -26,6 +28,19 @@ const AppointmentScheduling = () => {
   const [selectedSlot, setSelectedSlot] = useState('');
   const [description, setDescription] = useState('');
   const [serviceType, setServiceType] = useState('local');
+  const [schedule, setSchedule] = useState([]);
+  const [isStoreProvider, setIsStoreProvider] = useState(false);
+  const [location, setLocation] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('user_location') || 'null') || {
+        address: 'Lima Centro, Perú',
+        lat: -12.046374,
+        lng: -77.042793,
+      };
+    } catch {
+      return { address: 'Lima Centro, Perú', lat: -12.046374, lng: -77.042793 };
+    }
+  });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -42,14 +57,26 @@ const AppointmentScheduling = () => {
   const fetchTechniciansList = async () => {
     setLoadingTechs(true);
     try {
-      const res = await clientService.getTechnicians({ limit: 30, offset: 0 });
-      if (res.data?.exito) {
-        setTechniciansList(res.data.resultado || []);
-      }
+      const res = await clientService.getTechnicians({ page: 1, limit: 30 });
+      setTechniciansList(extractTechnicians(res));
     } catch (err) {
       console.error('Error fetching technicians list:', err);
+      setTechniciansList([]);
     } finally {
       setLoadingTechs(false);
+    }
+  };
+
+  /* Carga el horario real publicado por el técnico o la sucursal (GET .../schedule) */
+  const fetchProviderSchedule = async (id, store) => {
+    try {
+      const res = store
+        ? await storeService.getStoreSchedules(id).catch(() => null)
+        : await clientService.getTechnicianSchedule(id).catch(() => null);
+      const rows = res?.data?.resultado;
+      setSchedule(Array.isArray(rows) ? rows : []);
+    } catch {
+      setSchedule([]);
     }
   };
 
@@ -59,6 +86,9 @@ const AppointmentScheduling = () => {
       const techResp = await clientService.getTechnicianDetails(id).catch(() => null);
       if (techResp?.data?.exito) {
         setProvider(techResp.data.resultado);
+        setIsStoreProvider(false);
+        setServiceType('domicilio');
+        await fetchProviderSchedule(id, false);
       } else {
         const branchResp = await storeService.getBranchDetails(id).catch(() => null);
         if (branchResp?.data?.exito) {
@@ -68,8 +98,16 @@ const AppointmentScheduling = () => {
             user_id: b.user_id,
             names: b.name,
             surnames: '(Sucursal Oficial)',
-            city: b.city
+            city: b.city,
+            address: b.address,
+            latitude: b.latitude,
+            longitude: b.longitude,
           });
+          setIsStoreProvider(true);
+          setServiceType('local');
+          await fetchProviderSchedule(b.id, true);
+        } else {
+          setError('No se pudo cargar la información del prestador seleccionado.');
         }
       }
     } catch (err) {
@@ -79,25 +117,31 @@ const AppointmentScheduling = () => {
     }
   };
 
-  const handleSelectTechnician = (tech) => {
+  const handleSelectTechnician = async (tech) => {
     setProvider(tech);
     setSearchParams({ tech: String(tech.id || tech.user_id) });
     setShowTechPicker(false);
     setError(null);
+    setSelectedDay('');
+    setSelectedSlot('');
+    setServiceType('domicilio');
+    setIsStoreProvider(false);
+    await fetchProviderSchedule(tech.id, false);
   };
 
+  /* Calcula la próxima fecha (hora de Lima) que corresponde al día elegido.
+     Se usa la fecha local, no toISOString(), porque en Lima (UTC-5) eso adelantaba un día. */
   const getNextDateForDay = (dayName) => {
     const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const targetDayIndex = days.indexOf(dayName);
-    if (targetDayIndex === -1) return new Date().toISOString().split('T')[0];
+    if (targetDayIndex === -1) return localDateString();
 
-    const now = new Date();
-    const resultDate = new Date();
+    const now = toLimaDate();
+    const resultDate = toLimaDate();
     const diff = (targetDayIndex + 7 - now.getDay()) % 7;
-    // If it's today and past 18:00, pick next week
-    const addDays = (diff === 0 && now.getHours() >= 18) ? 7 : diff;
-    resultDate.setDate(now.getDate() + addDays);
-    return resultDate.toISOString().split('T')[0];
+    const addDays = diff === 0 && now.getHours() >= 18 ? 7 : diff;
+    resultDate.setDate(resultDate.getDate() + addDays);
+    return localDateString(resultDate);
   };
 
   const handleSubmit = async () => {
@@ -114,25 +158,47 @@ const AppointmentScheduling = () => {
     setSubmitting(true);
     setError(null);
     try {
+      /* Evita citas duplicadas activas con el mismo prestador (como en Android) */
+      const existing = await clientService.getMyAppointments().catch(() => null);
+      const mine = existing?.data?.resultado;
+      const list = Array.isArray(mine) ? mine : [];
+      const duplicate = list.find(
+        (a) =>
+          String(a.technician_id) === String(targetTechId) &&
+          ['pending', 'confirmed'].includes(a.status)
+      );
+      if (duplicate) {
+        setError('Ya tienes una cita activa con este especialista. Revisa "Mis Citas" antes de agendar otra.');
+        setSubmitting(false);
+        return;
+      }
+
       const scheduledDate = getNextDateForDay(selectedDay);
       const data = {
         technicianId: parseInt(targetTechId, 10),
         scheduledDate: scheduledDate,
         scheduledTime: selectedSlot,
         description: description?.trim() || 'Diagnóstico y reparación de equipo',
-        serviceType: serviceType || 'local'
+        serviceType: serviceType || 'local',
       };
-      
+
+      if (serviceType === 'domicilio') {
+        data.serviceLat = location.lat;
+        data.serviceLng = location.lng;
+        data.serviceAddress = location.address;
+      }
+
       const response = await clientService.createAppointment(data);
       if (response.data?.exito) {
+        toast.success('Cita registrada correctamente');
         setStep(4);
       } else {
         setError(response.data?.mensaje || 'Error al procesar la cita');
       }
     } catch (err) {
       console.error('Error creating appointment:', err);
-      const backendMsg = err.response?.data?.resultado?.[0]?.mensaje 
-        || err.response?.data?.mensaje 
+      const backendMsg = err.response?.data?.resultado?.[0]?.mensaje
+        || err.response?.data?.mensaje
         || 'Error de conexión con el servidor';
       setError(backendMsg);
     } finally {
@@ -140,8 +206,56 @@ const AppointmentScheduling = () => {
     }
   };
 
-  const days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-  const times = ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
+  /* Días disponibles: si el prestador publicó horario se usa el suyo, si no el genérico */
+  const scheduleByDay = useMemo(() => {
+    const map = {};
+    schedule.forEach((row) => {
+      const key = row.day_of_week || row.dayOfWeek;
+      if (!key) return;
+      if (!map[key]) map[key] = { active: false, start: null, end: null };
+      if (row.is_active === false || row.is_active === 0 || row.is_closed) return;
+      map[key].active = true;
+      const start = row.start_time || row.open_time;
+      const end = row.end_time || row.close_time;
+      if (start) map[key].start = String(start).slice(0, 5);
+      if (end) map[key].end = String(end).slice(0, 5);
+    });
+    return map;
+  }, [schedule]);
+
+  const hasSchedule = schedule.length > 0;
+
+  const days = useMemo(() => {
+    if (!hasSchedule) return ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    return WEEK_DAYS
+      .filter((d) => scheduleByDay[d.key]?.active)
+      .map((d) => d.label);
+  }, [hasSchedule, scheduleByDay]);
+
+  const times = useMemo(() => {
+    if (!hasSchedule || !selectedDay) {
+      return ['09:00', '10:00', '11:00', '14:00', '15:00', '16:00', '17:00'];
+    }
+    const dayKey = WEEK_DAYS.find((d) => d.label === selectedDay)?.key;
+    const info = scheduleByDay[dayKey];
+    if (!info?.start || !info?.end) return [];
+    const slots = [];
+    const [sh, sm] = info.start.split(':').map(Number);
+    const [eh, em] = info.end.split(':').map(Number);
+    let cur = sh * 60 + sm;
+    const end = eh * 60 + em;
+    while (cur <= end && slots.length < 24) {
+      slots.push(`${String(Math.floor(cur / 60)).padStart(2, '0')}:${String(cur % 60).padStart(2, '0')}`);
+      cur += 60;
+    }
+    return slots;
+  }, [hasSchedule, selectedDay, scheduleByDay]);
+
+  useEffect(() => {
+    if (selectedSlot && !times.includes(selectedSlot)) {
+      setSelectedSlot('');
+    }
+  }, [times, selectedSlot]);
 
   const filteredTechs = techniciansList.filter(t => {
     const q = searchTechTerm.toLowerCase();
@@ -359,6 +473,23 @@ const AppointmentScheduling = () => {
             </AnimatePresence>
 
             {/* Date & Slot selection */}
+            {hasSchedule && (
+              <div className="p-4 rounded-2xl border border-cyan-500/20 bg-cyan-500/5 text-[11px] text-cyan-200 flex items-start gap-2.5">
+                <Clock size={14} className="shrink-0 mt-0.5" />
+                <span>
+                  Horario publicado por el prestador:{' '}
+                  {scheduleByDay && Object.keys(scheduleByDay).length > 0
+                    ? Object.entries(scheduleByDay)
+                        .filter(([, v]) => v.active)
+                        .map(([k, v]) => {
+                          const label = WEEK_DAYS.find((d) => d.key === k)?.label || k;
+                          return `${label} ${v.start}-${v.end}`;
+                        })
+                        .join(' · ')
+                    : 'sin días activos'}
+                </span>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Day selection */}
               <div className="space-y-3">
@@ -412,6 +543,49 @@ const AppointmentScheduling = () => {
                   })}
                 </div>
               </div>
+            </div>
+
+            {/* Modalidad de atención */}
+            <div className="space-y-3">
+              <label className="text-xs font-bold uppercase tracking-wider text-blue-400 block">
+                Modalidad de Atención
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  { id: 'domicilio', label: 'Técnico a Domicilio', desc: 'El especialista se desplaza a tu ubicación', icon: MapPin },
+                  { id: 'local', label: 'Atención en Local', desc: 'Acudes a la sucursal o taller del prestador', icon: Wrench },
+                ]
+                  .filter((opt) => isStoreProvider || opt.id === 'domicilio')
+                  .map((opt) => {
+                    const Icon = opt.icon;
+                    const isSelected = serviceType === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setServiceType(opt.id)}
+                        className={`p-4 rounded-2xl border text-left transition-all ${
+                          isSelected
+                            ? 'bg-blue-600/20 border-blue-400/60 text-white'
+                            : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                        }`}
+                      >
+                        <span className="flex items-center gap-2 text-xs sm:text-sm font-bold">
+                          <Icon size={15} className={isSelected ? 'text-cyan-400' : 'text-slate-400'} />
+                          {opt.label}
+                        </span>
+                        <span className="block text-[11px] text-slate-400 mt-1 leading-relaxed">{opt.desc}</span>
+                      </button>
+                    );
+                  })}
+              </div>
+
+              {serviceType === 'domicilio' && (
+                <div className="flex items-center gap-2 text-[11px] text-slate-400 px-1">
+                  <MapPin size={12} className="text-cyan-400" />
+                  <span>Punto de servicio: <strong className="text-slate-200">{location.address}</strong></span>
+                </div>
+              )}
             </div>
 
             {error && (

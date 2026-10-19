@@ -61,11 +61,15 @@ const create = async (data, conn) => {
     );
 };
 
-const update = async (storeId, userId, fields) => {
+const update = async (storeId, userId, fields, allowAnyOwner = false) => {
     const PROTECTED = new Set(['id', 'user_id', 'created_at']);
     const updates = Object.keys(fields).filter(k => !PROTECTED.has(k)).map(k => `${k} = ?`);
-    const params = [...Object.entries(fields).filter(([k]) => !PROTECTED.has(k)).map(([, v]) => v), storeId, userId];
-    await pool.query(`UPDATE sucursales SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`, params);
+    const params = [...Object.entries(fields).filter(([k]) => !PROTECTED.has(k)).map(([, v]) => v)];
+    if (allowAnyOwner) {
+        await pool.query(`UPDATE sucursales SET ${updates.join(', ')} WHERE id = ?`, [...params, storeId]);
+        return;
+    }
+    await pool.query(`UPDATE sucursales SET ${updates.join(', ')} WHERE id = ? AND user_id = ?`, [...params, storeId, userId]);
 };
 
 const remove = async (id) => {

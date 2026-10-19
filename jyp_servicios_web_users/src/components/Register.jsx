@@ -27,10 +27,39 @@ const Register = ({ onLogin }) => {
     dni: '',
     ruc: '',
     phone: '',
-    city: 'Lima'
+    city: 'Lima',
+    referenceAddress: '',
+    schedules: [
+      { dayOfWeek: 'Monday', startTime: '08:00', endTime: '18:00', isActive: true },
+      { dayOfWeek: 'Tuesday', startTime: '08:00', endTime: '18:00', isActive: true },
+      { dayOfWeek: 'Wednesday', startTime: '08:00', endTime: '18:00', isActive: true },
+      { dayOfWeek: 'Thursday', startTime: '08:00', endTime: '18:00', isActive: true },
+      { dayOfWeek: 'Friday', startTime: '08:00', endTime: '18:00', isActive: true },
+      { dayOfWeek: 'Saturday', startTime: '09:00', endTime: '13:00', isActive: false },
+      { dayOfWeek: 'Sunday', startTime: '09:00', endTime: '13:00', isActive: false },
+    ],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const WEEK_LABELS = {
+    Monday: 'Lunes', Tuesday: 'Martes', Wednesday: 'Miércoles', Thursday: 'Jueves',
+    Friday: 'Viernes', Saturday: 'Sábado', Sunday: 'Domingo',
+  };
+
+  const toggleScheduleDay = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      schedules: prev.schedules.map((s, i) => (i === index ? { ...s, isActive: !s.isActive } : s)),
+    }));
+  };
+
+  const updateScheduleField = (index, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      schedules: prev.schedules.map((s, i) => (i === index ? { ...s, [field]: value } : s)),
+    }));
+  };
 
   const roles = [
     { 
@@ -49,14 +78,6 @@ const Register = ({ onLogin }) => {
       badge: "Profesional",
       color: "from-cyan-600 to-teal-500"
     },
-    { 
-      id: 'store', 
-      label: 'Tienda / Taller Autorizado', 
-      desc: 'Gestiono sucursal física, catálogo de repuestos, inventario y recojo en Lima.', 
-      icon: Store,
-      badge: "Empresa",
-      color: "from-purple-600 to-indigo-500"
-    },
   ];
 
   const handleRegister = async (e) => {
@@ -64,12 +85,44 @@ const Register = ({ onLogin }) => {
     setLoading(true);
     setError('');
     try {
-      const res = await authService.register(formData);
+      /* Validación previa contra el backend para avisar antes de enviar el registro */
+      const [emailCheck, usernameCheck] = await Promise.all([
+        authService.validateEmail(formData.email).catch(() => null),
+        formData.username
+          ? authService.validateUsername(formData.username).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+      if (emailCheck && emailCheck.data && emailCheck.data.exito === false) {
+        setError(emailCheck.data.mensaje || 'El correo electrónico no es válido o ya está registrado.');
+        setLoading(false);
+        return;
+      }
+      if (usernameCheck && usernameCheck.data && usernameCheck.data.exito === false) {
+        setError(usernameCheck.data.mensaje || 'El nombre de usuario ya está en uso.');
+        setLoading(false);
+        return;
+      }
+
+      const payload = { ...formData };
+      if (payload.role !== 'tech') delete payload.schedules;
+
+      const res = await authService.register(payload);
       const { token, ...rawUser } = res.data.resultado;
       const user = { ...rawUser, id: rawUser.id || rawUser.userId, userId: rawUser.userId || rawUser.id };
       localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-      onLogin(user);
+
+      /* El registro no devuelve names/surnames; se consulta el perfil para el saludo */
+      let profile = null;
+      try {
+        const profileRes = await authService.getProfile();
+        profile = profileRes.data?.resultado || null;
+      } catch (err) {
+        console.warn('No se pudo cargar el perfil tras el registro:', err);
+      }
+
+      const userWithProfile = profile ? { ...user, ...profile } : user;
+      localStorage.setItem('user', JSON.stringify(userWithProfile));
+      onLogin(userWithProfile);
     } catch (err) {
       setError(err.response?.data?.mensaje || err.response?.data?.message || err.message || 'Error al completar el registro');
     } finally {
@@ -257,14 +310,19 @@ const Register = ({ onLogin }) => {
                   })}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setStep(2)}
-                  className="btn-primary w-full py-3.5 text-xs font-black uppercase tracking-wider rounded-xl mt-4 shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Continuar con Datos Personales</span>
-                  <ArrowRight size={15} />
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setStep(2)}
+                    className="btn-primary w-full py-3.5 text-xs font-black uppercase tracking-wider rounded-xl mt-4 shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <span>Continuar con Datos Personales</span>
+                    <ArrowRight size={15} />
+                  </button>
+
+                  <p className="text-[11px] text-slate-500 text-center mt-4 leading-relaxed">
+                    ¿Tienes una sucursal o taller autorizado? Tu cuenta de tienda se habilita por
+                    administración y luego registras tu local desde el panel de tienda.
+                  </p>
               </motion.div>
             )}
 
@@ -418,6 +476,75 @@ const Register = ({ onLogin }) => {
                           placeholder="01 456 7890"
                           className="w-full rounded-xl border border-white/10 bg-[#141a26] py-2.5 px-3.5 text-xs text-white placeholder-gray-500 outline-none focus:border-blue-500"
                         />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Campos exclusivos del técnico: dirección de referencia y horarios */}
+                  {formData.role === 'tech' && (
+                    <div className="space-y-3.5 pt-2 border-t border-white/5">
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                          Dirección de Referencia
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.referenceAddress}
+                          onChange={(e) => setFormData({ ...formData, referenceAddress: e.target.value })}
+                          placeholder="Ej: Av. Arequipa 1234, Miraflores (referencia para llegar a tu taller)"
+                          className="w-full rounded-xl border border-white/10 bg-[#141a26] py-2.5 px-3.5 text-xs text-white placeholder-gray-500 outline-none focus:border-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                          Horarios de Atención
+                        </label>
+                        <div className="space-y-1.5">
+                          {formData.schedules.map((slot, index) => (
+                            <div
+                              key={slot.dayOfWeek}
+                              className="flex items-center gap-2.5 p-2 rounded-xl bg-black/20 border border-white/5"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => toggleScheduleDay(index)}
+                                className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
+                                  slot.isActive ? 'bg-blue-600' : 'bg-white/10'
+                                }`}
+                                aria-label={`Activar ${WEEK_LABELS[slot.dayOfWeek]}`}
+                              >
+                                <div
+                                  className={`absolute top-0.5 w-4 h-4 bg-white rounded-full transition-all ${
+                                    slot.isActive ? 'left-5' : 'left-0.5'
+                                  }`}
+                                />
+                              </button>
+                              <span className="text-[11px] font-bold text-slate-300 w-20 shrink-0">
+                                {WEEK_LABELS[slot.dayOfWeek]}
+                              </span>
+                              {slot.isActive ? (
+                                <div className="flex items-center gap-1.5 flex-1">
+                                  <input
+                                    type="time"
+                                    value={slot.startTime}
+                                    onChange={(e) => updateScheduleField(index, 'startTime', e.target.value)}
+                                    className="flex-1 rounded-lg border border-white/10 bg-[#141a26] px-2 py-1.5 text-[11px] text-white outline-none focus:border-blue-500"
+                                  />
+                                  <span className="text-slate-600 text-[11px]">a</span>
+                                  <input
+                                    type="time"
+                                    value={slot.endTime}
+                                    onChange={(e) => updateScheduleField(index, 'endTime', e.target.value)}
+                                    className="flex-1 rounded-lg border border-white/10 bg-[#141a26] px-2 py-1.5 text-[11px] text-white outline-none focus:border-blue-500"
+                                  />
+                                </div>
+                              ) : (
+                                <span className="text-[11px] text-slate-600 italic flex-1">Cerrado</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   )}

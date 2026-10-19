@@ -22,7 +22,7 @@
   --jyp-text-title: #f8fafc;
   --jyp-text-body: #cbd5e1;
   --jyp-text-muted: #94a3b8;
-  --jyp-text-dim: #64748b;
+  --jyp-text-dim: #94a3b8;
 
   --jyp-shadow-card: 0 24px 60px rgba(0, 0, 0, 0.28);
   --jyp-shadow-hover: 0 28px 75px rgba(0, 0, 0, 0.38), 0 0 35px rgba(37, 99, 235, 0.14);
@@ -44,7 +44,7 @@
   --jyp-text-title: #0f172a;
   --jyp-text-body: #334155;
   --jyp-text-muted: #64748b;
-  --jyp-text-dim: #94a3b8;
+  --jyp-text-dim: #64748b;
 
   --jyp-shadow-card: 0 16px 40px rgba(15, 23, 42, 0.08);
   --jyp-shadow-hover: 0 22px 50px rgba(15, 23, 42, 0.14);
@@ -102,7 +102,7 @@
 
 .jyp-section-subtitle {
   font-size: 0.875rem;
-  color: var(--jyp-text-muted);
+  color: var(--jyp-text-dim);
   line-height: 1.6;
   margin: 0;
   font-weight: 400;
@@ -309,7 +309,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--jyp-text-muted);
+  color: var(--jyp-text-dim);
   margin: 0 0 0.25rem;
   line-height: 1.3;
 }
@@ -341,7 +341,7 @@
   font-weight: 600;
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid var(--jyp-border);
-  color: var(--jyp-text-muted);
+  color: var(--jyp-text-dim);
   cursor: pointer;
   transition: all 180ms ease;
   white-space: nowrap;
@@ -491,7 +491,7 @@
   border-radius: 14px;
   background: var(--jyp-bg-card);
   border: 1px solid var(--jyp-border);
-  color: var(--jyp-text-muted);
+  color: var(--jyp-text-dim);
   cursor: pointer;
   transition: all 180ms ease;
   flex-shrink: 0;
@@ -512,7 +512,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--jyp-text-muted);
+  color: var(--jyp-text-dim);
   margin-bottom: 0.5rem;
 }
 
@@ -568,7 +568,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.09em;
-  color: var(--jyp-text-muted);
+  color: var(--jyp-text-dim);
   border-bottom: 1px solid var(--jyp-border);
   background: rgba(255, 255, 255, 0.02);
   white-space: nowrap;
@@ -627,7 +627,7 @@
 
 .jyp-empty-text {
   font-size: 0.84rem;
-  color: var(--jyp-text-muted);
+  color: var(--jyp-text-dim);
   margin: 0;
   line-height: 1.6;
   max-width: 26rem;
@@ -669,7 +669,7 @@
   border-radius: 12px;
   background: transparent;
   border: 1px solid var(--jyp-border);
-  color: var(--jyp-text-muted);
+  color: var(--jyp-text-dim);
   cursor: pointer;
   transition: all 180ms ease;
 }
@@ -709,6 +709,6 @@
 
 .jyp-modal-subtitle {
   font-size: 0.8125rem;
-  color: var(--jyp-text-muted);
+  color: var(--jyp-text-dim);
   margin: 0.2rem 0 0;
 }

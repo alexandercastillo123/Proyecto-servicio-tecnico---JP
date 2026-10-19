@@ -7,6 +7,7 @@ import {
   Clock, Sparkles, CheckCircle2 
 } from 'lucide-react';
 import { clientService } from '../services/api.js';
+import { extractSpecialties, formatDistance } from '../services/formatters';
 import { Link, useNavigate } from 'react-router-dom';
 
 // Fix for Leaflet marker icons
@@ -138,9 +139,10 @@ const TechnicianList = ({ userLocation, onLocationUpdate, isStandalone = true })
   // Filtered technician list
   const filteredTechnicians = technicians.filter(tech => {
     const fullName = `${tech.names || ''} ${tech.surnames || ''} ${tech.company_name || ''}`.toLowerCase();
-    const specialties = (tech.specialties || '').toLowerCase();
+    const specialties = extractSpecialties(tech).join(' ').toLowerCase();
     const matchesQuery = !searchQuery || fullName.includes(searchQuery.toLowerCase()) || specialties.includes(searchQuery.toLowerCase());
-    const matchesAvailable = !filterAvailableOnly || tech.is_available === 1;
+    /* El endpoint /nearby ya filtra por is_available, por eso todo lo listado está disponible */
+    const matchesAvailable = !filterAvailableOnly || tech.is_available === undefined || tech.is_available === 1 || tech.is_available === true;
     const matchesRating = !filterMinRating || (parseFloat(tech.rating || 5.0) >= filterMinRating);
     return matchesQuery && matchesAvailable && matchesRating;
   });
@@ -267,10 +269,12 @@ const TechnicianList = ({ userLocation, onLocationUpdate, isStandalone = true })
             </div>
           ) : filteredTechnicians.length > 0 ? (
             filteredTechnicians.map((tech) => {
-              const isAvailable = tech.is_available === 1;
+              /* /nearby ya devuelve únicamente técnicos disponibles */
+              const isAvailable = tech.is_available === undefined || tech.is_available === 1 || tech.is_available === true;
               const rating = tech.rating ? parseFloat(tech.rating).toFixed(1) : '5.0';
               const name = `${tech.names || ''} ${tech.surnames || ''}`.trim() || tech.company_name || 'Especialista Técnico';
-              const distanceKm = tech.distance ? `${parseFloat(tech.distance).toFixed(1)} km` : null;
+              const distanceKm = formatDistance(tech.distance_km ?? tech.distance);
+              const specialties = extractSpecialties(tech);
 
               return (
                 <div
@@ -330,14 +334,14 @@ const TechnicianList = ({ userLocation, onLocationUpdate, isStandalone = true })
                       </div>
 
                       {/* Specialty tags */}
-                      {tech.specialties && (
+                      {specialties.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mt-2.5">
-                          {String(tech.specialties).split(',').slice(0, 2).map((sp, i) => (
+                          {specialties.slice(0, 3).map((sp, i) => (
                             <span
                               key={i}
                               className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-500/10 text-blue-300 border border-blue-500/20"
                             >
-                              {sp.trim()}
+                              {sp}
                             </span>
                           ))}
                         </div>

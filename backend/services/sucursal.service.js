@@ -69,11 +69,13 @@ const createStore = async (requestUser, body) => {
     }
 };
 
-const updateStore = async (storeId, userId, fields) => {
+const updateStore = async (storeId, userId, fields, requestUserRole) => {
+    /* El dueño de la sucursal puede editarla; el administrador también, porque su
+       panel es el que da de alta y configura los puntos autorizados. */
     const owns = await sucursalRepo.ownsStore(storeId, userId);
-    if (!owns) throw new AppError('No autorizado.', 403);
+    if (!owns && requestUserRole !== 'admin') throw new AppError('No autorizado.', 403);
     if (Object.keys(fields).length === 0) throw new AppError('No hay campos para actualizar.', 400);
-    await sucursalRepo.update(storeId, userId, fields);
+    await sucursalRepo.update(storeId, userId, fields, requestUserRole === 'admin');
 };
 
 const deleteStore = async (storeId) => sucursalRepo.remove(storeId);

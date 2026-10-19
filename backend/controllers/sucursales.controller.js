@@ -51,8 +51,24 @@ const updateStoreStatus = asyncHandler(async (req, res) => {
 const uploadStoreImage = asyncHandler(async (req, res) => {
     if (!req.file) return res.status(400).json(Respuesta.fail('Por favor, selecciona una imagen válida.'));
     const fileUrl = upload.getRelativePath(req.file);
-    await sucursalService.updateStore(req.user.id, req.user.id, { image_url: fileUrl }).catch(() => {});
-    res.json(Respuesta.ok({ url: fileUrl }, 'Imagen subida correctamente.'));
+
+    /* La imagen debe quedar asociada a una sucursal real. El admin actúa sobre
+       la sucursal indicada en ?storeId (o la primera disponible) y el dueño sobre
+       la suya; antes se pasaba req.user.id como id de sucursal y nunca persistía. */
+    let storeId = req.query.storeId || req.body?.storeId;
+    if (!storeId) {
+        const myStore = await sucursalService.getMyStore(req.user.id).catch(() => null);
+        storeId = myStore?.id;
+    }
+
+    /* Si todavía no hay sucursal (alta desde el panel admin), la imagen se sube y
+       se devuelve la URL para asociarla al crear la sucursal. */
+    if (!storeId) {
+        return res.json(Respuesta.ok({ url: fileUrl, image_url: fileUrl }, 'Imagen subida correctamente.'));
+    }
+
+    await sucursalService.updateStore(storeId, req.user.id, { image_url: fileUrl }, req.user.role);
+    res.json(Respuesta.ok({ url: fileUrl, image_url: fileUrl }, 'Imagen subida correctamente.'));
 });
 
 const uploadProductImage = asyncHandler(async (req, res) => {

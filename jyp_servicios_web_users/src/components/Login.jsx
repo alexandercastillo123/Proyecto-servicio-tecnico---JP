@@ -46,9 +46,21 @@ const Login = ({ onLogin }) => {
         userId: rawUser.userId || rawUser.id,
       };
       localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
+
+      /* El login no devuelve names/surnames (viven en user_profiles), así que se
+         consulta el perfil para que el saludo y el header usen el nombre real. */
+      let profile = null;
+      try {
+        const profileRes = await authService.getProfile();
+        profile = profileRes.data?.resultado || null;
+      } catch (err) {
+        console.warn("No se pudo cargar el perfil tras el login:", err);
+      }
+
+      const userWithProfile = profile ? { ...user, ...profile } : user;
+      localStorage.setItem("user", JSON.stringify(userWithProfile));
       toast.success("Inicio de sesión exitoso");
-      onLogin(user);
+      onLogin(userWithProfile);
     } catch (err) {
       const msg =
         err.response?.data?.mensaje ||

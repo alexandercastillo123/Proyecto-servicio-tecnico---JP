@@ -4,7 +4,8 @@ import {
   Tag, ShieldCheck, ArrowRight, Check, X, Filter,
   Star, Truck, Zap, AlertCircle
 } from 'lucide-react';
-import { storeService } from '../services/api';
+import { storeService, messageService } from '../services/api';
+import { mediaUrl } from '../services/formatters';
 import { useNavigate } from 'react-router-dom';
 import { TechLoader } from './common/TechLoader';
 import toast from 'react-hot-toast';
@@ -88,11 +89,21 @@ const StoreMarketplace = () => {
         product_id: selectedProduct.id,
         quantity: quantity,
         delivery_address: deliveryAddress,
-        notes: orderNotes
       };
 
       const res = await storeService.createOrder(payload);
       if (res.data?.exito || res.data?.success) {
+        /* El backend no guarda `notes` en el pedido, así que se envía como
+           mensaje al chat con la tienda (igual que en la app Android). */
+        if (orderNotes.trim()) {
+          const storeUserId = selectedProduct.branch_user_id || selectedProduct.user_id;
+          if (storeUserId) {
+            await messageService.sendMessage({
+              receiverId: storeUserId,
+              messageText: `📝 Nota del pedido #${res.data?.resultado?.orderId ?? ''}: ${orderNotes.trim()}`,
+            }).catch(() => {});
+          }
+        }
         toast.success('¡Pedido realizado con éxito!');
         setSelectedProduct(null);
         navigate('/orders');
@@ -116,22 +127,28 @@ const StoreMarketplace = () => {
     { id: 'herramientas', label: 'Herramientas' },
   ];
 
-  const filteredProducts = products.filter((p) => {
+  const filteredProducts = (Array.isArray(products) ? products : []).filter((p) => {
     const name = (p.name || '').toLowerCase();
     const desc = (p.description || '').toLowerCase();
     const branch = (p.branch_name || '').toLowerCase();
+    const category = (p.category || '').toLowerCase();
     const query = searchTerm.toLowerCase();
 
-    const matchesSearch = name.includes(query) || desc.includes(query) || branch.includes(query);
+    const matchesSearch = name.includes(query) || desc.includes(query) || branch.includes(query) || category.includes(query);
+    if (!matchesSearch) return false;
+    if (selectedCategory === 'all') return true;
 
-    if (selectedCategory === 'all') return matchesSearch;
-    if (selectedCategory === 'pantallas') return matchesSearch && (name.includes('pantalla') || name.includes('display') || name.includes('screen') || desc.includes('pantalla'));
-    if (selectedCategory === 'baterias') return matchesSearch && (name.includes('bater') || desc.includes('bater'));
-    if (selectedCategory === 'cables') return matchesSearch && (name.includes('cable') || name.includes('cargador') || desc.includes('cable'));
-    if (selectedCategory === 'placas') return matchesSearch && (name.includes('placa') || name.includes('flex') || name.includes('conector'));
-    if (selectedCategory === 'herramientas') return matchesSearch && (name.includes('herramienta') || name.includes('cautin') || name.includes('kit'));
+    /* Si el producto tiene categoría registrada se usa como criterio principal;
+       si no, se cae al filtro por palabras clave. */
+    if (category) return category.includes(selectedCategory);
 
-    return matchesSearch;
+    if (selectedCategory === 'pantallas') return name.includes('pantalla') || name.includes('display') || name.includes('screen') || desc.includes('pantalla');
+    if (selectedCategory === 'baterias') return name.includes('bater') || desc.includes('bater');
+    if (selectedCategory === 'cables') return name.includes('cable') || name.includes('cargador') || desc.includes('cable');
+    if (selectedCategory === 'placas') return name.includes('placa') || name.includes('flex') || name.includes('conector');
+    if (selectedCategory === 'herramientas') return name.includes('herramienta') || name.includes('cautin') || name.includes('kit');
+
+    return true;
   });
 
   return (
@@ -172,6 +189,14 @@ const StoreMarketplace = () => {
               <Package size={16} className="text-cyan-400" />
               <span>Stock en Tiempo Real</span>
             </div>
+            <button
+              type="button"
+              onClick={() => navigate('/order/new')}
+              className="ml-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-blue-600/25 transition-all"
+            >
+              <ShoppingCart size={15} />
+              Pedido por pasos
+            </button>
           </div>
         </div>
       </div>
@@ -223,7 +248,7 @@ const StoreMarketplace = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-7">
           {filteredProducts.map((p) => {
             const price = parseFloat(p.price || 0).toFixed(2);
-            const stock = p.stock ?? 10;
+            const stock = Number(p.stock ?? 0);
             const hasStock = stock > 0;
 
             return (
@@ -250,9 +275,17 @@ const StoreMarketplace = () => {
                     )}
                   </div>
 
-                  {/* Product Icon / Image placeholder */}
-                  <div className="w-full h-40 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/5 flex items-center justify-center text-blue-400 group-hover:scale-105 transition-transform duration-500 shadow-inner">
-                    <Package size={56} strokeWidth={1.5} />
+                  {/* Product Image */}
+                  <div className="w-full h-40 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/5 flex items-center justify-center text-blue-400 group-hover:scale-105 transition-transform duration-500 shadow-inner overflow-hidden">
+                    {p.image_url ? (
+                      <img
+                        src={mediaUrl(p.image_url)}
+                        alt={p.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Package size={56} strokeWidth={1.5} />
+                    )}
                   </div>
 
                   {/* Title & Description */}

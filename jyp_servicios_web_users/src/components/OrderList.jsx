@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { 
   Package, ShoppingBag, Clock, ChevronRight, 
   MessageSquare, MapPin, Truck, CheckCircle2,
-  XCircle, ArrowLeft, Search, Filter, Store, RefreshCw, Check
+  XCircle, ArrowLeft, Search, Filter, Store, RefreshCw, Check,
+  CreditCard
 } from 'lucide-react';
 import { storeService } from '../services/api';
 import { useNavigate } from 'react-router-dom';
 import { TechLoader } from './common/TechLoader';
+import CulqiPaymentModal from './common/CulqiPaymentModal';
 import toast from 'react-hot-toast';
 
 const OrderList = () => {
@@ -15,6 +17,11 @@ const OrderList = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const [updatingId, setUpdatingId] = useState(null);
+  const [payingId, setPayingId] = useState(null);
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [payTarget, setPayTarget] = useState(null);
+  const [culqiTarget, setCulqiTarget] = useState(null);
+  const [payMethod, setPayMethod] = useState('yape');
 
   const rawUser = localStorage.getItem('user');
   const user = rawUser ? JSON.parse(rawUser) : {};
@@ -32,14 +39,21 @@ const OrderList = () => {
         let branchId = user.branchId;
         if (!branchId) {
           try {
-            const uid = user.id || user.userId;
-            const branchesRes = await storeService.getBranches();
-            const branches = branchesRes.data?.resultado || [];
-            const myStore = branches.find(s => s.user_id === uid);
-            branchId = myStore?.id || 1;
+            const myStoreRes = await storeService.getMyStore();
+            branchId = myStoreRes.data?.resultado?.id;
           } catch (e) {
-            branchId = 1;
+            branchId = null;
           }
+        }
+        if (!branchId) {
+          const branchesRes = await storeService.getBranches().catch(() => null);
+          const branches = Array.isArray(branchesRes?.data?.resultado) ? branchesRes.data.resultado : [];
+          const uid = user.id || user.userId;
+          branchId = branches.find(s => String(s.user_id) === String(uid))?.id;
+        }
+        if (!branchId) {
+          setOrders([]);
+          return;
         }
         const res = await storeService.getOrders(branchId);
         data = res.data?.resultado || res.data?.data || (Array.isArray(res.data) ? res.data : []);
@@ -77,18 +91,49 @@ const OrderList = () => {
 
   const getStatusInfo = (status) => {
     switch (status) {
-      case 'pending': 
+      case 'pending':
         return { label: 'Pendiente', color: 'text-amber-400', bg: 'bg-amber-400/10 border-amber-400/20', icon: Clock };
-      case 'confirmed': 
+      case 'paid':
+        return { label: 'Pagado', color: 'text-teal-400', bg: 'bg-teal-400/10 border-teal-400/20', icon: CheckCircle2 };
+      case 'confirmed':
         return { label: 'Confirmado', color: 'text-blue-400', bg: 'bg-blue-400/10 border-blue-400/20', icon: CheckCircle2 };
-      case 'shipped': 
+      case 'in_preparation':
+        return { label: 'En preparación', color: 'text-cyan-400', bg: 'bg-cyan-400/10 border-cyan-400/20', icon: Package };
+      case 'shipped':
         return { label: 'En Camino', color: 'text-purple-400', bg: 'bg-purple-400/10 border-purple-400/20', icon: Truck };
-      case 'delivered': 
+      case 'delivered':
         return { label: 'Entregado', color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/20', icon: CheckCircle2 };
-      case 'cancelled': 
+      case 'cancelled':
         return { label: 'Cancelado', color: 'text-rose-400', bg: 'bg-rose-400/10 border-rose-400/20', icon: XCircle };
-      default: 
+      default:
         return { label: status || 'Desconocido', color: 'text-slate-400', bg: 'bg-slate-500/10 border-slate-500/20', icon: Package };
+    }
+  };
+
+  const PAYMENT_STATUS = {
+    pending: { label: 'Pago pendiente', color: 'text-amber-400' },
+    waiting_confirmation: { label: 'Pago por confirmar', color: 'text-cyan-400' },
+    paid: { label: 'Pago confirmado', color: 'text-emerald-400' },
+  };
+
+  const handlePayOrder = async () => {
+    if (!payTarget) return;
+    setPayingId(payTarget.id);
+    try {
+      const res = await storeService.payOrder(payTarget.id, payMethod);
+      if (res.data?.exito) {
+        toast.success('Pago registrado. La tienda lo confirmará en breve.');
+        setShowPayModal(false);
+        setPayTarget(null);
+        fetchOrders();
+      } else {
+        toast.error(res.data?.mensaje || 'No se pudo registrar el pago');
+      }
+    } catch (err) {
+      console.error('Error paying order:', err);
+      toast.error(err.response?.data?.mensaje || 'No se pudo registrar el pago');
+    } finally {
+      setPayingId(null);
     }
   };
 
@@ -121,19 +166,21 @@ const OrderList = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {['all', 'pending', 'confirmed', 'shipped', 'delivered'].map((f) => (
+          {['all', 'pending', 'paid', 'confirmed', 'in_preparation', 'shipped', 'delivered'].map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={`px-4 py-2 rounded-full text-xs font-bold transition-all border shadow-sm ${
-                filter === f 
-                  ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/30' 
+                filter === f
+                  ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-600/30'
                   : 'bg-white/5 text-slate-300 border-white/5 hover:bg-white/10'
               }`}
             >
-              {f === 'all' ? 'Todos' : 
-               f === 'pending' ? 'Pendientes' : 
-               f === 'confirmed' ? 'Confirmados' : 
+              {f === 'all' ? 'Todos' :
+               f === 'pending' ? 'Pendientes' :
+               f === 'paid' ? 'Pagados' :
+               f === 'confirmed' ? 'Confirmados' :
+               f === 'in_preparation' ? 'En preparación' :
                f === 'shipped' ? 'En camino' : 'Entregados'}
             </button>
           ))}
@@ -185,17 +232,24 @@ const OrderList = () => {
 
                     <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
                       {isStore ? (
-                        <span className="text-slate-300 font-bold">Cliente: {order.client_name || order.cliente_nombre || 'Cliente JyP'}</span>
+                        <span className="text-slate-300 font-bold">
+                          Cliente: {[order.client_names, order.client_surnames].filter(Boolean).join(' ').trim() || 'Cliente JyP'}
+                        </span>
                       ) : (
                         <div className="flex items-center gap-1.5 font-medium">
                           <Store size={14} className="text-blue-400" />
-                          <span>{order.branch_name || 'Sucursal Principal'}</span>
+                          <span>{order.branch_name || order.sucursal_name || 'Sucursal JyP'}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-1.5">
                         <Clock size={14} />
                         <span>{dateStr}</span>
                       </div>
+                      {order.payment_status && PAYMENT_STATUS[order.payment_status] && (
+                        <span className={`font-bold ${PAYMENT_STATUS[order.payment_status].color}`}>
+                          · {PAYMENT_STATUS[order.payment_status].label}
+                        </span>
+                      )}
                     </div>
 
                     {order.delivery_address && (
@@ -230,19 +284,58 @@ const OrderList = () => {
                       <MessageSquare size={17} />
                     </button>
 
+                    {/* Client: pay the order */}
+                    {!isStore && order.payment_status === 'pending' && order.status !== 'cancelled' && (
+                      <button
+                        disabled={payingId === order.id}
+                        onClick={() => {
+                          setPayTarget(order);
+                          setShowPayModal(true);
+                        }}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5"
+                      >
+                        <CreditCard size={14} />
+                        <span>Pagar S/. {parseFloat(order.total_price || 0).toFixed(2)}</span>
+                      </button>
+                    )}
+
                     {/* Store management buttons */}
-                    {isStore && order.status === 'pending' && (
+                    {isStore && order.payment_status === 'waiting_confirmation' && (
                       <button
                         disabled={updatingId === order.id}
-                        onClick={() => handleUpdateStatus(order.id, 'confirmed')}
-                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5"
+                        onClick={async () => {
+                          setUpdatingId(order.id);
+                          try {
+                            const res = await storeService.confirmOrderPayment(order.id);
+                            if (res.data?.exito) {
+                              toast.success('Pago confirmado');
+                              fetchOrders();
+                            }
+                          } catch (err) {
+                            toast.error(err.response?.data?.mensaje || 'No se pudo confirmar el pago');
+                          } finally {
+                            setUpdatingId(null);
+                          }
+                        }}
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5"
                       >
                         <Check size={14} />
-                        <span>Confirmar</span>
+                        <span>Confirmar pago</span>
                       </button>
                     )}
 
                     {isStore && order.status === 'confirmed' && (
+                      <button
+                        disabled={updatingId === order.id}
+                        onClick={() => handleUpdateStatus(order.id, 'in_preparation')}
+                        className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-black rounded-xl transition-all shadow-md flex items-center gap-1.5"
+                      >
+                        <Package size={14} />
+                        <span>Preparar</span>
+                      </button>
+                    )}
+
+                    {isStore && order.status === 'in_preparation' && (
                       <button
                         disabled={updatingId === order.id}
                         onClick={() => handleUpdateStatus(order.id, 'shipped')}
@@ -292,6 +385,93 @@ const OrderList = () => {
           </div>
         )}
       </div>
+
+      {/* Payment Modal */}
+      {showPayModal && payTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-3xl border border-white/10 bg-[#0e1424] p-8 space-y-6 shadow-2xl">
+            <div className="text-center">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 bg-emerald-500/15 text-emerald-400">
+                <CreditCard size={26} />
+              </div>
+              <h3 className="text-lg font-black text-white">Método de pago</h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Pedido #{String(payTarget.id).padStart(5, '0')} · S/. {parseFloat(payTarget.total_price || 0).toFixed(2)}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {['yape', 'plin', 'transfer', 'cash'].map((method) => (
+                <button
+                  key={method}
+                  onClick={() => setPayMethod(method)}
+                  className={`p-3 rounded-xl border text-xs font-black uppercase tracking-wider transition-all ${
+                    payMethod === method
+                      ? 'bg-blue-600 border-blue-500 text-white'
+                      : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                  }`}
+                >
+                  {method === 'transfer' ? 'Transferencia' : method === 'cash' ? 'Efectivo' : method}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-5 rounded-2xl bg-black/20 border border-white/5 text-center">
+              {payMethod === 'yape' || payMethod === 'plin' ? (
+                <>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-500">Número receptor</p>
+                  <p className="text-2xl font-black text-blue-400 mt-1">987 654 321</p>
+                  <p className="text-xs font-semibold text-slate-400 mt-1">JyP Servicios Técnicos</p>
+                </>
+              ) : payMethod === 'transfer' ? (
+                <div className="space-y-1.5 text-xs text-left">
+                  <div className="flex justify-between"><span className="text-slate-500">Banco:</span><span className="font-bold text-white">BCP</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">Cuenta:</span><span className="font-bold text-white">191-98765432-0-12</span></div>
+                  <div className="flex justify-between"><span className="text-slate-500">CCI:</span><span className="font-bold text-white">00219119876543201254</span></div>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-300">Pagas en efectivo al recibir el pedido.</p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowPayModal(false); setPayTarget(null); }}
+                className="flex-1 py-3 text-xs font-black uppercase rounded-xl border border-white/10 text-slate-400 hover:bg-white/5"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handlePayOrder}
+                disabled={payingId === payTarget.id}
+                className="flex-1 py-3 text-xs font-black uppercase rounded-xl bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-50 shadow-lg shadow-emerald-600/20"
+              >
+                {payingId === payTarget.id ? 'Procesando...' : 'Confirmar pago'}
+              </button>
+            </div>
+
+            <button
+              onClick={() => {
+                setShowPayModal(false);
+                setCulqiTarget(payTarget);
+              }}
+              className="w-full py-3 text-xs font-black uppercase rounded-xl border border-blue-500/30 bg-blue-600/10 text-blue-300 hover:bg-blue-600/20 transition-all flex items-center justify-center gap-2"
+            >
+              <CreditCard size={15} />
+              Pagar con tarjeta (Culqi)
+            </button>
+          </div>
+        </div>
+      )}
+
+      <CulqiPaymentModal
+        open={!!culqiTarget}
+        onClose={() => setCulqiTarget(null)}
+        amount={culqiTarget?.total_price}
+        type="order"
+        entityId={culqiTarget?.id}
+        onSuccess={fetchOrders}
+      />
     </div>
   );
 };
