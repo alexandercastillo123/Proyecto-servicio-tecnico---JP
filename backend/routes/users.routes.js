@@ -4,7 +4,7 @@ const { body } = require('express-validator');
 const usersController = require('../controllers/users.controller');
 const { authenticate } = require('../middleware/auth');
 const validate = require('../middleware/validation');
-const upload = require('../utils/fileUpload');
+const upload = require('../middleware/upload');
 
 /**
  * @route   GET /api/users/profile
@@ -22,8 +22,12 @@ router.put(
     '/profile',
     authenticate,
     [
-        body('phone').optional().isMobilePhone().withMessage('Valid phone number is required'),
-        body('email').optional().isEmail().withMessage('Valid email is required')
+        body('phone').optional({ checkFalsy: true }).custom((val) => {
+            if (!val) return true;
+            const cleaned = String(val).replace(/[\s\-\(\)\+]/g, '');
+            return /^[0-9]{6,15}$/.test(cleaned);
+        }).withMessage('Número de teléfono inválido'),
+        body('email').optional({ checkFalsy: true }).isEmail().withMessage('Correo electrónico inválido')
     ],
     validate,
     usersController.updateProfile
@@ -47,5 +51,12 @@ router.post(
  * @access  Public
  */
 router.get('/:id', usersController.getUserById);
+
+/**
+ * @route   PATCH /api/users/availability
+ * @desc    Toggle technician availability (active/inactive)
+ * @access  Private (Tech only)
+ */
+router.patch('/availability', authenticate, usersController.toggleAvailability);
 
 module.exports = router;
