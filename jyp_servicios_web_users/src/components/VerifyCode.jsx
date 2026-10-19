@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, ArrowLeft, AlertCircle, Info, Cpu, Sun, Moon } from 'lucide-react';
+import { ShieldCheck, ArrowLeft, AlertCircle, Info, Cpu, Sun, Moon, CheckCircle2 } from 'lucide-react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
+import './Login.css';
 
 const VerifyCode = () => {
   const [code, setCode] = useState('');
@@ -12,7 +13,7 @@ const VerifyCode = () => {
   const [showInfo, setShowInfo] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { theme, toggleTheme, isDark } = useTheme();
+  const { toggleTheme, isDark } = useTheme();
   const email = location.state?.email || '';
 
   useEffect(() => {
@@ -43,144 +44,151 @@ const VerifyCode = () => {
   };
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden"
-      style={{ backgroundColor: 'var(--bg)', color: 'var(--text-primary)' }}
-    >
-      {/* Background Decorative Glows */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div 
-          className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full blur-[140px] opacity-20"
-          style={{ backgroundColor: 'var(--primary)' }}
-        />
-        <div 
-          className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] rounded-full blur-[140px] opacity-15"
-          style={{ backgroundColor: 'var(--secondary)' }}
-        />
-      </div>
+    <div className="login-page">
+      {/* ── LEFT HERO PROMOTIONAL BANNER ── */}
+      <div className="login-hero">
+        <div className="login-hero-background">
+          <img
+            src="https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=2070&auto=format&fit=crop"
+            alt="Laboratorio de Microelectrónica y Servidores J&P"
+            className="login-hero-image"
+          />
+          <div className="login-hero-overlay" />
+        </div>
 
-      {/* Theme toggle in top right */}
-      <button
-        onClick={toggleTheme}
-        className="fixed top-6 right-6 p-3 rounded-xl border transition-all z-20 flex items-center gap-2"
-        style={{
-          backgroundColor: 'var(--bg-card)',
-          borderColor: 'var(--border)',
-          color: 'var(--text-secondary)'
-        }}
-        title={`Cambiar a modo ${isDark ? 'claro' : 'oscuro'}`}
-      >
-        {isDark ? <Sun size={18} className="text-amber-400" /> : <Moon size={18} className="text-blue-500" />}
-      </button>
-
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md relative z-10"
-      >
-        <div 
-          className="p-8 md:p-10 rounded-[32px] border shadow-2xl backdrop-blur-xl"
-          style={{ 
-            backgroundColor: 'var(--bg-card)', 
-            borderColor: 'var(--border)' 
-          }}
-        >
-          <div className="flex justify-between items-center mb-8">
-            <Link 
-              to="/forgot-password" 
-              className="p-3 rounded-2xl border transition-colors flex items-center justify-center hover:scale-105"
-              style={{ 
-                backgroundColor: 'var(--bg)', 
-                borderColor: 'var(--border)',
-                color: 'var(--text-secondary)' 
-              }}
-            >
-              <ArrowLeft size={18} />
-            </Link>
-
-            <div className="flex items-center gap-2.5">
-              <div 
-                className="w-11 h-11 rounded-2xl flex items-center justify-center shadow-md"
-                style={{ backgroundColor: 'var(--primary)' }}
-              >
-                <Cpu size={22} className="text-white" />
-              </div>
-              <div>
-                <span className="font-extrabold tracking-tight text-lg" style={{ color: 'var(--text-primary)' }}>JyP</span>
-                <span className="block text-[10px] uppercase tracking-wider -mt-1 font-semibold" style={{ color: 'var(--primary)' }}>Servicios</span>
-              </div>
+        {/* Branding Superior */}
+        <div className="login-brand">
+          <div className="flex items-center gap-3">
+            <div className="login-brand-mark flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-600/30">
+              <Cpu className="h-6 w-6 text-white" />
             </div>
+            <div>
+              <h1 className="login-brand-name text-xl font-bold tracking-tight text-white">
+                JyP <span className="text-xs font-semibold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">PRO V3.0</span>
+              </h1>
+              <p className="login-brand-caption text-[10px] tracking-wider text-gray-400 uppercase font-medium">
+                Servicios Técnicos Especializados
+              </p>
+            </div>
+          </div>
+        </div>
 
-            <button 
-              onClick={() => setShowInfo(!showInfo)}
-              className="p-3 rounded-2xl border transition-colors hover:scale-105"
-              style={{ 
-                backgroundColor: 'var(--bg)', 
-                borderColor: 'var(--border)',
-                color: showInfo ? 'var(--primary)' : 'var(--text-secondary)' 
-              }}
-            >
-              <Info size={18} />
-            </button>
+        {/* Mensaje Principal */}
+        <div className="login-hero-content">
+          <div className="login-eyebrow inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs text-blue-400 backdrop-blur-md">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-blue-500"></span>
+            </span>
+            Verificación OTP en 2 Pasos
           </div>
 
-          <div className="text-center mb-8">
-            <h1 className="text-2xl md:text-3xl font-black mb-2 tracking-tight" style={{ color: 'var(--text-primary)' }}>
-              Verificación
-            </h1>
-            <p className="text-sm" style={{ color: 'var(--text-secondary)' }}>
-              Hemos enviado un código a <span className="font-bold" style={{ color: 'var(--primary)' }}>{email}</span>
+          <h2 className="login-hero-title text-4xl font-extrabold leading-tight tracking-tight text-white lg:text-5xl">
+            Confirmación de{" "}
+            <span className="login-hero-title-accent">
+              Identidad de Usuario
+            </span>
+          </h2>
+
+          <p className="login-hero-description text-sm leading-relaxed text-gray-300">
+            Ingresa el código numérico de 6 dígitos que enviamos a tu buzón de correo. Esta validación garantiza que sólo tú puedas autorizar cambios de acceso.
+          </p>
+
+          <div className="login-specialties flex flex-wrap gap-2.5 pt-1">
+            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
+              <ShieldCheck size={14} className="text-emerald-400" />
+              Token Criptográfico
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium backdrop-blur-sm">
+              <Cpu size={14} className="text-cyan-400" />
+              Protección Anti-Intrusión
+            </div>
+          </div>
+        </div>
+
+        {/* Métricas Inferiores */}
+        <div className="login-metrics relative z-10 border-t border-white/10 pt-6">
+          <div className="login-metrics-heading flex items-center gap-2 mb-3 text-xs text-emerald-400 font-medium">
+            <CheckCircle2 size={14} />
+            Transmisión Encriptada SSL/TLS
+          </div>
+          <div className="login-metrics-grid grid grid-cols-3 gap-4">
+            <div className="login-metric">
+              <p className="text-2xl font-bold text-white">6 Dígitos</p>
+              <p className="login-metric-label text-[11px] text-gray-400">Código de Seguridad</p>
+            </div>
+            <div className="login-metric">
+              <p className="text-2xl font-bold text-white">Inmediato</p>
+              <p className="login-metric-label text-[11px] text-gray-400">Envío por Servidor</p>
+            </div>
+            <div className="login-metric">
+              <p className="text-2xl font-bold text-white">0% Falsos</p>
+              <p className="login-metric-label text-[11px] text-gray-400">Autenticación Única</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── RIGHT FORM PANEL ── */}
+      <div className="login-form-panel">
+        <button
+          type="button"
+          className="login-theme-toggle"
+          onClick={toggleTheme}
+          aria-label={isDark ? "Activar modo claro" : "Activar modo oscuro"}
+          title={isDark ? "Activar modo claro" : "Activar modo oscuro"}
+        >
+          {isDark ? (
+            <Sun size={19} className="text-amber-400" />
+          ) : (
+            <Moon size={19} className="text-blue-500" />
+          )}
+        </button>
+
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="login-card w-full"
+          style={{ width: 'min(100%, 460px)', padding: 'clamp(28px, 3.5vw, 44px)' }}
+        >
+          {/* Header */}
+          <div className="login-header text-center">
+            <div className="login-portal-badge inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3.5 py-1 text-xs text-blue-400 font-bold mb-3">
+              <ShieldCheck size={14} />
+              CÓDIGO DE VERIFICACIÓN
+            </div>
+            <h2 className="text-3xl font-black tracking-tight text-white font-heading">
+              Validar Código
+            </h2>
+            <p className="mt-2 text-xs text-gray-400 max-w-sm mx-auto leading-relaxed">
+              Enviamos un código de 6 dígitos a <span className="text-cyan-400 font-bold">{email}</span>. Si no lo encuentras, revisa tu carpeta de SPAM.
             </p>
           </div>
 
-          {showInfo && (
-            <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              className="mb-6 p-4 rounded-2xl text-xs leading-relaxed border"
-              style={{
-                backgroundColor: 'rgba(45, 107, 255, 0.08)',
-                borderColor: 'rgba(45, 107, 255, 0.25)',
-                color: 'var(--text-secondary)'
-              }}
-            >
-              El código de verificación se envía para proteger tu identidad y evitar accesos no autorizados. Si no lo recibes en tu bandeja principal, revisa tu carpeta de SPAM.
-            </motion.div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-xs font-bold uppercase tracking-wider text-center block" style={{ color: 'var(--text-secondary)' }}>
-                Ingresa el Código de 6 Dígitos
+          <form onSubmit={handleSubmit} className="space-y-4 pt-1">
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-300 text-center mb-2">
+                INGRESA EL CÓDIGO DE 6 DÍGITOS
               </label>
               <input
                 type="text"
-                maxLength="6"
+                maxLength={6}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                className="w-full py-5 text-center text-3xl font-black tracking-[0.8rem] rounded-2xl border outline-none transition-all focus:border-blue-500"
-                style={{
-                  backgroundColor: 'var(--bg)',
-                  borderColor: 'var(--border)',
-                  color: 'var(--primary)'
-                }}
+                className="w-full py-4 text-center text-3xl font-black tracking-[0.6rem] rounded-2xl border border-white/10 bg-[#141a26] text-cyan-300 outline-none transition-all focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 placeholder="••••••"
                 required
               />
             </div>
 
             {error && (
-              <motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="p-4 rounded-2xl flex items-center gap-3 text-sm"
-                style={{ 
-                  backgroundColor: 'rgba(239, 68, 68, 0.1)', 
-                  border: '1px solid rgba(239, 68, 68, 0.25)',
-                  color: '#EF4444' 
-                }}
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2.5"
               >
-                <AlertCircle size={18} className="shrink-0" />
+                <AlertCircle size={16} className="shrink-0" />
                 <span>{error}</span>
               </motion.div>
             )}
@@ -188,36 +196,34 @@ const VerifyCode = () => {
             <button
               type="submit"
               disabled={isLoading || code.length < 6}
-              className="w-full h-12 font-bold rounded-2xl transition-all flex items-center justify-center gap-2 group text-white shadow-xl hover:scale-[1.01] disabled:opacity-50"
-              style={{
-                backgroundColor: 'var(--primary)',
-                boxShadow: '0 8px 24px rgba(45, 107, 255, 0.35)'
-              }}
+              className="btn-primary w-full py-3.5 text-xs font-black uppercase tracking-wider rounded-xl shadow-xl shadow-blue-600/25 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-2"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  <span>Validar Código</span>
-                  <ShieldCheck size={18} />
+                  <ShieldCheck size={16} />
+                  <span>Validar y Continuar</span>
                 </>
               )}
             </button>
           </form>
 
-          <p className="mt-8 text-center text-sm" style={{ color: 'var(--text-secondary)' }}>
-            ¿No recibiste el código?{' '}
+          <div className="pt-3 border-t border-white/5 flex items-center justify-between text-xs">
+            <Link to="/forgot-password" className="flex items-center gap-1.5 text-slate-400 hover:text-white font-medium transition-colors">
+              <ArrowLeft size={14} />
+              <span>Cambiar Correo</span>
+            </Link>
             <button 
               type="button" 
-              onClick={() => alert('Si el correo existe, el código fue reenviado')}
-              className="font-bold hover:underline" 
-              style={{ color: 'var(--primary)' }}
+              onClick={() => alert('Si el correo es válido, el código fue reenviado')}
+              className="text-blue-400 hover:underline font-bold bg-transparent border-none cursor-pointer"
             >
-              Reenviar
+              Reenviar Código
             </button>
-          </p>
-        </div>
-      </motion.div>
+          </div>
+        </motion.div>
+      </div>
     </div>
   );
 };

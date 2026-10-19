@@ -6,7 +6,7 @@ import {
   User, LogOut, ChevronLeft, ChevronRight, Bell, Sun, Moon,
   LayoutDashboard, Package, Wrench, Cpu, Zap, Signal,
   ShieldCheck, Sparkles, Activity, CheckCheck, ExternalLink,
-  Clock, Truck, CalendarCheck, AlertCircle
+  Clock, Truck, CalendarCheck, AlertCircle, Home
 } from "lucide-react";
 import { useSocket } from "../context/SocketContext";
 import { useTheme } from "../context/ThemeContext";
@@ -142,7 +142,8 @@ const Layout = ({ user, onLogout }) => {
   // ── Navigation Menus ─────────────────────────────────────
   const menus = {
     client: [
-      { path: "/", icon: MapPin, label: "Explorar Técnicos" },
+      { path: "/", icon: Home, label: "Inicio" },
+      { path: "/technicians", icon: MapPin, label: "Explorar Técnicos" },
       { path: "/appointments", icon: Calendar, label: "Mis Citas" },
       { path: "/shop", icon: Package, label: "Tienda de Repuestos" },
       { path: "/stores", icon: Store, label: "Tiendas & Talleres" },
@@ -151,13 +152,14 @@ const Layout = ({ user, onLogout }) => {
       { path: "/profile", icon: User, label: "Mi Perfil" },
     ],
     tech: [
-      { path: "/", icon: LayoutDashboard, label: "Panel de Control" },
+      { path: "/", icon: Home, label: "Inicio" },
       { path: "/appointments", icon: Calendar, label: "Citas & Reparaciones" },
       { path: "/chat", icon: MessageSquare, label: "Mensajes Clientes", badge: unreadCount },
       { path: "/profile", icon: User, label: "Mi Perfil Técnico" },
     ],
     store: [
-      { path: "/", icon: LayoutDashboard, label: "Panel de Sucursal" },
+      { path: "/", icon: Home, label: "Inicio" },
+      { path: "/shop", icon: Package, label: "Catálogo & Repuestos" },
       { path: "/orders", icon: ShoppingCart, label: "Pedidos & Ventas" },
       { path: "/chat", icon: MessageSquare, label: "Mensajes", badge: unreadCount },
       { path: "/profile", icon: User, label: "Perfil Empresa" },
@@ -209,7 +211,9 @@ const Layout = ({ user, onLogout }) => {
           )}
 
           {navItems.map((item) => {
-            const active = location.pathname === item.path;
+            const active = item.path === '/'
+              ? location.pathname === '/'
+              : (location.pathname === item.path || location.pathname.startsWith(item.path + '/'));
             const Icon = item.icon;
             return (
               <Link
@@ -299,14 +303,19 @@ const Layout = ({ user, onLogout }) => {
       {/* ══════════ MAIN WORKSPACE AREA ══════════════════════════ */}
       <main
         className="flex-1 flex flex-col min-h-screen transition-all duration-300"
-        style={{ marginLeft: SIDEBAR_W }}
+        style={{
+          marginLeft: SIDEBAR_W,
+          background: isDark
+            ? "radial-gradient(ellipse at 85% 5%, rgba(37, 99, 235, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 15% 40%, rgba(6, 182, 212, 0.05) 0%, transparent 40%), #080d17"
+            : "#F8FAFC"
+        }}
       >
         {/* ──── STICKY TOPBAR ─────────────────────────────────── */}
         <header
           className="sticky top-0 z-30 flex items-center justify-between px-6 sm:px-8 topbar"
           style={{
             height: 72,
-            background: isDark ? "rgba(6, 9, 19, 0.88)" : "rgba(255, 255, 255, 0.9)",
+            background: isDark ? "rgba(8, 13, 23, 0.92)" : "rgba(255, 255, 255, 0.92)",
             backdropFilter: "blur(20px)",
             WebkitBackdropFilter: "blur(20px)",
             borderBottom: "1px solid var(--border)",
@@ -339,14 +348,14 @@ const Layout = ({ user, onLogout }) => {
             <button
               type="button"
               onClick={toggleTheme}
-              className="jyp-theme-toggle"
+              className="topbar-btn"
               title={isDark ? "Activar modo claro" : "Activar modo oscuro"}
               aria-label={isDark ? "Activar modo claro" : "Activar modo oscuro"}
             >
               {isDark ? (
-                <Sun size={19} className="text-amber-400" />
+                <Sun size={18} className="text-amber-400" />
               ) : (
-                <Moon size={19} className="text-blue-500" />
+                <Moon size={18} className="text-blue-500" />
               )}
             </button>
 
@@ -358,10 +367,10 @@ const Layout = ({ user, onLogout }) => {
                   setShowNotifications(!showNotifications);
                   if (!showNotifications) fetchNotifications();
                 }}
-                className="theme-toggle relative"
+                className="topbar-btn relative"
                 title="Notificaciones"
               >
-                <Bell size={17} />
+                <Bell size={18} />
                 {(unreadNotifCount > 0 || unreadCount > 0) && (
                   <span
                     className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center text-[9px] font-black rounded-full bg-rose-500 text-white border-2"

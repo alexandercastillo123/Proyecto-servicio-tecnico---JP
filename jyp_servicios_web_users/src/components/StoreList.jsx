@@ -260,11 +260,8 @@ const StoreList = () => {
               zoomControl={false}
             >
               <TileLayer 
-                url={isDark 
-                  ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                  : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                } 
-                attribution="&copy; CARTO" 
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" 
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' 
               />
               <MapEvents onDblClick={(lat, lng) => setTempMarker([lat, lng])} />
               <RecenterMap coords={mapCenter} />
