@@ -1,21 +1,30 @@
 class ApiConstants {
   // Base URL - Use 10.0.2.2 for Android Emulator, or your local IP for physical devices
   static const String baseUrl = 'http://10.0.2.2:3000/api';
+  
+  // Storage URL for static files (images, etc)
+  static const String storageUrl = 'http://10.0.2.2:3000/uploads';
 
   // Your machine's local IP (useful for physical devices)
   // static const String baseUrl = 'http://192.168.1.57:3000/api';
+  // static const String storageUrl = 'http://192.168.1.57:3000/uploads';
 
   // Authentication Endpoints
-  static const String register = '$baseUrl/auth/register';
-  static const String login = '$baseUrl/auth/login';
-  static const String forgotPassword = '$baseUrl/auth/forgot-password';
-  static const String verifyCode = '$baseUrl/auth/verify-code';
-  static const String resetPassword = '$baseUrl/auth/reset-password';
+  static const String auth = '$baseUrl/auth';
+  static const String register = '$auth/register';
+  static const String login = '$auth/login';
+  static const String forgotPassword = '$auth/forgot-password';
+  static const String verifyCode = '$auth/verify-code';
+  static const String resetPassword = '$auth/reset-password';
+  static const String validateEmail = '$auth/validate-email';
+  static const String validateUsername = '$auth/validate-username';
+  static const String changePassword = '$auth/change-password';
 
   // User Endpoints
   static const String userProfile = '$baseUrl/users/profile';
   static const String updateProfile = '$baseUrl/users/profile';
   static const String uploadPhoto = '$baseUrl/users/profile/photo';
+  static const String toggleAvailability = '$baseUrl/users/availability';
   static String getUserById(int id) => '$baseUrl/users/$id';
 
   // Technician Endpoints
@@ -34,14 +43,72 @@ class ApiConstants {
   static String cancelAppointment(int id) => '$baseUrl/appointments/$id';
 
   // Message Endpoints
-  static const String conversations = '$baseUrl/messages/conversations';
-  static String messagesWithUser(int userId) => '$baseUrl/messages/$userId';
-  static const String sendMessage = '$baseUrl/messages';
-  static const String sendOffer = '$baseUrl/messages/offer';
+  static const String messages = '$baseUrl/messages';
+  static const String conversations = '$messages/conversations';
+  static String messagesWithUser(int userId) => '$messages/$userId';
+  static const String sendMessage = messages;
+  static const String sendOffer = '$messages/offer';
   static String acceptOffer(int id) => '$baseUrl/messages/offer/$id/accept';
   static String rejectOffer(int id) => '$baseUrl/messages/offer/$id/reject';
   static String cancelOffer(int id) => '$baseUrl/messages/offer/$id/cancel';
   static String markAsRead(int id) => '$baseUrl/messages/$id/read';
+
+  /// Helper to get the full storage URL for an image path
+  static String getStorageUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    
+    // Remove leading slash if any
+    String cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    
+    // Remove "uploads/" prefix if it exists in the stored path
+    if (cleanPath.startsWith('uploads/')) {
+      cleanPath = cleanPath.substring(8);
+    }
+    
+    return '$storageUrl/$cleanPath';
+  }
+
+  // Store / Sucursales Endpoints
+  static const String sucursales = '$baseUrl/sucursales';
+  static const String myStore = '$baseUrl/sucursales/my-store';
+  static const String nearbyStores = '$baseUrl/sucursales/nearby';
+  static String storeById(int id) => '$baseUrl/sucursales/$id';
+  static String storeProducts(int id) => '$baseUrl/sucursales/$id/products';
+  static const String addStoreProduct = '$baseUrl/sucursales/products';
+  static String updateStoreProduct(int id) => '$baseUrl/sucursales/products/$id';
+  static String deleteStoreProduct(int id) => '$baseUrl/sucursales/products/$id';
+  static String updateStore(int id) => '$baseUrl/sucursales/$id';
+  static String deleteStore(int id) => '$baseUrl/sucursales/$id';
+  static String storeSchedules(int id) => '$baseUrl/sucursales/$id/schedules';
+  static String storeReviews(int id) => '$baseUrl/sucursales/$id/reviews';
+  static String updateStoreStatus(int id) => '$baseUrl/sucursales/$id/status';
+  static const String uploadStoreImage = '$baseUrl/sucursales/upload-image';
+  static const String uploadProductImage = '$baseUrl/sucursales/products/upload-image';
+  
+  // Store Order Endpoints
+  // Store Order Endpoints
+  static const String createStoreOrder = '$baseUrl/sucursales/orders';
+  static const String myOrders = '$baseUrl/sucursales/orders/my-orders';
+  static String storeOrders(int id) => '$baseUrl/sucursales/orders/store/$id';
+  static String updateOrderStatus(int id) => '$baseUrl/sucursales/orders/$id/status';
+  static String payOrder(int id) => '$baseUrl/sucursales/orders/$id/pay';
+  static String confirmOrderPayment(int id) => '$baseUrl/sucursales/orders/$id/confirm-payment';
+
+  // Appointment Payment Endpoints
+  static String payAppointment(int id) => '$baseUrl/appointments/$id/pay';
+  static String confirmAppointmentPayment(int id) => '$baseUrl/appointments/$id/confirm-payment';
+
+  // Culqi Payment Endpoints (TEST MODE)
+  static const String culqiPublicKey = '$baseUrl/culqi/public-key';
+  static String culqiPayAppointment(int id) => '$baseUrl/culqi/pay-appointment/$id';
+  static String culqiPayOrder(int id) => '$baseUrl/culqi/pay-order/$id';
+
+  // Notification Endpoints
+  static const String notificationSettings = '$baseUrl/notifications/settings';
+  static const String notifications = '$baseUrl/notifications';
+  static String markNotificationAsRead(int id) => '$baseUrl/notifications/$id/read';
+  static const String registerFcmToken = '$baseUrl/notifications/token';
 
   // Health Check
   static const String health = 'http://localhost:3000/health';

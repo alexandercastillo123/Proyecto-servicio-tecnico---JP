@@ -1,4 +1,4 @@
-import '../services/api_service.dart';
+import 'api_service.dart';
 import '../constants/api_constants.dart';
 
 class AuthService {
@@ -10,6 +10,7 @@ class AuthService {
     required String password,
     required String role,
     required String personType,
+    String? username, // Nuevo campo
     String? names,
     String? surnames,
     String? dni,
@@ -19,13 +20,19 @@ class AuthService {
     String? referenceAddress,
     String? address,
     String? city,
+    double? latitude,
+    double? longitude,
+    List<Map<String, dynamic>>? schedules,
+    bool policiesAccepted = false,
   }) async {
     final response = await _apiService
         .post<Map<String, dynamic>>(ApiConstants.register, {
           'email': email,
+          'username': username,
           'password': password,
           'role': role,
           'personType': personType,
+          'policiesAccepted': policiesAccepted,
           if (names != null) 'names': names,
           if (surnames != null) 'surnames': surnames,
           if (dni != null) 'dni': dni,
@@ -35,6 +42,9 @@ class AuthService {
           if (referenceAddress != null) 'referenceAddress': referenceAddress,
           if (address != null) 'address': address,
           if (city != null) 'city': city,
+          if (latitude != null) 'latitude': latitude,
+          if (longitude != null) 'longitude': longitude,
+          if (schedules != null) 'schedules': schedules,
         }, fromJson: (data) => data as Map<String, dynamic>);
 
     // Save token if registration successful
@@ -100,6 +110,26 @@ class AuthService {
     );
   }
 
+  /// Validate email existence and availability
+  Future<ApiResponse<Map<String, dynamic>>> validateEmail(String email) async {
+    return await _apiService.post<Map<String, dynamic>>(
+      ApiConstants.validateEmail,
+      {'email': email},
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  /// Validate username availability
+  Future<ApiResponse<Map<String, dynamic>>> validateUsername(
+    String username,
+  ) async {
+    return await _apiService.post<Map<String, dynamic>>(
+      ApiConstants.validateUsername,
+      {'username': username},
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
   /// Logout (clear token)
   void logout() {
     _apiService.clearToken();
@@ -108,5 +138,15 @@ class AuthService {
   /// Check if user is authenticated
   bool isAuthenticated() {
     return _apiService.getToken() != null;
+  }
+
+  /// Change password for authenticated user
+  Future<ApiResponse<Map<String, dynamic>>> changePassword(String newPassword) async {
+    return await _apiService.post<Map<String, dynamic>>(
+      ApiConstants.changePassword,
+      {'newPassword': newPassword},
+      requiresAuth: true,
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
   }
 }

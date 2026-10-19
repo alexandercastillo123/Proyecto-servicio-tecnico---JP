@@ -1,0 +1,714 @@
+/* =============================================================
+   JyP SERVICIOS TÉCNICOS — UI DESIGN SYSTEM 3.0
+   Sistema de diseño institucional derivado de Login.jsx / Login.css
+   Colores, superficies, glassmorphism, gradientes, bordes sutiles,
+   sombras profundas, espaciados rítmicos y micro-interacciones.
+   ============================================================= */
+
+/* ── Tokens de Superficie (Dark Mode Principal) ── */
+:root {
+  --jyp-bg-page: #080d17;
+  --jyp-bg-card: rgba(15, 23, 42, 0.72);
+  --jyp-bg-card-hover: rgba(19, 30, 53, 0.82);
+  --jyp-bg-panel: rgba(11, 18, 32, 0.92);
+  --jyp-bg-input: rgba(2, 6, 23, 0.52);
+  --jyp-bg-subtle: rgba(148, 163, 184, 0.08);
+
+  --jyp-border: rgba(148, 163, 184, 0.14);
+  --jyp-border-hover: rgba(96, 165, 250, 0.35);
+  --jyp-border-focus: rgba(37, 99, 235, 0.6);
+  --jyp-border-cyan: rgba(6, 182, 212, 0.35);
+
+  --jyp-text-title: #f8fafc;
+  --jyp-text-body: #cbd5e1;
+  --jyp-text-muted: #94a3b8;
+  --jyp-text-dim: #64748b;
+
+  --jyp-shadow-card: 0 24px 60px rgba(0, 0, 0, 0.28);
+  --jyp-shadow-hover: 0 28px 75px rgba(0, 0, 0, 0.38), 0 0 35px rgba(37, 99, 235, 0.14);
+}
+
+[data-theme="light"] {
+  --jyp-bg-page: #f8fafc;
+  --jyp-bg-card: rgba(255, 255, 255, 0.94);
+  --jyp-bg-card-hover: #ffffff;
+  --jyp-bg-panel: rgba(255, 255, 255, 0.98);
+  --jyp-bg-input: rgba(15, 23, 42, 0.04);
+  --jyp-bg-subtle: rgba(15, 23, 42, 0.05);
+
+  --jyp-border: rgba(15, 23, 42, 0.1);
+  --jyp-border-hover: rgba(37, 99, 235, 0.35);
+  --jyp-border-focus: rgba(37, 99, 235, 0.5);
+  --jyp-border-cyan: rgba(6, 182, 212, 0.4);
+
+  --jyp-text-title: #0f172a;
+  --jyp-text-body: #334155;
+  --jyp-text-muted: #64748b;
+  --jyp-text-dim: #94a3b8;
+
+  --jyp-shadow-card: 0 16px 40px rgba(15, 23, 42, 0.08);
+  --jyp-shadow-hover: 0 22px 50px rgba(15, 23, 42, 0.14);
+}
+
+/* ── Contenedores de Página & Sección ── */
+.jyp-page {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--jyp-text-body);
+}
+
+.jyp-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.jyp-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Encabezado de Sección ── */
+.jyp-section-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+@media (min-width: 640px) {
+  .jyp-section-header-row {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+}
+
+.jyp-section-title {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.2;
+  color: var(--jyp-text-title);
+  margin: 0;
+}
+
+.jyp-section-subtitle {
+  font-size: 0.875rem;
+  color: var(--jyp-text-muted);
+  line-height: 1.6;
+  margin: 0;
+  font-weight: 400;
+}
+
+/* ── Hero Banner Institucional (Look idéntico a Login) ── */
+.jyp-hero-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: clamp(28px, 4vw, 44px);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.82) 0%, rgba(11, 18, 32, 0.94) 100%);
+  border: 1px solid var(--jyp-border);
+  box-shadow: var(--jyp-shadow-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+[data-theme="light"] .jyp-hero-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(241, 245, 249, 0.95) 100%);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.jyp-hero-glow-1 {
+  position: absolute;
+  top: -120px;
+  right: -100px;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.22) 0%, transparent 68%);
+  filter: blur(60px);
+  z-index: 0;
+}
+
+.jyp-hero-glow-2 {
+  position: absolute;
+  bottom: -100px;
+  left: -80px;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.16) 0%, transparent 68%);
+  filter: blur(60px);
+  z-index: 0;
+}
+
+.jyp-hero-title {
+  margin: 0;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: clamp(2rem, 3.2vw, 2.75rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  color: var(--jyp-text-title);
+}
+
+.jyp-gradient-text {
+  background: linear-gradient(100deg, #60a5fa 8%, #22d3ee 94%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.jyp-hero-desc {
+  max-width: 580px;
+  margin: 0;
+  color: var(--jyp-text-body);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+/* ── Eyebrow / Badges con Glow ── */
+.jyp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(30, 64, 175, 0.18);
+  border: 1px solid rgba(96, 165, 250, 0.28);
+  color: #bfdbfe;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(8px);
+}
+
+[data-theme="light"] .jyp-eyebrow {
+  background: rgba(37, 99, 235, 0.1);
+  border-color: rgba(37, 99, 235, 0.25);
+  color: #1d4ed8;
+}
+
+.jyp-status-dot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #38bdf8;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.85);
+}
+
+.jyp-badge-success {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #34d399;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+[data-theme="light"] .jyp-badge-success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+/* ── Tarjetas Estándar (jyp-card) ── */
+.jyp-card {
+  background: var(--jyp-bg-card);
+  border: 1px solid var(--jyp-border);
+  border-radius: 22px;
+  padding: 1.5rem;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: var(--jyp-shadow-card);
+  transition: all 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+}
+
+.jyp-card:hover {
+  border-color: var(--jyp-border-hover);
+  transform: translateY(-3px);
+  box-shadow: var(--jyp-shadow-hover);
+}
+
+.jyp-panel {
+  background: var(--jyp-bg-panel);
+  border: 1px solid var(--jyp-border);
+  border-radius: 24px;
+  padding: 1.75rem;
+  backdrop-filter: blur(24px);
+  box-shadow: var(--jyp-shadow-card);
+}
+
+/* ── KPI Stat Cards (Rítmicas, legibles, estilo Login metrics) ── */
+.jyp-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .jyp-stats-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 1.25rem;
+  }
+}
+
+.jyp-stat-card {
+  background: var(--jyp-bg-card);
+  border: 1px solid var(--jyp-border);
+  border-radius: 20px;
+  padding: 1.25rem 1.4rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  backdrop-filter: blur(14px);
+  box-shadow: var(--jyp-shadow-card);
+  transition: all 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.jyp-stat-card:hover {
+  border-color: var(--jyp-border-hover);
+  transform: translateY(-3px);
+  box-shadow: var(--jyp-shadow-hover);
+}
+
+.jyp-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.jyp-stat-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.jyp-stat-label {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--jyp-text-muted);
+  margin: 0 0 0.25rem;
+  line-height: 1.3;
+}
+
+.jyp-stat-value {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: var(--jyp-text-title);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.jyp-stat-sublabel {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--jyp-text-dim);
+  margin: 0.2rem 0 0;
+}
+
+/* ── Pills de Categoría / Filtro ── */
+.jyp-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--jyp-border);
+  color: var(--jyp-text-muted);
+  cursor: pointer;
+  transition: all 180ms ease;
+  white-space: nowrap;
+}
+
+[data-theme="light"] .jyp-pill {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  color: #475569;
+}
+
+.jyp-pill:hover {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: rgba(148, 163, 184, 0.3);
+  color: var(--jyp-text-title);
+  transform: translateY(-1px);
+}
+
+.jyp-pill.is-active {
+  background: rgba(37, 99, 235, 0.18);
+  border-color: rgba(96, 165, 250, 0.55);
+  color: #38bdf8;
+  box-shadow: 0 0 16px rgba(37, 99, 235, 0.25);
+}
+
+[data-theme="light"] .jyp-pill.is-active {
+  background: rgba(37, 99, 235, 0.12);
+  border-color: rgba(37, 99, 235, 0.4);
+  color: #1d4ed8;
+}
+
+/* ── Botones Institucionales ── */
+.jyp-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  color: #FFFFFF;
+  padding: 0.75rem 1.4rem;
+  border-radius: 14px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  transition: all 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 10px 26px rgba(37, 99, 235, 0.35);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.jyp-btn-primary:hover {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  box-shadow: 0 14px 34px rgba(37, 99, 235, 0.45), 0 0 25px rgba(37, 99, 235, 0.25);
+  transform: translateY(-2px);
+  color: #FFFFFF;
+}
+
+.jyp-btn-cyan {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid var(--jyp-border-cyan);
+  color: #22d3ee;
+  padding: 0.75rem 1.35rem;
+  border-radius: 14px;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: all 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 6px 20px rgba(6, 182, 212, 0.18);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.jyp-btn-cyan:hover {
+  background: rgba(6, 182, 212, 0.22);
+  border-color: rgba(6, 182, 212, 0.6);
+  color: #67e8f9;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(6, 182, 212, 0.3);
+}
+
+.jyp-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--jyp-bg-subtle);
+  color: var(--jyp-text-body);
+  padding: 0.75rem 1.35rem;
+  border-radius: 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid var(--jyp-border);
+  cursor: pointer;
+  transition: all 200ms ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.jyp-btn-ghost:hover {
+  background: rgba(148, 163, 184, 0.14);
+  border-color: var(--jyp-border-hover);
+  color: var(--jyp-text-title);
+  transform: translateY(-1px);
+}
+
+.jyp-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+  padding: 0.6875rem 1.35rem;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: 1px solid rgba(239, 68, 68, 0.28);
+  cursor: pointer;
+  transition: all 200ms ease;
+  text-decoration: none;
+}
+
+.jyp-btn-danger:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.45);
+  transform: translateY(-1px);
+}
+
+/* ── Topbar Button Component ── */
+.topbar-btn {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--jyp-bg-card);
+  border: 1px solid var(--jyp-border);
+  color: var(--jyp-text-muted);
+  cursor: pointer;
+  transition: all 180ms ease;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.topbar-btn:hover {
+  background: rgba(148, 163, 184, 0.14);
+  border-color: var(--jyp-border-hover);
+  color: var(--jyp-text-title);
+  transform: translateY(-1px);
+}
+
+/* ── Formularios Institucionales ── */
+.jyp-form-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--jyp-text-muted);
+  margin-bottom: 0.5rem;
+}
+
+.jyp-form-input {
+  width: 100%;
+  background: var(--jyp-bg-input);
+  border: 1px solid var(--jyp-border);
+  color: var(--jyp-text-title);
+  padding: 0.75rem 1rem;
+  height: 3rem;
+  border-radius: 14px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  outline: none;
+  transition: all 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  appearance: none;
+}
+
+.jyp-form-input::placeholder {
+  color: var(--jyp-text-dim);
+  font-weight: 400;
+}
+
+.jyp-form-input:focus {
+  border-color: #3b82f6;
+  background: rgba(37, 99, 235, 0.08);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.jyp-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* ── Tablas Institucionales ── */
+.jyp-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--jyp-border);
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--jyp-bg-card);
+  backdrop-filter: blur(16px);
+}
+
+.jyp-table thead th {
+  padding: 0.875rem 1.15rem;
+  text-align: left;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--jyp-text-muted);
+  border-bottom: 1px solid var(--jyp-border);
+  background: rgba(255, 255, 255, 0.02);
+  white-space: nowrap;
+}
+
+.jyp-table tbody td {
+  padding: 0.875rem 1.15rem;
+  border-bottom: 1px solid var(--jyp-border);
+  font-size: 0.875rem;
+  color: var(--jyp-text-body);
+  vertical-align: middle;
+}
+
+.jyp-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.jyp-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* ── Estados Vacíos (Empty States Elegantes) ── */
+.jyp-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: var(--jyp-bg-card);
+  border: 1px solid var(--jyp-border);
+  border-radius: 24px;
+  backdrop-filter: blur(16px);
+}
+
+.jyp-empty-icon {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 1rem;
+  background: rgba(37, 99, 235, 0.12);
+  border: 1px solid rgba(37, 99, 235, 0.25);
+  color: #60a5fa;
+}
+
+.jyp-empty-title {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1.125rem;
+  font-weight: 800;
+  color: var(--jyp-text-title);
+  margin: 0 0 0.5rem;
+  line-height: 1.3;
+}
+
+.jyp-empty-text {
+  font-size: 0.84rem;
+  color: var(--jyp-text-muted);
+  margin: 0;
+  line-height: 1.6;
+  max-width: 26rem;
+}
+
+/* ── Modales ── */
+.jyp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6, 9, 19, 0.8);
+  backdrop-filter: blur(18px);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.jyp-modal {
+  width: 100%;
+  max-width: 32rem;
+  background: var(--jyp-bg-panel);
+  border: 1px solid var(--jyp-border);
+  border-radius: 26px;
+  padding: 2rem;
+  backdrop-filter: blur(28px);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+  position: relative;
+}
+
+.jyp-modal-close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid var(--jyp-border);
+  color: var(--jyp-text-muted);
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.jyp-modal-close:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--jyp-text-title);
+  border-color: var(--jyp-border-hover);
+}
+
+.jyp-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+}
+
+.jyp-modal-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: rgba(37, 99, 235, 0.14);
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  color: #60a5fa;
+}
+
+.jyp-modal-title {
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--jyp-text-title);
+  margin: 0;
+}
+
+.jyp-modal-subtitle {
+  font-size: 0.8125rem;
+  color: var(--jyp-text-muted);
+  margin: 0.2rem 0 0;
+}
