@@ -10,7 +10,9 @@ const getAllAppointments = async ({ status, date } = {}) => {
         SELECT
             a.*,
             c.username as client_username,
+            c.email as client_email,
             cp.names as client_names, cp.surnames as client_surnames,
+            cp.phone as client_phone,
             t.username as tech_username,
             tp.names as tech_names, tp.surnames as tech_surnames,
             s.name as store_name
@@ -34,7 +36,8 @@ const getAllAppointments = async ({ status, date } = {}) => {
 const getAllUsers = async ({ role } = {}) => {
     let sql = `
         SELECT u.id, u.username, u.email, u.role, u.created_at,
-               up.names, up.surnames, up.phone, up.person_type, up.company_name, up.ruc, up.city
+               up.names, up.surnames, up.phone, up.person_type, up.company_name, up.ruc, up.city,
+               up.dni, up.address
         FROM users u
         LEFT JOIN user_profiles up ON u.id = up.user_id
         WHERE 1=1
@@ -56,11 +59,13 @@ const getAllBranches = async () => {
 
 const getAllOrders = async ({ status } = {}) => {
     let sql = `
-        SELECT o.*, p.name as product_name, s.name as store_name,
-               up.names as client_names, up.surnames as client_surnames
+        SELECT o.*, p.name as product_name, s.name as store_name, s.address as store_address,
+               up.names as client_names, up.surnames as client_surnames, up.phone as client_phone,
+               u.email as client_email
         FROM store_orders o
         JOIN store_products p ON o.product_id = p.id
         JOIN sucursales s ON o.sucursal_id = s.id
+        JOIN users u ON o.client_id = u.id
         JOIN user_profiles up ON o.client_id = up.user_id
         WHERE 1=1
     `;

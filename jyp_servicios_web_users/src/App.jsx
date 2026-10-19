@@ -20,8 +20,14 @@ import StoreCreate from './components/StoreCreate';
 import StoreList from './components/StoreList';
 import StoreProfile from './components/StoreProfile';
 import OrderList from './components/OrderList';
+import OrderFlowWizard from './components/OrderFlowWizard';
 import StoreMarketplace from './components/StoreMarketplace';
+import Notifications from './components/Notifications';
+import ScheduleManagement from './components/ScheduleManagement';
+import ChangePassword from './components/ChangePassword';
+import Legal from './components/Legal';
 import { Toaster } from 'react-hot-toast';
+import { authService } from './services/api';
 import { SocketProvider } from './context/SocketContext';
 import { TechLoader } from './components/common/TechLoader';
 
@@ -52,6 +58,35 @@ function App() {
       } catch (_) {}
     }
     setLoading(false);
+  }, []);
+
+  /* Si el usuario guardado no trae nombres (no vienen del login), se consulta
+     el perfil para que el saludo y el header usen el nombre real. */
+  useEffect(() => {
+    if (!user || user.names) return;
+    let cancelled = false;
+    authService.getProfile()
+      .then((res) => {
+        if (cancelled) return;
+        const profile = res.data?.resultado;
+        if (!profile) return;
+        const merged = { ...user, ...profile };
+        localStorage.setItem('user', JSON.stringify(merged));
+        setUser(merged);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  /* Sincroniza los cambios de perfil (foto, nombre, rol) con el header */
+  useEffect(() => {
+    const onUserUpdated = (e) => {
+      if (e?.detail) {
+        setUser(prev => ({ ...prev, ...e.detail }));
+      }
+    };
+    window.addEventListener('jyp:user-updated', onUserUpdated);
+    return () => window.removeEventListener('jyp:user-updated', onUserUpdated);
   }, []);
 
   if (loading) {
@@ -151,6 +186,11 @@ function App() {
           <Route path="chat"                  element={<Chat />} />
           <Route path="profile"               element={<ProfileEdit />} />
           <Route path="orders"                element={<OrderList />} />
+          <Route path="order/new"             element={<OrderFlowWizard />} />
+          <Route path="notifications"         element={<Notifications />} />
+          <Route path="schedule"              element={<ScheduleManagement />} />
+          <Route path="change-password"       element={<ChangePassword />} />
+          <Route path="legal"                 element={<Legal />} />
 
           {/* Store Specific */}
           <Route path="shop"                  element={<StoreMarketplace />} />

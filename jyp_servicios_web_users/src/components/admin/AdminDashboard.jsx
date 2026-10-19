@@ -45,7 +45,7 @@ const StatCard = ({ icon, label, value, desc, color, bg }) => (
       {icon}
     </div>
     <div>
-      <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-dim)' }}>{label}</p>
       <p className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--text-primary)' }}>{value}</p>
       <p className="text-[11px] font-medium mt-0.5" style={{ color: 'var(--text-secondary)' }}>{desc}</p>
     </div>
@@ -60,7 +60,7 @@ const ApptModal = ({ appt, onClose }) => {
       className="rounded-xl px-4 py-3 border"
       style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
     >
-      <p className="text-[9px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-muted)' }}>{label}</p>
+      <p className="text-[9px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--text-dim)' }}>{label}</p>
       <p className="font-bold text-xs" style={{ color: 'var(--text-primary)' }}>{value || '—'}</p>
     </div>
   );
@@ -114,6 +114,7 @@ const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [stores, setStores] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [selectedAppt, setSelectedAppt] = useState(null);
   const { isDark } = useTheme();
 
@@ -121,15 +122,17 @@ const AdminDashboard = () => {
     const load = async () => {
       try {
         const [aR, uR, sR] = await Promise.all([
-          adminService.getAppointments({ limit: 50 }),
+          adminService.getAppointments(),
           adminService.getUsers(),
           adminService.getBranches(),
         ]);
-        setAppointments(aR.data.resultado || []);
-        setUsers(uR.data.resultado || []);
-        setStores(sR.data.resultado || []);
+        setAppointments(Array.isArray(aR.data?.resultado) ? aR.data.resultado : []);
+        setUsers(Array.isArray(uR.data?.resultado) ? uR.data.resultado : []);
+        setStores(Array.isArray(sR.data?.resultado) ? sR.data.resultado : []);
+        setLoadError('');
       } catch (e) {
         console.error(e);
+        setLoadError(e.response?.data?.mensaje || 'No se pudieron cargar los datos del panel.');
       } finally {
         setLoading(false);
       }
@@ -174,10 +177,20 @@ const AdminDashboard = () => {
 
       {loading ? (
         <div className="flex items-center justify-center py-24">
-          <div 
+          <div
             className="w-10 h-10 border-4 border-t-transparent rounded-full animate-spin"
             style={{ borderColor: 'var(--primary)', borderTopColor: 'transparent' }}
           />
+        </div>
+      ) : loadError ? (
+        <div
+          className="p-8 rounded-3xl border text-center"
+          style={{ background: 'rgba(239, 68, 68, 0.06)', borderColor: 'rgba(239, 68, 68, 0.25)' }}
+        >
+          <p className="text-sm font-bold" style={{ color: '#F87171' }}>{loadError}</p>
+          <p className="text-xs mt-2" style={{ color: 'var(--text-dim)' }}>
+            Verifica que tu cuenta tenga el rol de administrador y que el backend esté disponible.
+          </p>
         </div>
       ) : (
         <>
@@ -258,7 +271,7 @@ const AdminDashboard = () => {
             <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor: 'var(--border)' }}>
               <div>
                 <h3 className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>Actividad Reciente</h3>
-                <p className="text-[11px] font-medium" style={{ color: 'var(--text-muted)' }}>Últimos servicios solicitados en plataforma</p>
+                <p className="text-[11px] font-medium" style={{ color: 'var(--text-dim)' }}>Últimos servicios solicitados en plataforma</p>
               </div>
               <Link to="/admin/citas" className="flex items-center gap-1 text-xs font-bold hover:underline" style={{ color: 'var(--primary)' }}>
                 <span>Ver todas</span>
@@ -269,12 +282,12 @@ const AdminDashboard = () => {
               <table className="w-full text-left text-xs">
                 <thead>
                   <tr className="border-b" style={{ borderColor: 'var(--border)', backgroundColor: 'var(--bg)' }}>
-                    <th className="p-4 font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>ID</th>
-                    <th className="p-4 font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Cliente</th>
-                    <th className="p-4 font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Tipo</th>
-                    <th className="p-4 font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Fecha</th>
-                    <th className="p-4 font-bold uppercase tracking-wider" style={{ color: 'var(--text-muted)' }}>Estado</th>
-                    <th className="p-4 font-bold uppercase tracking-wider text-right" style={{ color: 'var(--text-muted)' }}>Acción</th>
+                    <th className="p-4 font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>ID</th>
+                    <th className="p-4 font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>Cliente</th>
+                    <th className="p-4 font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>Tipo</th>
+                    <th className="p-4 font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>Fecha</th>
+                    <th className="p-4 font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>Estado</th>
+                    <th className="p-4 font-bold uppercase tracking-wider text-right" style={{ color: 'var(--text-dim)' }}>Acción</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y" style={{ borderColor: 'var(--border)' }}>
@@ -298,7 +311,7 @@ const AdminDashboard = () => {
                           </div>
                           <div>
                             <div className="font-bold" style={{ color: 'var(--text-primary)' }}>{a.client_names} {a.client_surnames}</div>
-                            <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{a.client_email}</div>
+                            <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>{a.client_email}</div>
                           </div>
                         </div>
                       </td>
@@ -309,7 +322,7 @@ const AdminDashboard = () => {
                       </td>
                       <td className="p-4">
                         <div className="font-bold" style={{ color: 'var(--text-primary)' }}>{new Date(a.scheduled_date).toLocaleDateString('es-PE')}</div>
-                        <div className="text-[10px]" style={{ color: 'var(--text-muted)' }}>{a.scheduled_time?.slice(0, 5)} hrs</div>
+                        <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>{a.scheduled_time?.slice(0, 5)} hrs</div>
                       </td>
                       <td className="p-4"><StatusBadge status={a.status} /></td>
                       <td className="p-4 text-right">
@@ -325,7 +338,7 @@ const AdminDashboard = () => {
                 </tbody>
               </table>
               {recentAppts.length === 0 && (
-                <div className="py-12 text-center text-xs font-semibold" style={{ color: 'var(--text-muted)' }}>
+                <div className="py-12 text-center text-xs font-semibold" style={{ color: 'var(--text-dim)' }}>
                   No hay citas registradas en el sistema.
                 </div>
               )}
