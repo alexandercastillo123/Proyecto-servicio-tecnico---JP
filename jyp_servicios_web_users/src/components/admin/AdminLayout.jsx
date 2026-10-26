@@ -4,20 +4,21 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, Calendar, Users, Package,
   Store, LogOut, ChevronLeft, ChevronRight,
-  Shield, Cpu, Sun, Moon, Zap
+  Shield, Cpu, Sun, Moon, Zap, Menu, X, Activity, ShieldCheck
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 
 const NAV_ITEMS = [
-  { to: '/admin',           label: 'Inicio / Panel',   icon: LayoutDashboard },
-  { to: '/admin/citas',     label: 'Citas & Servicios',icon: Calendar },
-  { to: '/admin/usuarios',  label: 'Usuarios',         icon: Users },
-  { to: '/admin/pedidos',   label: 'Pedidos',          icon: Package },
-  { to: '/admin/sucursales',label: 'Sucursales JyP',   icon: Store },
+  { to: '/admin',           label: 'Centro de Comando', icon: LayoutDashboard },
+  { to: '/admin/citas',     label: 'Citas & Servicios', icon: Calendar },
+  { to: '/admin/usuarios',  label: 'Control Usuarios',  icon: Users },
+  { to: '/admin/pedidos',   label: 'Pedidos & Repuestos', icon: Package },
+  { to: '/admin/sucursales',label: 'Talleres & Red',    icon: Store },
 ];
 
 const AdminLayout = ({ user, onLogout }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { isDark, toggleTheme } = useTheme();
@@ -32,30 +33,101 @@ const AdminLayout = ({ user, onLogout }) => {
     navigate('/login');
   };
 
+  const SIDEBAR_W = collapsed ? 80 : 268;
+
   return (
     <div
-      className="flex min-h-screen overflow-hidden"
-      style={{ background: 'var(--bg)', color: 'var(--text-primary)', fontFamily: "'Inter',sans-serif" }}
+      className="flex min-h-screen overflow-hidden bg-[#080d17] text-[#f8fafc] font-sans"
     >
-      {/* Sidebar */}
+      {/* Mobile Drawer */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 md:hidden"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed left-0 top-0 bottom-0 w-[280px] z-50 flex flex-col bg-[#0b1220]/95 border-r border-white/10 backdrop-blur-2xl md:hidden"
+            >
+              <div className="flex items-center justify-between px-5 h-[72px] border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                    <Cpu size={20} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-base leading-tight font-heading">JyP ADMIN</h3>
+                    <p className="text-[9px] uppercase tracking-widest text-cyan-400 font-bold">Consola Maestra</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 text-slate-400 hover:text-white"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto no-scrollbar">
+                {NAV_ITEMS.map((item) => {
+                  const active = isActive(item.to);
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.to}
+                      to={item.to}
+                      onClick={() => setMobileOpen(false)}
+                      className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl transition-all ${
+                        active
+                          ? "bg-blue-600/20 text-white font-bold border-l-4 border-cyan-400 shadow-[0_0_20px_rgba(37,99,235,0.25)]"
+                          : "text-slate-400 hover:text-white hover:bg-white/5 font-semibold"
+                      }`}
+                    >
+                      <Icon size={19} className={active ? "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" : "text-slate-400"} />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              <div className="p-4 border-t border-white/10">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-500/10 text-sm font-semibold transition-all"
+                >
+                  <LogOut size={18} />
+                  <span>Cerrar Sesión</span>
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Sidebar */}
       <motion.aside
         initial={false}
-        animate={{ width: collapsed ? 80 : 268 }}
+        animate={{ width: SIDEBAR_W }}
         transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
-        className="fixed left-0 top-0 h-full z-40 flex flex-col overflow-hidden"
-        style={{
-          background: isDark ? 'rgba(5,7,15,0.97)' : 'rgba(240,244,255,0.97)',
-          borderRight: '1px solid var(--border)',
-          backdropFilter: 'blur(24px)',
-        }}
+        className="fixed left-0 top-0 h-full z-40 hidden md:flex flex-col overflow-hidden bg-[#090f1d]/90 border-r border-white/10 backdrop-blur-2xl"
       >
         {/* Logo */}
-        <div className="p-5 flex items-center gap-3 h-20 shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+        <div className="p-5 flex items-center gap-3 h-[72px] shrink-0 border-b border-white/10">
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-            style={{ background: 'var(--primary)', boxShadow: 'var(--shadow-primary)' }}
+            className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 shadow-lg"
+            style={{
+              background: 'linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)',
+              boxShadow: '0 0 20px rgba(37, 99, 235, 0.4)'
+            }}
           >
-            <Cpu size={20} color="white" strokeWidth={2.5} />
+            <Cpu size={20} color="white" strokeWidth={2.3} />
           </div>
           <AnimatePresence>
             {!collapsed && (
@@ -64,42 +136,50 @@ const AdminLayout = ({ user, onLogout }) => {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -8 }}
                 transition={{ duration: 0.2 }}
-                className="overflow-hidden whitespace-nowrap"
+                className="overflow-hidden whitespace-nowrap min-w-0"
               >
-                <span className="font-black text-lg tracking-tight">
-                  JyP <span className="text-[#3B28FF] italic">Admin</span>
-                </span>
-                <p className="text-[9px] text-slate-600 font-black uppercase tracking-[0.25em]">Panel de Control</p>
+                <div className="flex items-center gap-1.5">
+                  <span className="font-black text-lg tracking-tight font-heading text-white">
+                    JyP
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-400/30">
+                    ADMIN
+                  </span>
+                </div>
+                <p className="text-[9px] text-cyan-400 font-extrabold uppercase tracking-[0.16em] leading-none mt-0.5">
+                  Consola Central
+                </p>
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto no-scrollbar">
+        <nav className="flex-1 px-3.5 py-6 space-y-1.5 overflow-y-auto no-scrollbar">
+          {!collapsed && (
+            <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+              Módulos Administrativos
+            </p>
+          )}
           {NAV_ITEMS.map((item) => {
             const active = isActive(item.to);
+            const Icon = item.icon;
             return (
               <Link
                 key={item.to}
                 to={item.to}
                 title={collapsed ? item.label : undefined}
-                className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 relative group ${
+                className={`flex items-center gap-3.5 px-3.5 py-3 rounded-2xl transition-all duration-200 relative group ${
                   active
-                    ? 'bg-[#3B28FF]/15 text-white'
-                    : 'text-slate-500 hover:text-white hover:bg-white/5'
+                    ? 'bg-blue-600/20 text-white font-bold border-l-4 border-cyan-400 shadow-[0_0_20px_rgba(37,99,235,0.25)]'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent font-medium'
                 }`}
               >
-                {/* Active bar */}
-                {active && (
-                  <motion.span
-                    layoutId="admin-active"
-                    className="absolute left-0 top-2 bottom-2 w-0.5 bg-[#3B28FF] rounded-full"
-                  />
-                )}
-                <div className={`shrink-0 ${active ? item.color : ''}`}>
-                  <item.icon size={20} />
-                </div>
+                <Icon
+                  size={19}
+                  strokeWidth={active ? 2.4 : 1.8}
+                  className={`shrink-0 ${active ? 'text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]' : 'text-slate-400'}`}
+                />
                 <AnimatePresence>
                   {!collapsed && (
                     <motion.span
@@ -118,7 +198,25 @@ const AdminLayout = ({ user, onLogout }) => {
         </nav>
 
         {/* Bottom */}
-        <div className="p-3 border-t border-white/5 space-y-2 shrink-0">
+        <div className="p-3.5 border-t border-white/10 space-y-2 shrink-0">
+          {/* Telemetry Status */}
+          <AnimatePresence>
+            {!collapsed && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="px-3.5 py-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs font-bold"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#10B981]" />
+                  <span className="text-[11px] text-emerald-400 font-extrabold">Servidor Operativo</span>
+                </div>
+                <Activity size={13} className="text-slate-500" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* User card */}
           <AnimatePresence>
             {!collapsed && (
@@ -126,16 +224,16 @@ const AdminLayout = ({ user, onLogout }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="px-3 py-3 rounded-xl bg-white/3 border border-white/5 flex items-center gap-3"
+                className="px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center gap-3"
               >
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#3B28FF] to-indigo-700 flex items-center justify-center font-black text-sm shadow-lg shrink-0">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center font-black text-sm text-white shadow-lg shrink-0">
                   {user?.names?.[0] || user?.username?.[0] || 'A'}
                 </div>
-                <div className="overflow-hidden flex-1">
-                  <p className="text-sm font-black truncate leading-tight">
+                <div className="overflow-hidden flex-1 min-w-0">
+                  <p className="text-xs font-black truncate leading-tight text-white font-heading">
                     {[user?.names, user?.surnames].filter(Boolean).join(' ').trim() || user?.username || 'Admin'}
                   </p>
-                  <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Administrador</p>
+                  <p className="text-[9px] text-amber-400 uppercase font-bold tracking-wider mt-0.5">Super Admin</p>
                 </div>
               </motion.div>
             )}
@@ -144,21 +242,21 @@ const AdminLayout = ({ user, onLogout }) => {
           {/* Collapse toggle */}
           <button
             onClick={() => setCollapsed(c => !c)}
-            className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-600 hover:text-white hover:bg-white/5 rounded-xl transition-all text-sm font-bold"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-slate-400 hover:text-white hover:bg-white/5 rounded-xl transition-all text-sm font-semibold"
           >
-            {collapsed ? <ChevronRight size={18} /> : <><ChevronLeft size={18} /><span>Colapsar</span></>}
+            {collapsed ? <ChevronRight size={18} /> : <><ChevronLeft size={18} /><span>Contraer Menú</span></>}
           </button>
 
           {/* Logout */}
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 text-red-500/60 hover:text-red-400 hover:bg-red-500/8 rounded-xl transition-all text-sm font-bold"
+            className="w-full flex items-center gap-3 px-3.5 py-2.5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition-all text-sm font-semibold"
           >
             <LogOut size={18} className="shrink-0" />
             <AnimatePresence>
               {!collapsed && (
                 <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                  Salir
+                  Cerrar Sesión
                 </motion.span>
               )}
             </AnimatePresence>
@@ -166,28 +264,42 @@ const AdminLayout = ({ user, onLogout }) => {
         </div>
       </motion.aside>
 
-      {/* Main */}
+      {/* Main Content */}
       <main
         className="flex-1 min-h-screen flex flex-col overflow-x-hidden transition-all duration-300"
-        style={{ marginLeft: collapsed ? 80 : 268 }}
+        style={{
+          marginLeft: typeof window !== 'undefined' && window.innerWidth >= 768 ? SIDEBAR_W : 0,
+          background: "radial-gradient(ellipse at 85% 5%, rgba(37, 99, 235, 0.12) 0%, transparent 45%), radial-gradient(ellipse at 15% 40%, rgba(6, 182, 212, 0.08) 0%, transparent 40%), #080d17"
+        }}
       >
         {/* Topbar */}
-        <header className="h-20 px-8 flex items-center justify-between border-b border-white/5 sticky top-0 z-30 shrink-0"
-          style={{ background: 'rgba(2,3,6,0.85)', backdropFilter: 'blur(16px)' }}>
+        <header
+          className="h-[72px] px-4 sm:px-6 md:px-8 flex items-center justify-between border-b border-white/10 sticky top-0 z-30 shrink-0 bg-[#080d17]/85 backdrop-blur-2xl"
+        >
           <div className="flex items-center gap-3">
-            <Zap size={16} className="text-[#3B28FF]" />
-            <span className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-500">
-              JyP Services —
-            </span>
-            <span className="text-[11px] font-black uppercase tracking-[0.25em] text-[#3B28FF]">
-              {NAV_ITEMS.find(n => isActive(n.to))?.label || 'Panel Admin'}
-            </span>
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 text-slate-300 md:hidden hover:text-white"
+            >
+              <Menu size={20} />
+            </button>
+            <div className="flex items-center gap-2">
+              <Zap size={16} className="text-cyan-400" />
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 hidden sm:inline">
+                JyP Infraestructura —
+              </span>
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-cyan-400">
+                {NAV_ITEMS.find(n => isActive(n.to))?.label || 'Panel Admin'}
+              </span>
+            </div>
           </div>
+
           <div className="flex items-center gap-3">
-            <span className="text-[11px] text-slate-600 font-bold">
-              {new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </span>
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#3B28FF] to-indigo-700 flex items-center justify-center font-black text-xs shadow-lg">
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-slate-300 text-xs font-bold">
+              <ShieldCheck size={14} className="text-emerald-400" />
+              <span>Modo Root Concedido</span>
+            </div>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center font-black text-xs text-white shadow-lg">
               {user?.names?.[0] || user?.username?.[0] || 'A'}
             </div>
           </div>

@@ -3,22 +3,20 @@ import { motion } from "framer-motion";
 import {
   User, Mail, Phone, MapPin, Save, Camera,
   Lock, Eye, EyeOff, CheckCircle, Cpu, Shield, Wrench, Star,
-  AlertCircle, ChevronRight, Store, Upload
+  AlertCircle, ChevronRight, Store, Upload, Sparkles, Activity
 } from "lucide-react";
 import { authService, storeService } from "../services/api";
 import { mediaUrl } from "../services/formatters";
 import toast from "react-hot-toast";
-import { useTheme } from "../context/ThemeContext";
 
-/* ── Standalone Input Component (Must be outside to preserve focus) ── */
 const InputField = ({ label, name, type = "text", placeholder, value, onChange, icon: Icon, disabled = false }) => (
   <div className="space-y-1.5">
-    <label className="jyp-form-label">
+    <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
       {label}
     </label>
     <div className="relative">
       {Icon && (
-        <Icon size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+        <Icon size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400 pointer-events-none" />
       )}
       <input
         type={type}
@@ -27,17 +25,13 @@ const InputField = ({ label, name, type = "text", placeholder, value, onChange, 
         value={value ?? ""}
         onChange={onChange}
         disabled={disabled}
-        className="jyp-form-input"
-        style={{ paddingLeft: Icon ? 40 : 16, opacity: disabled ? 0.6 : 1 }}
+        className="w-full rounded-2xl py-3 pr-4 text-xs bg-[#0c1424] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20 transition-all shadow-inner"
+        style={{ paddingLeft: Icon ? 42 : 16, opacity: disabled ? 0.6 : 1 }}
       />
     </div>
   </div>
 );
 
-/* El backend no tiene columnas `specialties` ni `hourly_rate` para usuarios: solo
-   existen en `sucursales`. Ambas apps (web y Android) filtran técnicos por
-   `specialties || description`, así que se persisten dentro de `description`
-   con un formato estructurado que se puede volver a leer. */
 const SPECIALTIES_TAG = "Especialidades:";
 const RATE_TAG = "Tarifa base:";
 
@@ -72,15 +66,13 @@ export const parseDescription = (description = "") => {
 };
 
 const ProfileEdit = () => {
-  const { isDark } = useTheme();
   const fileInputRef = useRef(null);
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem("user") || "{}"));
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [tab, setTab] = useState("info"); // info | tech | store | security
+  const [tab, setTab] = useState("info");
   const [showPass, setShowPass] = useState({ current: false, new: false, confirm: false });
-  
+
   const [formData, setFormData] = useState({
     names: user.names || user.username || "",
     surnames: user.surnames || "",
@@ -97,33 +89,35 @@ const ProfileEdit = () => {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    // Sync initial profile from server if possible
-    authService.getProfile().then(res => {
-      if (res.data?.exito && res.data?.resultado) {
-        const u = res.data.resultado;
-        const parsed = parseDescription(u.description || "");
-        const merged = { ...user, ...u };
-        setUser(merged);
-        localStorage.setItem("user", JSON.stringify(merged));
-        setFormData(prev => ({
-          ...prev,
-          names: u.names || prev.names,
-          surnames: u.surnames || prev.surnames,
-          email: u.email || prev.email,
-          phone: u.phone || prev.phone,
-          city: u.city || prev.city,
-          bio: parsed.bio || prev.bio,
-          specialties: parsed.specialties || prev.specialties,
-          hourly_rate: parsed.hourly_rate || prev.hourly_rate,
-          address: u.address || prev.address,
-        }));
-      }
-    }).catch(() => {});
+    authService
+      .getProfile()
+      .then((res) => {
+        if (res.data?.exito && res.data?.resultado) {
+          const u = res.data.resultado;
+          const parsed = parseDescription(u.description || "");
+          const merged = { ...user, ...u };
+          setUser(merged);
+          localStorage.setItem("user", JSON.stringify(merged));
+          setFormData((prev) => ({
+            ...prev,
+            names: u.names || prev.names,
+            surnames: u.surnames || prev.surnames,
+            email: u.email || prev.email,
+            phone: u.phone || prev.phone,
+            city: u.city || prev.city,
+            bio: parsed.bio || prev.bio,
+            specialties: parsed.specialties || prev.specialties,
+            hourly_rate: parsed.hourly_rate || prev.hourly_rate,
+            address: u.address || prev.address,
+          }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const handlePhotoClick = () => {
@@ -148,7 +142,7 @@ const ProfileEdit = () => {
     data.append("photo", file);
 
     setUploadingPhoto(true);
-    const toastId = toast.loading("Subiendo foto de perfil...");
+    const toastId = toast.loading("Transmitiendo foto de perfil...");
     try {
       const res = await authService.uploadProfilePhoto(data);
       if (res.data?.exito || res.data?.resultado?.imageUrl) {
@@ -156,8 +150,8 @@ const ProfileEdit = () => {
         const updated = { ...user, profile_image_url: newUrl };
         localStorage.setItem("user", JSON.stringify(updated));
         setUser(updated);
-        window.dispatchEvent(new CustomEvent('jyp:user-updated', { detail: updated }));
-        toast.success("Foto de perfil actualizada con éxito", { id: toastId });
+        window.dispatchEvent(new CustomEvent("jyp:user-updated", { detail: updated }));
+        toast.success("Foto de perfil actualizada", { id: toastId });
       } else {
         toast.error(res.data?.mensaje || "Error al subir foto", { id: toastId });
       }
@@ -173,7 +167,6 @@ const ProfileEdit = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      // Build clean payload without sending invalid empty phones
       const payload = {
         names: formData.names?.trim(),
         surnames: formData.surnames?.trim(),
@@ -204,19 +197,19 @@ const ProfileEdit = () => {
         };
         localStorage.setItem("user", JSON.stringify(updated));
         setUser(updated);
-        /* Avisa al App para que el header (chip de usuario/rol) se actualice sin recargar */
-        window.dispatchEvent(new CustomEvent('jyp:user-updated', { detail: updated }));
+        window.dispatchEvent(new CustomEvent("jyp:user-updated", { detail: updated }));
         setSaved(true);
-        toast.success("Perfil actualizado correctamente");
+        toast.success("Perfil actualizado con éxito");
         setTimeout(() => setSaved(false), 3000);
       } else {
         toast.error(res.data?.mensaje || "Error al actualizar perfil");
       }
     } catch (err) {
       console.error("Save profile error:", err);
-      const msg = err.response?.data?.resultado?.[0]?.mensaje 
-        || err.response?.data?.mensaje 
-        || "Error al actualizar el perfil";
+      const msg =
+        err.response?.data?.resultado?.[0]?.mensaje ||
+        err.response?.data?.mensaje ||
+        "Error al actualizar el perfil";
       toast.error(msg);
     } finally {
       setSaving(false);
@@ -230,7 +223,7 @@ const ProfileEdit = () => {
       return;
     }
     if (passwords.new !== passwords.confirm) {
-      toast.error("Las nuevas contraseñas no coinciden");
+      toast.error("Las contraseñas no coinciden");
       return;
     }
 
@@ -255,13 +248,12 @@ const ProfileEdit = () => {
     { id: "info", label: "Información Personal", icon: User },
     ...(user.role === "tech" ? [{ id: "tech", label: "Perfil Técnico", icon: Wrench }] : []),
     ...(user.role === "store" ? [{ id: "store", label: "Datos de Tienda", icon: Store }] : []),
-    { id: "security", label: "Seguridad & Contraseña", icon: Shield },
+    { id: "security", label: "Seguridad & Cifrado", icon: Shield },
   ];
 
   return (
-    <div className="max-w-3xl mx-auto pb-4 space-y-6 font-sans">
+    <div className="max-w-4xl mx-auto pb-10 space-y-8" style={{ fontFamily: "'Inter', sans-serif" }}>
 
-      {/* Hidden File Input for Avatar */}
       <input
         type="file"
         ref={fileInputRef}
@@ -270,34 +262,35 @@ const ProfileEdit = () => {
         style={{ display: "none" }}
       />
 
-      {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="space-y-1">
-        <p className="text-[11px] font-black tracking-widest uppercase text-blue-400 mb-1">
-          Centro de Configuración
-        </p>
-        <h1 className="text-[clamp(1.75rem,3.5vw,2.25rem)] font-black tracking-tight text-slate-100 font-heading">
-          Mi Perfil
-        </h1>
-        <p className="text-xs sm:text-sm text-slate-400">
-          Administra tus datos personales, información de contacto y credenciales de acceso.
-        </p>
-      </motion.div>
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-[32px] p-8 border border-white/10 bg-gradient-to-br from-[#0c1322] via-[#080d17] to-[#0a1829] shadow-2xl">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-blue-500/10 text-cyan-400 border border-blue-500/25">
+            <Activity size={13} className="text-cyan-400" />
+            <span>Centro de Identidad Digital</span>
+          </div>
+          <h1
+            className="text-3xl sm:text-4xl font-black text-white tracking-tight"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          >
+            Mi Perfil de Usuario
+          </h1>
+          <p className="text-sm text-slate-400 max-w-xl">
+            Administra tus credenciales, datos de facturación, cobertura geográfica y parámetros de cuenta.
+          </p>
+        </div>
+      </div>
 
-      {/* Profile Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="card flex flex-col sm:flex-row items-center gap-6 p-8 rounded-[32px] shadow-xl"
-      >
+      {/* Profile HUD Card */}
+      <div className="rounded-[32px] border border-white/10 bg-[#0a101b]/95 p-8 flex flex-col sm:flex-row items-center gap-6 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+
         {/* Avatar */}
         <div className="relative shrink-0">
           <div
-            className="w-28 h-28 rounded-full flex items-center justify-center text-white text-3xl font-black overflow-hidden relative shadow-2xl"
+            className="w-28 h-28 rounded-3xl flex items-center justify-center text-white text-3xl font-black overflow-hidden relative shadow-2xl border-4 border-[#0c1424]"
             style={{
-              background: user.profile_image_url ? "transparent" : "linear-gradient(135deg, #2D6BFF 0%, #06B6D4 100%)",
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              border: "3px solid rgba(59, 130, 246, 0.3)"
+              background: user.profile_image_url ? "transparent" : "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)",
             }}
           >
             {user.profile_image_url ? (
@@ -306,15 +299,15 @@ const ProfileEdit = () => {
                 alt="Avatar"
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  e.target.style.display = 'none';
+                  e.target.style.display = "none";
                 }}
               />
             ) : (
               <span>{user.names?.[0]?.toUpperCase() || user.username?.[0]?.toUpperCase() || "U"}</span>
             )}
             {uploadingPhoto && (
-              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                <div className="w-6 h-6 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
               </div>
             )}
           </div>
@@ -323,68 +316,79 @@ const ProfileEdit = () => {
             onClick={handlePhotoClick}
             disabled={uploadingPhoto}
             title="Cambiar foto de perfil"
-            className="absolute bottom-0 right-0 w-10 h-10 rounded-full flex items-center justify-center shadow-xl transition-transform hover:scale-110 active:scale-95 bg-blue-600 border-3 border-slate-900 text-white"
+            className="absolute -bottom-1 -right-1 w-10 h-10 rounded-2xl flex items-center justify-center shadow-xl transition-transform hover:scale-110 active:scale-95 bg-cyan-500 text-slate-950 font-bold border-2 border-[#0a101b]"
           >
             <Camera size={16} />
           </button>
         </div>
 
-        {/* Info */}
+        {/* User Info */}
         <div className="flex-1 text-center sm:text-left space-y-1.5">
-          <h2 className="text-lg sm:text-2xl font-black text-slate-100 font-heading">
-            {user.names || user.username || "Usuario"} {user.surnames || ""}
-          </h2>
-          <p className="text-sm text-slate-400">{user.email}</p>
-          
-          <div className="flex flex-wrap gap-2.5 pt-2 justify-center sm:justify-start items-center">
-            <span className={`status-badge ${user.role === "client" ? "status-confirmed" : user.role === "tech" ? "status-in_progress" : "status-completed"}`}>
-              {user.role === "client" ? "Cliente" : user.role === "tech" ? "Técnico Especialista" : "Tienda JyP"}
-            </span>
-            {user.role === "tech" && (
-              <span className="status-badge status-completed">
-                {user.is_available === 1 ? "Disponible para citas" : "Activo"}
-              </span>
-            )}
-            <span className="text-[11px] text-slate-400 font-semibold ml-1">
+          <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
+            <h2
+              className="text-2xl font-black text-white tracking-tight"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              {user.names || user.username || "Usuario"} {user.surnames || ""}
+            </h2>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/5 text-cyan-400 border border-white/5">
               ID #{user.id || user.userId || "001"}
             </span>
           </div>
-        </div>
-      </motion.div>
+          <p className="text-xs text-slate-400 font-mono">{user.email}</p>
 
-      {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 p-1.5 rounded-full bg-white/5 border border-white/5 inline-flex">
-        {tabs.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-full text-xs sm:text-sm font-bold whitespace-nowrap transition-all shadow-sm"
-            style={{
-              background: tab === t.id ? "var(--primary)" : "transparent",
-              color: tab === t.id ? "#fff" : "var(--text-secondary)",
-              border: `1px solid ${tab === t.id ? "var(--primary)" : "transparent"}`,
-              boxShadow: tab === t.id ? "0 4px 14px rgba(45, 107, 255, 0.35)" : "none",
-            }}
-          >
-            <t.icon size={15} /> {t.label}
-          </button>
-        ))}
+          <div className="flex flex-wrap gap-2 pt-2 justify-center sm:justify-start items-center">
+            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/10 text-cyan-400 border border-blue-500/25">
+              {user.role === "client" ? "Cliente Certificado" : user.role === "tech" ? "Técnico Especialista" : "Sucursal / Tienda"}
+            </span>
+            {user.role === "tech" && (
+              <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-300 border border-emerald-500/25 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                {user.is_available === 1 ? "Disponible para asignaciones" : "En línea"}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* Info Tab */}
+      {/* Navigation Tabs */}
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
+        {tabs.map((t) => {
+          const isSel = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`flex items-center gap-2 px-5 py-3 rounded-2xl text-xs font-bold whitespace-nowrap transition-all border ${
+                isSel
+                  ? "bg-gradient-to-r from-blue-600 to-cyan-600 border-cyan-400 text-white shadow-lg shadow-blue-600/30 scale-[1.02]"
+                  : "bg-white/[0.03] border-white/10 text-slate-400 hover:text-white hover:bg-white/[0.06]"
+              }`}
+            >
+              <t.icon size={15} />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab 1: Personal Info */}
       {tab === "info" && (
         <motion.form
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           onSubmit={handleSaveProfile}
-          className="card p-8 sm:p-10 space-y-7 rounded-[32px] shadow-xl"
+          className="p-8 sm:p-10 rounded-[32px] border border-white/10 bg-[#0a101b]/95 shadow-xl space-y-6"
         >
           <div>
-            <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 20, fontWeight: 800, color: "var(--text-primary)" }}>
+            <h3
+              className="text-lg font-black text-white tracking-tight"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
               Información de la Cuenta
             </h3>
             <p className="text-xs text-slate-400 mt-1">
-              Actualiza tus datos de contacto para coordinar diagnósticos y compras.
+              Datos personales y de contacto para coordinación técnica y logística.
             </p>
           </div>
 
@@ -397,21 +401,21 @@ const ProfileEdit = () => {
             <InputField label="Dirección de Referencia" name="address" placeholder="Av. Principal 123" value={formData.address} onChange={handleChange} icon={MapPin} />
           </div>
 
-          <div className="flex justify-end pt-3 border-t border-white/5">
+          <div className="flex justify-end pt-4 border-t border-white/5">
             <button
               type="submit"
               disabled={saving}
-              className="btn-primary py-3 px-6 text-xs uppercase font-black tracking-wider rounded-xl shadow-lg flex items-center gap-2"
+              className="jyp-btn-primary py-3.5 px-8 text-xs uppercase font-black tracking-wider rounded-2xl flex items-center gap-2 shadow-xl shadow-blue-600/30"
             >
               {saving ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Guardando...</span>
+                  <span>Transmitiendo...</span>
                 </>
               ) : saved ? (
                 <>
                   <CheckCircle size={16} />
-                  <span>Guardado</span>
+                  <span>Sincronizado</span>
                 </>
               ) : (
                 <>
@@ -424,68 +428,75 @@ const ProfileEdit = () => {
         </motion.form>
       )}
 
-      {/* Tech Profile Tab */}
+      {/* Tab 2: Tech Profile */}
       {tab === "tech" && user.role === "tech" && (
         <motion.form
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           onSubmit={handleSaveProfile}
-          className="card p-8 sm:p-10 space-y-7 rounded-[32px] shadow-xl"
+          className="p-8 sm:p-10 rounded-[32px] border border-white/10 bg-[#0a101b]/95 shadow-xl space-y-6"
         >
           <div>
-            <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 20, fontWeight: 800, color: "var(--text-primary)" }}>
+            <h3
+              className="text-lg font-black text-white tracking-tight"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
               Perfil Profesional del Especialista
             </h3>
             <p className="text-xs text-slate-400 mt-1">
-              Esta información será visible por los clientes en el mapa y catálogo técnico.
+              Esta información será consultada por los clientes al momento de agendar visitas técnicas.
             </p>
           </div>
 
-          <div className="space-y-2">
-            <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-secondary)" }}>
-              Biografía / Resumen de Experiencia
+          <div className="space-y-1.5">
+            <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
+              Biografía y Experiencia Certificada
             </label>
             <textarea
               name="bio"
               value={formData.bio}
               onChange={handleChange}
-              placeholder="Describe tus especialidades, certificaciones y años de experiencia en reparación..."
+              placeholder="Describe tus especialidades, certificaciones y años en soporte de microelectrónica..."
               rows={4}
-              className="input-field h-auto py-3 px-4 resize-none leading-relaxed rounded-2xl"
+              className="w-full rounded-2xl p-4 text-xs bg-[#0c1424] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 resize-none leading-relaxed"
             />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <InputField label="Especialidades (separadas por coma)" name="specialties" placeholder="Laptops, Microelectrónica, Redes..." value={formData.specialties} onChange={handleChange} icon={Wrench} />
-            <InputField label="Tarifa Base / Hora (S/.)" name="hourly_rate" type="number" placeholder="40" value={formData.hourly_rate} onChange={handleChange} />
+            <InputField label="Tarifa Base Estimada (S/.)" name="hourly_rate" type="number" placeholder="40" value={formData.hourly_rate} onChange={handleChange} />
           </div>
 
-          <div className="flex justify-end pt-3 border-t border-white/5">
+          <div className="flex justify-end pt-4 border-t border-white/5">
             <button
               type="submit"
               disabled={saving}
-              className="btn-primary py-3.5 px-8 text-xs uppercase font-black tracking-wider rounded-2xl shadow-xl flex items-center gap-2"
+              className="jyp-btn-primary py-3.5 px-8 text-xs uppercase font-black tracking-wider rounded-2xl flex items-center gap-2"
             >
-              {saving ? <div className="spinner" /> : <><Save size={16} /> Guardar Perfil Técnico</>}
+              <Save size={16} />
+              <span>{saving ? "Guardando..." : "Guardar Perfil Técnico"}</span>
             </button>
           </div>
         </motion.form>
       )}
 
-      {/* Store Tab */}
+      {/* Tab 3: Store Info */}
       {tab === "store" && user.role === "store" && (
         <motion.form
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           onSubmit={handleSaveProfile}
-          className="card p-8 sm:p-10 space-y-7 rounded-[32px] shadow-xl"
+          className="p-8 sm:p-10 rounded-[32px] border border-white/10 bg-[#0a101b]/95 shadow-xl space-y-6"
         >
           <div>
-            <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 20, fontWeight: 800, color: "var(--text-primary)" }}>
+            <h3
+              className="text-lg font-black text-white tracking-tight"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
               Información de la Sucursal
             </h3>
             <p className="text-xs text-slate-400 mt-1">
-              Configura los detalles de atención y despacho de repuestos.
+              Configura los detalles de atención presencial y despacho de componentes.
             </p>
           </div>
 
@@ -493,52 +504,59 @@ const ProfileEdit = () => {
             <InputField label="Nombre de Sucursal" name="names" placeholder="JyP Centro" value={formData.names} onChange={handleChange} icon={Store} />
             <InputField label="Teléfono de Atención" name="phone" placeholder="987654321" value={formData.phone} onChange={handleChange} icon={Phone} />
             <InputField label="Ciudad" name="city" placeholder="Lima" value={formData.city} onChange={handleChange} icon={MapPin} />
-            <InputField label="Dirección Comercial" name="address" placeholder="Av. Wilson 1234, Int 20" value={formData.address} onChange={handleChange} icon={MapPin} />
+            <InputField label="Dirección Comercial" name="address" placeholder="Av. Principal 123" value={formData.address} onChange={handleChange} icon={MapPin} />
           </div>
 
-          <div className="flex justify-end pt-3 border-t border-white/5">
-            <button type="submit" disabled={saving} className="btn-primary py-3.5 px-8 text-xs uppercase font-black tracking-wider rounded-2xl shadow-xl flex items-center gap-2">
-              {saving ? <div className="spinner" /> : <><Save size={16} /> Guardar Datos de Tienda</>}
+          <div className="flex justify-end pt-4 border-t border-white/5">
+            <button
+              type="submit"
+              disabled={saving}
+              className="jyp-btn-primary py-3.5 px-8 text-xs uppercase font-black tracking-wider rounded-2xl flex items-center gap-2"
+            >
+              <Save size={16} />
+              <span>{saving ? "Guardando..." : "Guardar Datos de Tienda"}</span>
             </button>
           </div>
         </motion.form>
       )}
 
-      {/* Security Tab */}
+      {/* Tab 4: Security */}
       {tab === "security" && (
         <motion.form
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           onSubmit={handleChangePassword}
-          className="card p-8 sm:p-10 space-y-7 rounded-[32px] shadow-xl"
+          className="p-8 sm:p-10 rounded-[32px] border border-white/10 bg-[#0a101b]/95 shadow-xl space-y-6"
         >
           <div>
-            <h3 style={{ fontFamily: "'Plus Jakarta Sans',sans-serif", fontSize: 20, fontWeight: 800, color: "var(--text-primary)" }}>
-              Actualizar Contraseña
+            <h3
+              className="text-lg font-black text-white tracking-tight"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              Cifrado & Contraseña de Acceso
             </h3>
             <p className="text-xs text-slate-400 mt-1">
-              Ingresa tu nueva contraseña para proteger el acceso a tu cuenta.
+              Ingresa una nueva contraseña segura para proteger tus registros y transacciones.
             </p>
           </div>
 
           <div className="space-y-4 max-w-lg">
             <div className="space-y-1.5">
-              <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-secondary)" }}>
+              <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
                 Nueva Contraseña
               </label>
               <div className="relative">
-                <Lock size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400 pointer-events-none" />
                 <input
                   type={showPass.new ? "text" : "password"}
                   value={passwords.new}
-                  onChange={e => setPasswords(prev => ({ ...prev, new: e.target.value }))}
+                  onChange={(e) => setPasswords((prev) => ({ ...prev, new: e.target.value }))}
                   placeholder="Mínimo 6 caracteres"
-                  className="input-field"
-                  style={{ paddingLeft: 40, paddingRight: 44 }}
+                  className="w-full rounded-2xl py-3 pl-11 pr-11 text-xs bg-[#0c1424] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPass(prev => ({ ...prev, new: !prev.new }))}
+                  onClick={() => setShowPass((prev) => ({ ...prev, new: !prev.new }))}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                 >
                   {showPass.new ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -547,22 +565,21 @@ const ProfileEdit = () => {
             </div>
 
             <div className="space-y-1.5">
-              <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-secondary)" }}>
+              <label className="text-[11px] font-black uppercase tracking-wider text-slate-400 block">
                 Confirmar Nueva Contraseña
               </label>
               <div className="relative">
-                <Lock size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <Lock size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-400 pointer-events-none" />
                 <input
                   type={showPass.confirm ? "text" : "password"}
                   value={passwords.confirm}
-                  onChange={e => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
+                  onChange={(e) => setPasswords((prev) => ({ ...prev, confirm: e.target.value }))}
                   placeholder="Repite la nueva contraseña"
-                  className="input-field"
-                  style={{ paddingLeft: 40, paddingRight: 44 }}
+                  className="w-full rounded-2xl py-3 pl-11 pr-11 text-xs bg-[#0c1424] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
                 />
                 <button
                   type="button"
-                  onClick={() => setShowPass(prev => ({ ...prev, confirm: !prev.confirm }))}
+                  onClick={() => setShowPass((prev) => ({ ...prev, confirm: !prev.confirm }))}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                 >
                   {showPass.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -571,23 +588,14 @@ const ProfileEdit = () => {
             </div>
           </div>
 
-          <div className="flex justify-end pt-3 border-t border-white/5">
+          <div className="flex justify-end pt-4 border-t border-white/5">
             <button
               type="submit"
               disabled={saving || !passwords.new}
-              className="btn-primary py-3.5 px-8 text-xs uppercase font-black tracking-wider rounded-2xl shadow-xl flex items-center gap-2 disabled:opacity-40"
+              className="jyp-btn-primary py-3.5 px-8 text-xs uppercase font-black tracking-wider rounded-2xl flex items-center gap-2 disabled:opacity-40"
             >
-              {saving ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Actualizando...</span>
-                </>
-              ) : (
-                <>
-                  <Shield size={16} />
-                  <span>Cambiar Contraseña</span>
-                </>
-              )}
+              <Shield size={16} />
+              <span>{saving ? "Actualizando..." : "Cambiar Contraseña"}</span>
             </button>
           </div>
         </motion.form>

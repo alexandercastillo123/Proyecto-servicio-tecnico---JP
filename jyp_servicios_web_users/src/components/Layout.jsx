@@ -6,7 +6,7 @@ import {
   User, LogOut, ChevronLeft, ChevronRight, Bell, Sun, Moon,
   LayoutDashboard, Package, Wrench, Cpu, Zap, Signal,
   ShieldCheck, Sparkles, Activity, CheckCheck, ExternalLink,
-  Clock, Truck, CalendarCheck, AlertCircle, Home
+  Clock, Truck, CalendarCheck, AlertCircle, Home, Menu, X
 } from "lucide-react";
 import { useSocket } from "../context/SocketContext";
 import { useTheme } from "../context/ThemeContext";
@@ -14,16 +14,16 @@ import { notificationService } from "../services/api";
 
 /* ──── JyP Brand Logo ───────────────────────────────────────── */
 const JyPLogo = ({ collapsed }) => (
-  <div className="flex items-center gap-3 overflow-hidden select-none">
+  <Link to="/" className="flex items-center gap-3 overflow-hidden select-none text-decoration-none group">
     <div
-      className="shrink-0 w-11 h-11 rounded-xl flex items-center justify-center relative overflow-hidden shadow-lg"
+      className="shrink-0 w-11 h-11 rounded-2xl flex items-center justify-center relative overflow-hidden shadow-lg transition-transform duration-300 group-hover:scale-105"
       style={{
         background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)",
-        boxShadow: "0 0 20px rgba(37, 99, 235, 0.4)",
+        boxShadow: "0 0 24px rgba(37, 99, 235, 0.45)",
       }}
     >
       <Cpu size={22} className="text-white" strokeWidth={2.3} />
-      <div className="absolute inset-0 bg-white/10 animate-pulse pointer-events-none" />
+      <div className="absolute inset-0 bg-white/20 animate-pulse pointer-events-none" />
     </div>
 
     <AnimatePresence>
@@ -37,12 +37,12 @@ const JyPLogo = ({ collapsed }) => (
         >
           <div className="flex items-center gap-1.5">
             <span
-              className="font-black text-xl tracking-tight leading-none text-white"
+              className="font-black text-xl tracking-tight leading-none text-white font-heading"
               style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             >
               JyP
             </span>
-            <span className="px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-blue-500/20 text-blue-400 border border-blue-400/25">
+            <span className="px-1.5 py-0.5 rounded-md text-[8px] font-black uppercase tracking-wider bg-blue-500/20 text-cyan-300 border border-cyan-400/30">
               PRO
             </span>
           </div>
@@ -54,7 +54,7 @@ const JyPLogo = ({ collapsed }) => (
         </motion.div>
       )}
     </AnimatePresence>
-  </div>
+  </Link>
 );
 
 /* ──── Nav badge ────────────────────────────────────────────── */
@@ -63,9 +63,9 @@ const Badge = ({ count }) =>
     <span
       className="ml-auto text-[10px] font-black px-2 py-0.5 rounded-full"
       style={{
-        background: "var(--error)",
+        background: "var(--error, #EF4444)",
         color: "#ffffff",
-        boxShadow: "0 0 10px rgba(239, 68, 68, 0.4)",
+        boxShadow: "0 0 10px rgba(239, 68, 68, 0.5)",
       }}
     >
       {count}
@@ -75,6 +75,7 @@ const Badge = ({ count }) =>
 /* ──── Main Layout ──────────────────────────────────────────── */
 const Layout = ({ user, onLogout }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [notifLoading, setNotifLoading] = useState(false);
@@ -84,7 +85,12 @@ const Layout = ({ user, onLogout }) => {
   const { isConnected, unreadCount, setUnreadCount } = useSocket();
   const { theme, toggleTheme, isDark } = useTheme();
 
-  const SIDEBAR_W = collapsed ? 76 : 260;
+  const SIDEBAR_W = collapsed ? 80 : 264;
+
+  // Close mobile drawer on route navigation
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   // ── Notifications Logic ──────────────────────────────────
   const unreadNotifCount = notifications.filter(n => !n.read && !n.is_read).length;
@@ -182,36 +188,104 @@ const Layout = ({ user, onLogout }) => {
   const roleBadge = roleLabels[user?.role] || roleLabels.client;
 
   return (
-    <div
-      className="flex min-h-screen overflow-hidden jyp-page"
-    >
-      {/* ══════════  ══════════════════════════════════════ */}
+    <div className="flex min-h-screen overflow-hidden jyp-page bg-[#080d17] text-[#f8fafc]">
+      {/* ══════════ MOBILE OVERLAY DRAWER ══════════════════════ */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+              className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 md:hidden"
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              className="fixed left-0 top-0 bottom-0 w-[280px] z-50 flex flex-col bg-[#0b1220]/95 border-r border-white/10 backdrop-blur-2xl md:hidden"
+            >
+              <div className="flex items-center justify-between px-5 h-[72px] border-b border-white/10">
+                <JyPLogo collapsed={false} />
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="w-9 h-9 rounded-xl flex items-center justify-center bg-white/5 text-slate-400 hover:text-white"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <nav className="flex-1 px-4 py-6 space-y-1.5 overflow-y-auto no-scrollbar">
+                <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+                  Menú Principal
+                </p>
+                {navItems.map((item) => {
+                  const active = item.path === '/'
+                    ? location.pathname === '/'
+                    : (location.pathname === item.path || location.pathname.startsWith(item.path + '/'));
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => {
+                        setMobileOpen(false);
+                        if (item.path === "/chat") setUnreadCount?.(0);
+                      }}
+                      className={`flex items-center gap-3.5 px-4 py-3 rounded-2xl transition-all duration-200 ${
+                        active
+                          ? "text-white bg-blue-600/20 border-l-4 border-blue-500 font-bold shadow-[0_0_20px_rgba(37,99,235,0.25)]"
+                          : "text-slate-400 hover:text-white hover:bg-white/5 font-semibold"
+                      }`}
+                    >
+                      <Icon
+                        size={19}
+                        className={active ? "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" : "text-slate-400"}
+                      />
+                      <span className="truncate">{item.label}</span>
+                      {item.badge > 0 && <Badge count={item.badge} />}
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              <div className="p-4 border-t border-white/10 space-y-2">
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-500/10 text-sm font-semibold transition-all"
+                >
+                  <LogOut size={18} />
+                  <span>Cerrar Sesión</span>
+                </button>
+              </div>
+            </motion.aside>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* ══════════ DESKTOP SIDEBAR ══════════════════════════ */}
       <motion.aside
         initial={false}
         animate={{ width: SIDEBAR_W }}
         transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
-        className="fixed left-0 top-0 h-full flex flex-col z-40 select-none "
-        style={{
-          background: isDark ? "rgba(6, 9, 19, 0.94)" : "rgba(255, 255, 255, 0.95)",
-          borderRight: "1px solid var(--border)",
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
-          overflowX: "hidden",
-        }}
+        className="fixed left-0 top-0 h-full hidden md:flex flex-col z-40 select-none bg-[#090f1d]/90 border-r border-white/10 backdrop-blur-2xl overflow-x-hidden"
       >
         {/* Brand Header */}
         <div
-          className="flex items-center px-4 overflow-hidden"
-          style={{ height: 72, borderBottom: "1px solid var(--border)" }}
+          className="flex items-center px-4 overflow-hidden border-b border-white/10 shrink-0"
+          style={{ height: 72 }}
         >
           <JyPLogo collapsed={collapsed} />
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto no-scrollbar">
+        <nav className="flex-1 px-3.5 py-6 space-y-1.5 overflow-y-auto no-scrollbar">
           {!collapsed && (
-            <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">
-              Navegación Principal
+            <p className="px-3 pb-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+              Navegación
             </p>
           )}
 
@@ -225,12 +299,17 @@ const Layout = ({ user, onLogout }) => {
                 key={item.path}
                 to={item.path}
                 onClick={() => item.path === "/chat" && setUnreadCount?.(0)}
-                 className={`flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all duration-200 relative group ${active ? "text-white bg-blue-600/20 border-l-4 border-blue-500 font-bold" : "text-slate-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent font-semibold"}`}
+                title={collapsed ? item.label : undefined}
+                className={`flex items-center gap-3.5 px-3.5 py-3 rounded-2xl transition-all duration-200 relative group ${
+                  active
+                    ? "text-white bg-blue-600/20 border-l-4 border-blue-500 font-bold shadow-[0_0_20px_rgba(37,99,235,0.2)]"
+                    : "text-slate-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent font-medium"
+                }`}
               >
                 <Icon
                   size={19}
                   strokeWidth={active ? 2.4 : 1.8}
-                  className={`${active ? "text-cyan-400 drop-shadow-[0_0_6px_rgba(56,189,248,0.5)]" : "text-slate-400"}`}
+                  className={`shrink-0 ${active ? "text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]" : "text-slate-400"}`}
                 />
                 
                 <AnimatePresence>
@@ -241,7 +320,7 @@ const Layout = ({ user, onLogout }) => {
                       exit={{ opacity: 0 }}
                       className="flex items-center justify-between flex-1 min-w-0"
                     >
-                      <span className="truncate">{item.label}</span>
+                      <span className="truncate text-sm">{item.label}</span>
                       {item.badge > 0 && <Badge count={item.badge} />}
                     </motion.div>
                   )}
@@ -249,8 +328,7 @@ const Layout = ({ user, onLogout }) => {
 
                 {collapsed && item.badge > 0 && (
                   <span
-                    className="absolute top-2 right-2 w-2 h-2 rounded-full"
-                    style={{ background: "var(--error)", boxShadow: "0 0 6px var(--error)" }}
+                    className="absolute top-2 right-2 w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_#EF4444]"
                   />
                 )}
               </Link>
@@ -258,8 +336,8 @@ const Layout = ({ user, onLogout }) => {
           })}
         </nav>
 
-        {/*  Footer Controls */}
-        <div className="px-3 pb-5 space-y-2 border-t pt-4" style={{ borderColor: "var(--border)" }}>
+        {/* Footer Controls */}
+        <div className="px-3 pb-5 space-y-2 border-t border-white/10 pt-4 shrink-0">
           {/* Socket Connection Badge */}
           <AnimatePresence>
             {!collapsed && (
@@ -267,14 +345,13 @@ const Layout = ({ user, onLogout }) => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold"
-                style={{ background: "var(--bg-input)", border: "1px solid var(--border)" }}
+                className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold bg-white/5 border border-white/10"
               >
                 <div className="flex items-center gap-2">
                   <span
-                    className={`w-2 h-2 rounded-full shrink-0 ${isConnected ? "bg-success shadow-[0_0_8px_var(--secondary-glow)]" : "bg-warning"}`}
+                    className={`w-2 h-2 rounded-full shrink-0 ${isConnected ? "bg-emerald-400 shadow-[0_0_10px_#10B981]" : "bg-amber-400 animate-pulse"}`}
                   />
-                  <span className={`text-[11px] ${isConnected ? "text-success" : "text-warning"}`}>
+                  <span className={`text-[11px] ${isConnected ? "text-emerald-400" : "text-amber-400"}`}>
                     {isConnected ? "Telemetría Activa" : "Reconectando..."}
                   </span>
                 </div>
@@ -283,7 +360,7 @@ const Layout = ({ user, onLogout }) => {
             )}
           </AnimatePresence>
 
-          {/* Collapse  Button */}
+          {/* Collapse Button */}
           <button
             type="button"
             onClick={() => setCollapsed(!collapsed)}
@@ -307,48 +384,50 @@ const Layout = ({ user, onLogout }) => {
 
       {/* ══════════ MAIN WORKSPACE AREA ══════════════════════════ */}
       <main
-        className="flex-1 flex flex-col min-h-screen transition-all duration-300"
+        className="flex-1 flex flex-col min-h-screen transition-all duration-300 pb-20 md:pb-0"
         style={{
-          marginLeft: SIDEBAR_W,
+          marginLeft: typeof window !== 'undefined' && window.innerWidth >= 768 ? SIDEBAR_W : 0,
           background: isDark
-            ? "radial-gradient(ellipse at 85% 5%, rgba(37, 99, 235, 0.08) 0%, transparent 45%), radial-gradient(ellipse at 15% 40%, rgba(6, 182, 212, 0.05) 0%, transparent 40%), #080d17"
+            ? "radial-gradient(ellipse at 85% 5%, rgba(37, 99, 235, 0.12) 0%, transparent 45%), radial-gradient(ellipse at 15% 40%, rgba(6, 182, 212, 0.08) 0%, transparent 40%), #080d17"
             : "#F8FAFC"
         }}
       >
-        {/* ──── STICKY  ─────────────────────────────────── */}
+        {/* ──── STICKY HEADER ─────────────────────────────────── */}
         <header
-          className="sticky top-0 z-30 flex items-center justify-between px-6 sm:px-8 "
-          style={{
-            height: 72,
-            background: isDark ? "rgba(8, 13, 23, 0.92)" : "rgba(255, 255, 255, 0.92)",
-            backdropFilter: "blur(20px)",
-            WebkitBackdropFilter: "blur(20px)",
-            borderBottom: "1px solid var(--border)",
-          }}
+          className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 md:px-8 border-b border-white/10 bg-[#080d17]/85 backdrop-blur-2xl"
+          style={{ height: 72 }}
         >
-          {/* Left: Location & System Status */}
+          {/* Mobile menu button + Brand for mobile */}
           <div className="flex items-center gap-3">
-            <div
-              className="flex items-center gap-2 px-4 py-2 rounded-full shadow-sm border border-white/10"
-              style={{ background: "var(--bg-input)" }}
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="w-10 h-10 rounded-xl flex items-center justify-center bg-white/5 border border-white/10 text-slate-300 md:hidden hover:text-white"
             >
-              <MapPin size={14} className="text-blue-500" />
-              <span className="text-xs font-bold text-slate-100">
-                Lima Metropolitana
-              </span>
-            </div>
+              <Menu size={20} />
+            </button>
 
-            <div
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full text-[11px] font-bold text-slate-300 shadow-sm border border-blue-500/20"
-              style={{ background: "rgba(37, 99, 235, 0.08)" }}
-            >
-              <ShieldCheck size={14} className="text-emerald-400" />
-              <span>Soporte Garantizado</span>
+            {/* Left: Location & System Status */}
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div
+                className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full shadow-sm border border-white/10 bg-white/5"
+              >
+                <MapPin size={14} className="text-blue-400" />
+                <span className="text-xs font-bold text-slate-200 truncate max-w-[140px] sm:max-w-none">
+                  Lima Metropolitana
+                </span>
+              </div>
+
+              <div
+                className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 sm:py-2 rounded-full text-[11px] font-bold text-slate-300 shadow-sm border border-blue-500/25 bg-blue-500/10"
+              >
+                <ShieldCheck size={14} className="text-emerald-400" />
+                <span>Soporte Garantizado</span>
+              </div>
             </div>
           </div>
 
           {/* Right: Actions & User Chip */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             {/* Theme Toggle */}
             <button
               type="button"
@@ -523,8 +602,8 @@ const Layout = ({ user, onLogout }) => {
         </header>
 
         {/* ──── WORKSPACE CONTENT WITH REFINED MARGINS & MAX-WIDTH ────────── */}
-        <div className="flex-1 px-4 sm:px-6 md:px-8 lg:px-10 py-6 sm:py-8 md:py-10">
-          <div className="max-w-7xl mx-auto w-full">
+        <div className="flex-1 px-6 sm:px-8 md:px-10 lg:px-12 pt-8 sm:pt-10 md:pt-12 pb-8">
+          <div className="max-w-[1350px] mx-auto w-full">
             <AnimatePresence mode="wait">
               <motion.div
                 key={location.pathname}
@@ -538,6 +617,45 @@ const Layout = ({ user, onLogout }) => {
               </motion.div>
             </AnimatePresence>
           </div>
+        </div>
+
+        {/* ══════════ MOBILE BOTTOM DOCK ════════════════════════ */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#080d17]/95 border-t border-white/10 backdrop-blur-2xl px-4 py-2 flex items-center justify-around md:hidden shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+          {[
+            { path: "/", icon: Home, label: "Inicio" },
+            { path: "/appointments", icon: Calendar, label: "Citas" },
+            { path: user?.role === 'client' ? "/technicians" : "/shop", icon: user?.role === 'client' ? MapPin : Package, label: user?.role === 'client' ? "Técnicos" : "Tienda" },
+            { path: "/chat", icon: MessageSquare, label: "Chat", badge: unreadCount },
+            { path: "/profile", icon: User, label: "Perfil" },
+          ].map((item) => {
+            const active = item.path === '/'
+              ? location.pathname === '/'
+              : (location.pathname === item.path || location.pathname.startsWith(item.path + '/'));
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => item.path === "/chat" && setUnreadCount?.(0)}
+                className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl relative transition-all ${
+                  active ? "text-cyan-400 font-bold" : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <div className="relative">
+                  <Icon size={20} strokeWidth={active ? 2.4 : 1.8} />
+                  {item.badge > 0 && (
+                    <span className="absolute -top-1 -right-2 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-black flex items-center justify-center">
+                      {item.badge}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[10px] mt-0.5">{item.label}</span>
+                {active && (
+                  <span className="w-1 h-1 rounded-full bg-cyan-400 mt-0.5 shadow-[0_0_6px_#06B6D4]" />
+                )}
+              </Link>
+            );
+          })}
         </div>
       </main>
     </div>

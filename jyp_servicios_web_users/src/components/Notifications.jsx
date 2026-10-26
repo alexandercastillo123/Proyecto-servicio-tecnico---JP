@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell, BellOff, Check, CheckCheck, Calendar, MessageSquare,
-  ShoppingCart, Wrench, Settings2, X, Zap, ChevronRight
-} from 'lucide-react';
-import { notificationService } from '../services/api';
-import { formatDateShort, formatTime } from '../services/formatters';
-import { TechLoader } from './common/TechLoader';
-import toast from 'react-hot-toast';
+  ShoppingCart, Wrench, Settings2, X, Zap, ChevronRight,
+  Activity, Sparkles
+} from "lucide-react";
+import { notificationService } from "../services/api";
+import { formatDateShort, formatTime } from "../services/formatters";
+import { TechLoader } from "./common/TechLoader";
+import toast from "react-hot-toast";
 
 const TYPE_META = {
-  appointment: { icon: Calendar, color: '#3B82F6', label: 'Cita' },
-  chat: { icon: MessageSquare, color: '#06B6D4', label: 'Mensaje' },
-  order: { icon: ShoppingCart, color: '#A855F7', label: 'Pedido' },
-  promotion: { icon: Zap, color: '#F59E0B', label: 'Promoción' },
-  system: { icon: Wrench, color: '#94A3B8', label: 'Sistema' },
+  appointment: { icon: Calendar, color: "#3B82F6", label: "Cita Técnica" },
+  chat: { icon: MessageSquare, color: "#06B6D4", label: "Mensaje Seguro" },
+  order: { icon: ShoppingCart, color: "#10B981", label: "Pedido de Repuestos" },
+  promotion: { icon: Zap, color: "#F59E0B", label: "Aviso Promocional" },
+  system: { icon: Wrench, color: "#6366F1", label: "Telemetría Sistema" },
 };
 
 const Notifications = () => {
@@ -40,7 +41,7 @@ const Notifications = () => {
       const list = res.data?.resultado;
       setNotifications(Array.isArray(list) ? list : []);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      console.error("Error fetching notifications:", error);
     } finally {
       setLoading(false);
     }
@@ -59,7 +60,7 @@ const Notifications = () => {
         });
       }
     } catch (error) {
-      console.error('Error fetching notification settings:', error);
+      console.error("Error fetching notification settings:", error);
     }
   };
 
@@ -77,10 +78,10 @@ const Notifications = () => {
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     try {
       await notificationService.markAllAsRead();
-      toast.success('Todas las notificaciones fueron marcadas como leídas');
+      toast.success("Todas las notificaciones fueron marcadas como leídas");
     } catch (error) {
       console.error(error);
-      toast.error('No se pudieron marcar las notificaciones');
+      toast.error("No se pudieron marcar las notificaciones");
       fetchNotifications();
     }
   };
@@ -90,110 +91,144 @@ const Notifications = () => {
     setSettings(next);
     try {
       const res = await notificationService.updateSettings({ [key]: next[key] });
-      if (!res.data?.exito) throw new Error('fallback');
-      toast.success('Preferencia guardada');
+      if (!res.data?.exito) throw new Error("fallback");
+      toast.success("Preferencia guardada");
     } catch (error) {
       console.error(error);
       setSettings(settings);
-      toast.error('No se pudo guardar la preferencia');
+      toast.error("No se pudo guardar la preferencia");
     }
   };
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   if (loading) {
-    return <TechLoader compact title="Cargando Notificaciones" subtitle="Sincronizando tus avisos..." />;
+    return <TechLoader compact title="Cargando Notificaciones" subtitle="Sincronizando telemetría de avisos..." />;
   }
 
   return (
-    <div className="w-full space-y-8 pb-4">
-      {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-blue-500/15 text-blue-400 border border-blue-500/30">
-              Centro de Avisos
+    <div className="w-full space-y-8 pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
+
+      {/* Header Banner */}
+      <div className="relative overflow-hidden rounded-[32px] p-8 sm:p-10 border border-white/10 bg-gradient-to-br from-[#0c1322] via-[#080d17] to-[#0a1829] shadow-2xl flex flex-col md:flex-row justify-between md:items-center gap-6">
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <span className="px-3.5 py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-blue-500/10 text-cyan-400 border border-blue-500/25 inline-flex items-center gap-1.5">
+              <Activity size={12} className="text-cyan-400" />
+              <span>Centro de Notificaciones en Vivo</span>
             </span>
             {unreadCount > 0 && (
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+              <span className="px-3 py-1 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono">
                 {unreadCount} sin leer
               </span>
             )}
           </div>
-          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">Notificaciones</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Citas, mensajes, pedidos y promociones de JyP en un solo lugar.
+          <h1
+            className="text-3xl sm:text-4xl font-black text-white tracking-tight"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          >
+            Avisos & Telemetría
+          </h1>
+          <p className="text-sm text-slate-400 max-w-xl">
+            Historial de citas técnicas, mensajes cifrados, despacho de repuestos y actualizaciones de la red.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-3">
           <button
             onClick={() => setShowSettings((v) => !v)}
             className={`px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider border transition-all flex items-center gap-2 ${
               showSettings
-                ? 'bg-blue-600 text-white border-blue-500'
-                : 'bg-white/5 text-slate-300 border-white/5 hover:bg-white/10'
+                ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white border-cyan-400 shadow-lg shadow-blue-600/30"
+                : "bg-white/[0.03] text-slate-300 border-white/10 hover:text-white hover:bg-white/[0.06]"
             }`}
           >
             <Settings2 size={15} />
-            Preferencias
+            <span>Preferencias</span>
           </button>
+
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAllRead}
-              className="px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider border border-white/5 bg-white/5 text-slate-300 hover:bg-white/10 transition-all flex items-center gap-2"
+              className="px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider border border-white/10 bg-white/5 text-slate-300 hover:text-white hover:bg-white/10 transition-all flex items-center gap-2"
             >
               <CheckCheck size={15} />
-              Marcar leídas
+              <span>Marcar todas leídas</span>
             </button>
           )}
         </div>
-      </header>
+      </div>
 
-      {/* Settings panel */}
-      {showSettings && (
-        <motion.section
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-3xl border border-white/10 bg-[#0e1424] p-6 sm:p-7 space-y-4"
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-black uppercase tracking-wider text-white">Preferencias de notificación</h2>
-            {savingSettings && <span className="text-[11px] text-slate-400">Guardando...</span>}
-          </div>
-
-          {[
-            { key: 'push_enabled', label: 'Notificaciones push', desc: 'Recibe avisos en tiempo real en este dispositivo' },
-            { key: 'appointment_reminders', label: 'Recordatorios de citas', desc: 'Avisos antes de cada cita agendada' },
-            { key: 'chat_notifications', label: 'Mensajes nuevos', desc: 'Avisos cuando un técnico o tienda te responde' },
-            { key: 'order_updates', label: 'Estado de pedidos', desc: 'Avisos de pagos, envíos y entregas' },
-          ].map((opt) => (
-            <div key={opt.key} className="flex items-center justify-between gap-4 py-2">
-              <div>
-                <p className="text-sm font-bold text-white">{opt.label}</p>
-                <p className="text-xs text-slate-400 mt-0.5">{opt.desc}</p>
-              </div>
-              <button
-                onClick={() => handleToggleSetting(opt.key)}
-                className={`relative w-12 h-6 rounded-full transition-colors shrink-0 ${settings[opt.key] ? 'bg-blue-600' : 'bg-white/10'}`}
-                aria-label={opt.label}
+      {/* Settings Drawer Panel */}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.section
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="rounded-[28px] border border-cyan-500/20 bg-[#0a101b]/95 p-6 sm:p-7 space-y-4 shadow-xl"
+          >
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <h2
+                className="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               >
-                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${settings[opt.key] ? 'left-7' : 'left-1'}`} />
-              </button>
+                <Settings2 size={14} />
+                <span>Preferencias de Alertas en Tiempo Real</span>
+              </h2>
             </div>
-          ))}
-        </motion.section>
-      )}
 
-      {/* List */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[
+                { key: "push_enabled", label: "Alertas Satelitales Push", desc: "Recibir notificaciones inmediatas en el navegador." },
+                { key: "appointment_reminders", label: "Recordatorios de Citas", desc: "Avisos 1 hora antes de la visita técnica." },
+                { key: "chat_notifications", label: "Mensajes Entrantes", desc: "Notificar cuando un técnico o cliente escribe." },
+                { key: "order_updates", label: "Despacho de Pedidos", desc: "Avisos de confirmación, embalaje y entrega de repuestos." },
+              ].map((opt) => (
+                <div
+                  key={opt.key}
+                  className="p-4 rounded-2xl bg-[#0c1424] border border-white/5 flex items-center justify-between gap-4"
+                >
+                  <div>
+                    <p className="text-xs font-bold text-white">{opt.label}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">{opt.desc}</p>
+                  </div>
+                  <button
+                    onClick={() => handleToggleSetting(opt.key)}
+                    className={`relative w-12 h-6 rounded-full transition-all duration-300 shrink-0 ${
+                      settings[opt.key]
+                        ? "bg-gradient-to-r from-blue-600 to-cyan-500 shadow-md shadow-cyan-500/30"
+                        : "bg-slate-800"
+                    }`}
+                    aria-label={opt.label}
+                  >
+                    <div
+                      className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all duration-300 ${
+                        settings[opt.key] ? "left-7" : "left-1"
+                      }`}
+                    />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </motion.section>
+        )}
+      </AnimatePresence>
+
+      {/* Notifications List */}
       {notifications.length === 0 ? (
-        <div className="rounded-3xl border border-white/10 bg-[#0e1424] p-16 text-center space-y-4">
-          <div className="w-20 h-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-slate-500">
-            <BellOff size={36} />
+        <div className="rounded-[32px] border border-white/10 bg-[#0a101b]/80 p-16 text-center space-y-4">
+          <div className="w-16 h-16 rounded-3xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center mx-auto text-cyan-400">
+            <BellOff size={32} />
           </div>
-          <h3 className="text-xl font-black text-white">No tienes notificaciones</h3>
-          <p className="text-slate-400 text-sm max-w-sm mx-auto">
-            Aquí verás los avisos de tus citas, mensajes, pedidos y promociones.
+          <h3
+            className="text-xl font-black text-white tracking-tight"
+            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          >
+            Bandeja de Avisos Vacía
+          </h3>
+          <p className="text-slate-400 text-xs sm:text-sm max-w-sm mx-auto leading-relaxed">
+            Aquí se archivarán los estados de citas, mensajes, facturación y confirmaciones de despacho.
           </p>
         </div>
       ) : (
@@ -201,32 +236,36 @@ const Notifications = () => {
           {notifications.map((n) => {
             const meta = TYPE_META[n.type] || TYPE_META.system;
             const Icon = meta.icon;
+
             return (
               <motion.button
                 key={n.id}
                 layout
                 onClick={() => !n.is_read && handleMarkRead(n.id)}
-                className={`w-full text-left p-5 rounded-3xl border transition-all flex items-start gap-4 ${
+                className={`w-full text-left p-5 sm:p-6 rounded-[28px] border transition-all flex items-start gap-4 ${
                   n.is_read
-                    ? 'bg-[#0e1424] border-white/10'
-                    : 'bg-blue-500/[0.07] border-blue-500/30 hover:border-blue-500/50'
+                    ? "bg-[#0a101b]/80 border-white/5 hover:bg-[#0c1424]"
+                    : "bg-gradient-to-r from-blue-600/15 via-[#0c1424] to-[#0a101b] border-cyan-500/35 hover:border-cyan-400 shadow-lg shadow-cyan-500/5"
                 }`}
               >
                 <div
-                  className="w-11 h-11 rounded-2xl flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: `${meta.color}22`, color: meta.color }}
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-md"
+                  style={{ backgroundColor: `${meta.color}20`, color: meta.color }}
                 >
-                  <Icon size={20} />
+                  <Icon size={22} />
                 </div>
+
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3">
                     <p className="text-sm font-black text-white">{n.title || meta.label}</p>
-                    {!n.is_read && <span className="w-2 h-2 rounded-full bg-blue-400 shrink-0 mt-1.5" />}
+                    {!n.is_read && (
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#06b6d4] shrink-0 mt-1.5" />
+                    )}
                   </div>
                   {n.message && (
                     <p className="text-xs text-slate-300 mt-1 leading-relaxed">{n.message}</p>
                   )}
-                  <p className="text-[10px] text-slate-500 mt-2 font-semibold uppercase tracking-wider">
+                  <p className="text-[10px] text-slate-400 mt-2 font-mono uppercase tracking-wider">
                     {meta.label} · {formatDateShort(n.created_at)} {formatTime(n.created_at)}
                   </p>
                 </div>
