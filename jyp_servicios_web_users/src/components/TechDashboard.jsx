@@ -218,169 +218,185 @@ const TechDashboard = () => {
   }
 
   return (
-    <div className="w-full space-y-10 pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="jyp-page">
 
-      {/* ── WORKSTATION HEADER ─────────────────────────────── */}
-      <motion.header
-        initial={{ opacity: 0, y: -12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="glass-card p-10 sm:p-12 rounded-[32px] flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative overflow-hidden shadow-2xl border border-cyan-500/25"
-        style={{
-          background: "linear-gradient(135deg, rgba(13, 22, 41, 0.85) 0%, rgba(6, 9, 19, 0.95) 100%)",
-        }}
-      >
-        <div className="space-y-4">
-          <div className="flex items-center gap-2.5">
-            <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-              Terminal Técnico
-            </span>
-            <span className="text-xs font-medium text-slate-400">Lima Metropolitana</span>
+      {/* ── 1. WORKSTATION HERO BANNER ─────────────────────── */}
+      <section className="jyp-hero-card">
+        <div className="jyp-hero-glow-1" />
+        <div className="jyp-hero-glow-2" />
+
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="jyp-eyebrow">
+                <Cpu size={13} className="text-cyan-400" />
+                <span>Consola de Especialista</span>
+              </span>
+              <span className="jyp-badge-success">
+                <ShieldCheck size={13} />
+                <span>Técnico Certificado JyP</span>
+              </span>
+            </div>
+
+            <h1 className="jyp-hero-title">
+              Hola, <span className="jyp-gradient-text">{user?.names?.split(" ")[0] || "Especialista"}</span> ⚡
+            </h1>
+
+            <p className="jyp-hero-desc">
+              {todayAppts.length > 0 
+                ? `Tienes ${todayAppts.length} cita${todayAppts.length > 1 ? "s" : ""} programada${todayAppts.length > 1 ? "s" : ""} para la jornada de hoy en Lima Metropolitana.` 
+                : "No tienes citas activas para hoy. Mantén el radar de servicio encendido para captar solicitudes cercanas."}
+            </p>
           </div>
 
-          <h1 
-            className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight font-heading"
-          >
-            Hola, <span className="gradient-tech">{user?.names?.split(" ")[0] || "Especialista"}</span> 👋
-          </h1>
-
-          <p className="text-sm text-slate-300 max-w-xl leading-relaxed">
-            {todayAppts.length > 0 
-              ? `Tienes ${todayAppts.length} cita${todayAppts.length > 1 ? "s" : ""} programada${todayAppts.length > 1 ? "s" : ""} para hoy.` 
-              : "No tienes citas para hoy. Mantén tu disponibilidad activa para recibir solicitudes en tu zona."}
-          </p>
+          {/* Availability Radar Switch */}
+          <div className="shrink-0">
+            <button
+              type="button"
+              onClick={handleToggleAvailability}
+              disabled={togglingAvailability}
+              className={`flex items-center gap-3.5 px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all duration-300 border shadow-lg cursor-pointer ${
+                isAvailable
+                  ? "bg-emerald-500/15 border-emerald-400/40 text-emerald-300 shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:bg-emerald-500/25"
+                  : "bg-white/5 border-white/10 text-slate-400 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              <span className="relative flex h-3 w-3">
+                {isAvailable && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                )}
+                <span
+                  className={`relative inline-flex rounded-full h-3 w-3 ${
+                    isAvailable ? "bg-emerald-400 shadow-[0_0_10px_#10B981]" : "bg-slate-500"
+                  }`}
+                />
+              </span>
+              <span>
+                {togglingAvailability 
+                  ? "Actualizando..." 
+                  : isAvailable ? "Radar Activo (En Línea)" : "Radar Inactivo (Fuera de Servicio)"}
+              </span>
+            </button>
+          </div>
         </div>
+      </section>
 
-        {/* Availability Switch */}
-        <div className="shrink-0 flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleToggleAvailability}
-            disabled={togglingAvailability}
-            className="flex items-center gap-3 px-6 py-4 rounded-full font-bold text-xs uppercase tracking-wider transition-all duration-200 border shadow-lg hover:scale-105 active:scale-95"
-            style={{
-              background: isAvailable ? "rgba(16, 185, 129, 0.15)" : "rgba(255, 255, 255, 0.05)",
-              borderColor: isAvailable ? "rgba(16, 185, 129, 0.4)" : "var(--border)",
-              color: isAvailable ? "#34D399" : "var(--text-secondary)",
-              boxShadow: isAvailable ? "0 0 25px rgba(16, 185, 129, 0.25)" : "none",
-            }}
-          >
-            <span
-              className="w-3 h-3 rounded-full shrink-0"
-              style={{
-                background: isAvailable ? "#10B981" : "#64748B",
-                boxShadow: isAvailable ? "0 0 10px #10B981" : "none",
-              }}
-            />
-            <span>
-              {togglingAvailability 
-                ? "Actualizando..." 
-                : isAvailable ? "En Línea (Radar Activo)" : "Fuera de Servicio"}
-            </span>
-          </button>
-        </div>
-      </motion.header>
-
-      {/* ── ACTIVE SERVICE BANNER ──────────────────────────── */}
+      {/* ── 2. ACTIVE SERVICE BANNER (IF ANY ACTIVE) ─────────── */}
       {activeAppointment && (
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="p-8 sm:p-10 rounded-[32px] flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden shadow-2xl border border-blue-500/35"
+          className="jyp-card border-blue-500/40 relative overflow-hidden"
           style={{
-            background: "linear-gradient(135deg, rgba(37, 99, 235, 0.2) 0%, rgba(6, 182, 212, 0.1) 100%)",
-            boxShadow: "0 15px 35px rgba(37, 99, 235, 0.15)",
+            background: "linear-gradient(135deg, rgba(37, 99, 235, 0.18) 0%, rgba(6, 182, 212, 0.1) 100%)",
+            boxShadow: "0 20px 50px rgba(37, 99, 235, 0.2)",
           }}
         >
-          <div className="flex items-center gap-5">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
               <div 
-                className="w-16 h-16 rounded-3xl flex items-center justify-center text-white shrink-0 shadow-lg bg-gradient-to-br from-blue-600 to-cyan-500"
+                className="w-16 h-16 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg bg-gradient-to-br from-blue-600 to-cyan-500"
               >
-              <Clock size={28} className="animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400">
-                  Orden de Trabajo en Progreso
-                </span>
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                <Clock size={28} className="animate-pulse" />
               </div>
-              <h3 className="text-xl sm:text-2xl font-black text-white">
-                {activeAppointment.serviceType || activeAppointment.service_type || "Mantenimiento Técnico"}
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-300 mt-1">
-                Cliente: <span className="text-white font-bold">{activeAppointment.clientName || activeAppointment.client_name || "Cliente JyP"}</span>
-              </p>
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-cyan-400">
+                    Orden de Trabajo en Progreso
+                  </span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white font-heading">
+                  {activeAppointment.serviceType || activeAppointment.service_type || "Mantenimiento Técnico"}
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-300 mt-1">
+                  Cliente: <span className="text-white font-bold">{activeAppointment.clientName || activeAppointment.client_name || "Cliente JyP"}</span>
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <button
-              onClick={() => navigate(`/appointments/${activeAppointment.id}`)}
-              className="btn-ghost flex-1 md:flex-none text-xs font-bold py-3.5 px-5 rounded-2xl"
-            >
-              Gestionar Estado
-            </button>
-            <button
-              onClick={() => navigate(`/chat?user=${activeAppointment.clientId || activeAppointment.client_id}`)}
-              className="btn-primary flex-1 md:flex-none text-xs font-black uppercase tracking-wider py-3.5 px-6 rounded-2xl shadow-lg"
-            >
-              <MessageSquare size={16} />
-              <span>Chat con Cliente</span>
-            </button>
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <button
+                type="button"
+                onClick={() => navigate(`/appointments/${activeAppointment.id}`)}
+                className="jyp-btn-ghost flex-1 md:flex-none text-xs"
+              >
+                Gestionar Estado
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate(`/chat?user=${activeAppointment.clientId || activeAppointment.client_id}`)}
+                className="jyp-btn-primary flex-1 md:flex-none text-xs"
+              >
+                <MessageSquare size={16} />
+                <span>Chat con Cliente</span>
+              </button>
+            </div>
           </div>
         </motion.div>
       )}
 
-      {/* ── STATS COUNTERS GRID ────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <StatCard 
-          icon={AlertCircle} 
-          label="Solicitudes Pendientes"  
-          value={pending.length} 
-          sublabel="Requieren confirmación"
-          color="#F59E0B" 
-          delay={0.05} 
-        />
-        <StatCard 
-          icon={CheckCircle2} 
-          label="Citas Confirmadas" 
-          value={confirmed.length} 
-          sublabel="En agenda técnica"
-          color="#3B82F6" 
-          delay={0.10} 
-        />
-        <StatCard 
-          icon={Calendar}    
-          label="Programadas Hoy" 
-          value={todayAppts.length} 
-          sublabel="Atención prioritaria"
-          color="#10B981" 
-          delay={0.15} 
-        />
-        <StatCard 
-          icon={DollarSign}  
-          label="Ingresos Estimados"      
-          value={`S/. ${totalEarned.toFixed(0)}`} 
-          sublabel="Servicios completados"
-          color="#8B5CF6" 
-          delay={0.20} 
-        />
-      </div>
+      {/* ── 3. STATS COUNTERS GRID ────────────────────────────── */}
+      <section className="jyp-stats-grid">
+        <div className="jyp-stat-card">
+          <div className="jyp-stat-icon" style={{ background: 'rgba(245, 158, 11, 0.14)', color: '#FBBF24', border: '1px solid rgba(245, 158, 11, 0.28)' }}>
+            <AlertCircle size={22} />
+          </div>
+          <div className="jyp-stat-body">
+            <span className="jyp-stat-label">Solicitudes</span>
+            <span className="jyp-stat-value">{pending.length} Pendientes</span>
+            <span className="jyp-stat-sublabel">Requieren confirmación</span>
+          </div>
+        </div>
 
-      {/* ── TELEMETRY & PERFORMANCE SECTION ────────────────── */}
+        <div className="jyp-stat-card">
+          <div className="jyp-stat-icon" style={{ background: 'rgba(37, 99, 235, 0.14)', color: '#60a5fa', border: '1px solid rgba(37, 99, 235, 0.28)' }}>
+            <CheckCircle2 size={22} />
+          </div>
+          <div className="jyp-stat-body">
+            <span className="jyp-stat-label">Confirmadas</span>
+            <span className="jyp-stat-value">{confirmed.length} En Curso</span>
+            <span className="jyp-stat-sublabel">En agenda técnica</span>
+          </div>
+        </div>
+
+        <div className="jyp-stat-card">
+          <div className="jyp-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.14)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.28)' }}>
+            <Calendar size={22} />
+          </div>
+          <div className="jyp-stat-body">
+            <span className="jyp-stat-label">Jornada de Hoy</span>
+            <span className="jyp-stat-value">{todayAppts.length} Citas</span>
+            <span className="jyp-stat-sublabel">Atención prioritaria</span>
+          </div>
+        </div>
+
+        <div className="jyp-stat-card">
+          <div className="jyp-stat-icon" style={{ background: 'rgba(168, 85, 247, 0.14)', color: '#c084fc', border: '1px solid rgba(168, 85, 247, 0.28)' }}>
+            <DollarSign size={22} />
+          </div>
+          <div className="jyp-stat-body">
+            <span className="jyp-stat-label">Ingresos Reales</span>
+            <span className="jyp-stat-value">S/. {totalEarned.toFixed(0)}</span>
+            <span className="jyp-stat-sublabel">{completed.length} servicios cerrados</span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── 4. TELEMETRY & PERFORMANCE SECTION ────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Telemetry Chart */}
-        <div className="lg:col-span-2 glass-card p-9 rounded-[32px] space-y-6 shadow-xl">
+        <div className="lg:col-span-2 jyp-card space-y-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-blue-500/15 flex items-center justify-center text-blue-400">
+              <div className="w-10 h-10 rounded-2xl bg-blue-500/15 flex items-center justify-center text-blue-400 border border-blue-500/30">
                 <TrendingUp size={18} />
               </div>
-              <h3 className="text-lg font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+              <h3 className="text-lg font-black text-white font-heading">
                 Rendimiento Semanal de Reparaciones
               </h3>
             </div>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 py-1 rounded-full bg-white/5 border border-white/5">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider px-3 py-1 rounded-full bg-white/5 border border-white/10">
               Últimos 7 días
             </span>
           </div>
@@ -420,29 +436,30 @@ const TechDashboard = () => {
         </div>
 
         {/* Recent Client Messages */}
-        <div className="glass-card p-8 rounded-[32px] space-y-5 flex flex-col justify-between shadow-xl">
+        <div className="jyp-card space-y-5 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-cyan-500/15 flex items-center justify-center text-cyan-400">
+                <div className="w-8 h-8 rounded-xl bg-cyan-500/15 flex items-center justify-center text-cyan-400 border border-cyan-500/30">
                   <MessageSquare size={16} />
                 </div>
-                <h3 className="text-base font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                <h3 className="text-base font-black text-white font-heading">
                   Consultas Recientes
                 </h3>
               </div>
               <button
+                type="button"
                 onClick={() => navigate("/chat")}
-                className="text-xs font-bold text-blue-400 hover:text-white px-3 py-1 rounded-full bg-blue-500/10 hover:bg-blue-500/20 transition-all"
+                className="text-xs font-bold text-cyan-400 hover:text-cyan-300 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 transition-all"
               >
-                Ver Chat
+                Abrir Chat
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {conversations.length === 0 ? (
                 <p className="text-xs text-slate-500 py-8 text-center">
-                  Sin mensajes nuevos
+                  Sin mensajes nuevos en la bandeja
                 </p>
               ) : (
                 conversations.slice(0, 3).map((conv, i) => (
@@ -451,7 +468,7 @@ const TechDashboard = () => {
                     onClick={() => navigate(`/chat?user=${conv.other_user_id}`)}
                     className="p-3.5 rounded-2xl bg-white/5 hover:bg-white/10 transition-colors cursor-pointer flex items-center gap-3.5 border border-white/5"
                   >
-                    <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-sm">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 flex items-center justify-center font-bold text-xs text-white shrink-0 shadow-sm">
                       {conv.username?.[0]?.toUpperCase() || "C"}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -464,36 +481,41 @@ const TechDashboard = () => {
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-center gap-3 mt-4">
+          <div className="p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300 flex items-center gap-3 mt-4">
             <ShieldCheck size={18} className="shrink-0 text-cyan-400" />
             <span>Responde en menos de 15 min para mantener tu insignia PRO.</span>
           </div>
         </div>
       </div>
 
-      {/* ── APPOINTMENTS LIST ──────────────────────────────── */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-black text-white flex items-center gap-2">
-            <Calendar size={18} className="text-blue-500" />
-            <span>Órdenes de Servicio Recientes</span>
-          </h2>
+      {/* ── 5. APPOINTMENTS LIST ──────────────────────────────── */}
+      <section className="jyp-section">
+        <div className="jyp-section-header jyp-section-header-row">
+          <div>
+            <h2 className="jyp-section-title">Órdenes de Servicio Asignadas</h2>
+            <p className="jyp-section-subtitle">
+              Gestiona el flujo de trabajo técnico, diagnósticos y rutas hacia el cliente.
+            </p>
+          </div>
           <button
+            type="button"
             onClick={() => navigate("/appointments")}
-            className="text-xs font-bold text-blue-400 hover:text-white flex items-center gap-1"
+            className="inline-flex items-center gap-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors self-start sm:self-auto"
           >
             <span>Ver Todas ({appointments.length})</span>
-            <ArrowRight size={13} />
+            <ArrowRight size={14} />
           </button>
         </div>
 
         <div className="space-y-3">
           {appointments.length === 0 ? (
-            <div className="glass-card text-center py-12 rounded-3xl space-y-2">
-              <Wrench size={32} className="text-slate-500 mx-auto mb-2" />
-              <p className="text-sm font-bold text-white">No tienes citas programadas</p>
-              <p className="text-xs text-slate-400">
-                Mantén tu disponibilidad activa para que los clientes en tu radio puedan agendar.
+            <div className="jyp-empty-state">
+              <div className="jyp-empty-icon">
+                <Wrench size={28} />
+              </div>
+              <h4 className="jyp-empty-title">No tienes citas programadas</h4>
+              <p className="jyp-empty-text">
+                Mantén tu radar activo para que los clientes en tu radio puedan agendar mantenimientos.
               </p>
             </div>
           ) : (
@@ -502,7 +524,7 @@ const TechDashboard = () => {
             ))
           )}
         </div>
-      </div>
+      </section>
     </div>
   );
 };

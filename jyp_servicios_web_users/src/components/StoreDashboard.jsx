@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 const StoreDashboard = () => {
   const navigate = useNavigate();
   const { socketService } = useSocket();
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
   const [conversations, setConversations] = useState([]);
@@ -24,7 +25,6 @@ const StoreDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [branchId, setBranchId] = useState(user.branchId || null);
   const [hasStore, setHasStore] = useState(true);
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
 
   useEffect(() => {
     fetchDashboardData();
@@ -271,70 +271,101 @@ const StoreDashboard = () => {
   }
 
   return (
-    <div className="w-full space-y-10 pb-4">
-      {/* Header & Recent Activity Banner */}
-      <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-2 text-slate-100">
-            Sucursal <span className="text-blue-400">{user.branchName || 'Principal JyP'}</span>
-          </h1>
-          <p className="text-sm font-medium text-slate-400">
-            Control de inventario de repuestos y despacho de pedidos en tiempo real.
-          </p>
-        </div>
+    <div className="jyp-page">
+      {/* ── 1. WORKSHOP HERO BANNER ─────────────────────────── */}
+      <section className="jyp-hero-card">
+        <div className="jyp-hero-glow-1" />
+        <div className="jyp-hero-glow-2" />
 
-        {recentChat && (
-          <motion.div 
-            initial={{ opacity: 0, x: 15 }}
-            animate={{ opacity: 1, x: 0 }}
-            onClick={() => navigate(`/chat?user=${recentChat.other_user_id}`)}
-            className="flex-1 max-w-sm p-4 rounded-3xl border shadow-md flex items-center justify-between cursor-pointer transition-all hover:border-blue-500/40 jyp-card"
-          >
-            <div className="flex items-center gap-3.5">
-              <div 
-                className="w-11 h-11 rounded-2xl flex items-center justify-center font-bold text-white text-sm shadow-md bg-blue-600"
-              >
-                {recentChat.username?.[0] || 'C'}
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-blue-400">Consulta de Cliente</p>
-                <p className="font-bold text-xs truncate max-w-[200px] text-slate-100">{recentChat.last_message_text || recentChat.last_message}</p>
-              </div>
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <span className="jyp-eyebrow">
+                <Store size={13} className="text-cyan-400" />
+                <span>Gestión de Sucursal & Taller</span>
+              </span>
+              <span className="jyp-badge-success">
+                <CheckCircle size={13} />
+                <span>Punto de Venta Oficial</span>
+              </span>
             </div>
-            <ChevronRight size={16} className="text-slate-400" />
-          </motion.div>
-        )}
+
+            <h1 className="jyp-hero-title">
+              Sucursal <span className="jyp-gradient-text">{user.branchName || 'Principal JyP'}</span>
+            </h1>
+
+            <p className="jyp-hero-desc">
+              Control de inventario de repuestos, recepción de compras online y despacho de pedidos técnicos en tiempo real para Lima Metropolitana.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleAddProduct}
+              className="jyp-btn-primary"
+            >
+              <Plus size={16} />
+              <span>Nuevo Repuesto</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/orders')}
+              className="jyp-btn-cyan"
+            >
+              <ShoppingCart size={16} />
+              <span>Ver Todos los Pedidos</span>
+            </button>
+          </div>
+        </div>
       </section>
 
-      {/* Operational Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-        {[
-          { label: 'Productos Registrados', val: products.length, icon: Box, color: 'var(--primary)', bg: 'rgba(45, 107, 255, 0.1)' },
-          { label: 'Pedidos Totales', val: orders.length, icon: ShoppingCart, color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.1)' },
-          { label: 'Por Despachar', val: pendingOrders.length, icon: Truck, color: '#EAB308', bg: 'rgba(234, 179, 8, 0.1)' },
-          { label: 'Ventas Totales', val: `S/. ${orders.reduce((acc, o) => acc + Number(o.total_price || o.price || 0), 0).toFixed(2)}`, icon: TrendingUp, color: 'var(--secondary)', bg: 'rgba(0, 229, 160, 0.1)' },
-        ].map((stat, i) => (
-          <div 
-            key={i} 
-            className="p-6 rounded-3xl border shadow-lg flex items-center gap-4 transition-all hover:-translate-y-1 jyp-card"
-          >
-            <div 
-              className="w-13 h-13 rounded-2xl flex items-center justify-center shrink-0 shadow-sm"
-              style={{ backgroundColor: stat.bg, color: stat.color }}
-            >
-              <stat.icon size={24} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                {stat.label}
-              </p>
-              <h3 className="text-xl sm:text-2xl font-black text-slate-100">
-                {stat.val}
-              </h3>
-            </div>
+      {/* ── 2. OPERATIONAL KPI STATS ───────────────────────── */}
+      <section className="jyp-stats-grid">
+        <div className="jyp-stat-card">
+          <div className="jyp-stat-icon" style={{ background: 'rgba(37, 99, 235, 0.14)', color: '#60a5fa', border: '1px solid rgba(37, 99, 235, 0.28)' }}>
+            <Box size={22} />
           </div>
-        ))}
-      </div>
+          <div className="jyp-stat-body">
+            <span className="jyp-stat-label">Catálogo Activo</span>
+            <span className="jyp-stat-value">{products.length} Items</span>
+            <span className="jyp-stat-sublabel">Repuestos en stock</span>
+          </div>
+        </div>
+
+        <div className="jyp-stat-card">
+          <div className="jyp-stat-icon" style={{ background: 'rgba(6, 182, 212, 0.14)', color: '#22d3ee', border: '1px solid rgba(6, 182, 212, 0.28)' }}>
+            <ShoppingCart size={22} />
+          </div>
+          <div className="jyp-stat-body">
+            <span className="jyp-stat-label">Pedidos Recibidos</span>
+            <span className="jyp-stat-value">{orders.length} Órdenes</span>
+            <span className="jyp-stat-sublabel">Historial completo</span>
+          </div>
+        </div>
+
+        <div className="jyp-stat-card">
+          <div className="jyp-stat-icon" style={{ background: 'rgba(245, 158, 11, 0.14)', color: '#FBBF24', border: '1px solid rgba(245, 158, 11, 0.28)' }}>
+            <Truck size={22} />
+          </div>
+          <div className="jyp-stat-body">
+            <span className="jyp-stat-label">Por Despachar</span>
+            <span className="jyp-stat-value">{pendingOrders.length} Pendientes</span>
+            <span className="jyp-stat-sublabel">Preparación prioritaria</span>
+          </div>
+        </div>
+
+        <div className="jyp-stat-card">
+          <div className="jyp-stat-icon" style={{ background: 'rgba(16, 185, 129, 0.14)', color: '#34d399', border: '1px solid rgba(16, 185, 129, 0.28)' }}>
+            <TrendingUp size={22} />
+          </div>
+          <div className="jyp-stat-body">
+            <span className="jyp-stat-label">Ventas Totales</span>
+            <span className="jyp-stat-value">S/. {orders.reduce((acc, o) => acc + Number(o.total_price || o.price || 0), 0).toFixed(0)}</span>
+            <span className="jyp-stat-sublabel">Monto facturado</span>
+          </div>
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Orders Management Section */}
@@ -638,47 +669,44 @@ const StoreDashboard = () => {
       {/* Product Modal */}
       <AnimatePresence>
         {showProductModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md">
             <motion.div 
               initial={{ opacity: 0, scale: 0.95, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 15 }}
-              className="w-full max-w-lg p-7 rounded-2xl border shadow-2xl relative"
-              style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+              className="w-full max-w-xl p-6 sm:p-8 rounded-3xl border border-white/10 shadow-2xl relative bg-[#0b1220]/95 backdrop-blur-2xl text-slate-100 max-h-[90vh] overflow-y-auto no-scrollbar"
             >
               <button 
                 onClick={() => setShowProductModal(false)} 
-                className="absolute top-5 right-5 transition-colors hover:opacity-80 text-slate-400"
+                className="absolute top-5 right-5 w-8 h-8 rounded-xl flex items-center justify-center bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
               >
-                <X size={20} />
+                <X size={18} />
               </button>
 
-              <div className="flex items-center gap-3 mb-6">
-                              <div 
-                                className="w-10 h-10 rounded-xl flex items-center justify-center"
-                                style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}
-                              >
-                                {editingProduct ? <Edit size={20} /> : <Plus size={20} />}
-                              </div>
-                              <div>
-                                <h3 className="text-lg font-bold text-slate-100">
-                                  {editingProduct ? 'Editar Producto' : 'Nuevo Producto en Inventario'}
-                                </h3>
-                                <p className="text-xs text-slate-400">
-                                  Completa la información técnica del repuesto.
-                                </p>
-                              </div>
+              <div className="flex items-center gap-3.5 mb-6">
+                <div 
+                  className="w-11 h-11 rounded-2xl flex items-center justify-center bg-blue-600/20 text-cyan-400 border border-cyan-400/30 shadow-md"
+                >
+                  {editingProduct ? <Edit size={20} /> : <Plus size={20} />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white font-heading">
+                    {editingProduct ? 'Editar Producto' : 'Nuevo Producto en Inventario'}
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Completa la información técnica del repuesto y disponibilidad.
+                  </p>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="md:col-span-2 space-y-1.5">
-                    <label className="jyp-form-label">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Fotografía del Repuesto
                   </label>
                   <div className="flex items-center gap-4">
                     <div
-                      className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center border shrink-0"
-                      style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
+                      className="w-20 h-20 rounded-2xl overflow-hidden flex items-center justify-center border border-white/10 bg-white/5 shrink-0"
                     >
                       {productForm.image_url ? (
                         <img src={mediaUrl(productForm.image_url)} alt="Producto" className="w-full h-full object-cover" />
@@ -687,120 +715,122 @@ const StoreDashboard = () => {
                       )}
                     </div>
                     <div className="flex-1">
-                      <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl cursor-pointer text-xs font-bold border"
-                        style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--text-primary)' }}
-                      >
-                        <ImageIcon size={14} />
-                        {uploadingImage ? 'Subiendo...' : 'Seleccionar imagen'}
+                      <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl cursor-pointer text-xs font-bold border border-white/10 bg-white/5 hover:bg-white/10 text-slate-200 transition-all">
+                        <ImageIcon size={14} className="text-cyan-400" />
+                        <span>{uploadingImage ? 'Subiendo...' : 'Seleccionar imagen'}</span>
                         <input type="file" accept="image/*" className="hidden" onChange={handleProductImage} />
                       </label>
-                      <p className="text-[10px] mt-1.5" style={{ color: 'var(--text-dim)' }}>
+                      <p className="text-[10px] text-slate-500 mt-1.5">
                         JPG o PNG. Se muestra en el catálogo y en la ficha del producto.
                       </p>
                     </div>
                   </div>
                 </div>
+
                 <div className="md:col-span-2 space-y-1.5">
-                    <label className="jyp-form-label">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Nombre del Producto
                   </label>
                   <input
                     type="text"
                     placeholder="Ej: Pantalla OLED iPhone 13 Pro"
-                    className="jyp-form-input rounded-xl py-2.5 px-3 text-xs border outline-none"
+                    className="w-full rounded-xl py-2.5 px-3.5 text-xs border border-white/10 bg-white/5 text-white outline-none focus:border-cyan-400 transition-all"
                     value={productForm.name}
                     onChange={(e) => setProductForm({...productForm, name: e.target.value})}
                   />
                 </div>
+
                 <div className="space-y-1.5">
-                    <label className="jyp-form-label">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Categoría
                   </label>
                   <input
                     type="text"
                     placeholder="Ej: Pantallas"
-                    className="jyp-form-input rounded-xl py-2.5 px-3 text-xs border outline-none"
+                    className="w-full rounded-xl py-2.5 px-3.5 text-xs border border-white/10 bg-white/5 text-white outline-none focus:border-cyan-400 transition-all"
                     value={productForm.category}
                     onChange={(e) => setProductForm({...productForm, category: e.target.value})}
                   />
                 </div>
+
                 <div className="space-y-1.5">
-                    <label className="jyp-form-label">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Marca
                   </label>
                   <input
                     type="text"
                     placeholder="Ej: Samsung"
-                    className="jyp-form-input rounded-xl py-2.5 px-3 text-xs border outline-none"
+                    className="w-full rounded-xl py-2.5 px-3.5 text-xs border border-white/10 bg-white/5 text-white outline-none focus:border-cyan-400 transition-all"
                     value={productForm.brand}
                     onChange={(e) => setProductForm({...productForm, brand: e.target.value})}
                   />
                 </div>
+
                 <div className="space-y-1.5">
-                    <label className="jyp-form-label">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Código / SKU
                   </label>
                   <input
                     type="text"
                     placeholder="Ej: OLED13P-BLK"
-                    className="jyp-form-input rounded-xl py-2.5 px-3 text-xs border outline-none"
+                    className="w-full rounded-xl py-2.5 px-3.5 text-xs border border-white/10 bg-white/5 text-white outline-none focus:border-cyan-400 transition-all"
                     value={productForm.sku}
                     onChange={(e) => setProductForm({...productForm, sku: e.target.value})}
                   />
                 </div>
+
                 <div className="space-y-1.5">
-                    <label className="jyp-form-label">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                     Stock Disponible
                   </label>
                   <input
                     type="number"
                     placeholder="0"
-                    className="jyp-form-input rounded-xl py-2.5 px-3 text-xs border outline-none"
+                    className="w-full rounded-xl py-2.5 px-3.5 text-xs border border-white/10 bg-white/5 text-white outline-none focus:border-cyan-400 transition-all"
                     value={productForm.stock}
                     onChange={(e) => setProductForm({...productForm, stock: e.target.value})}
                   />
                 </div>
-                <div className="space-y-1.5">
-                    <label className="jyp-form-label">
-                    Precio (S/.)
+
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Precio de Venta (S/.)
                   </label>
                   <input
                     type="number"
                     placeholder="0.00"
-                    className="jyp-form-input rounded-xl py-2.5 px-3 text-xs border outline-none"
+                    className="w-full rounded-xl py-2.5 px-3.5 text-xs border border-white/10 bg-white/5 text-white outline-none focus:border-cyan-400 transition-all"
                     value={productForm.price}
                     onChange={(e) => setProductForm({...productForm, price: e.target.value})}
                   />
                 </div>
+
                 <div className="md:col-span-2 space-y-1.5">
-                    <label className="jyp-form-label">
-                    Descripción
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                    Descripción Técnica
                   </label>
                   <textarea 
                     placeholder="Detalles técnicos, compatibilidad, garantía..."
                     rows="3"
-                    className="w-full py-2.5 px-3 rounded-xl border text-xs outline-none resize-none transition-all"
-                    style={{
-                      backgroundColor: 'var(--bg)',
-                      borderColor: 'var(--border)',
-                      color: 'var(--text-primary)'
-                    }}
+                    className="w-full py-2.5 px-3.5 rounded-xl border border-white/10 bg-white/5 text-white text-xs outline-none focus:border-cyan-400 resize-none transition-all"
                     value={productForm.description}
                     onChange={(e) => setProductForm({...productForm, description: e.target.value})}
                   />
                 </div>
               </div>
 
-              <div className="mt-6 flex gap-3">
+              <div className="mt-6 flex gap-3 pt-4 border-t border-white/10">
                 <button 
+                  type="button"
                   onClick={() => setShowProductModal(false)}
-                  className="flex-1 py-3 border font-bold text-xs uppercase rounded-xl transition-colors hover:opacity-80 jyp-btn-ghost"
+                  className="jyp-btn-ghost flex-1 py-2.5 text-xs"
                 >
                   Cancelar
                 </button>
                 <button 
+                  type="button"
                   onClick={handleSaveProduct}
-                  className="btn-primary flex-1 py-3 font-bold text-xs uppercase rounded-xl shadow-lg"
+                  className="jyp-btn-primary flex-1 py-2.5 text-xs"
                 >
                   {editingProduct ? 'Guardar Cambios' : 'Registrar Producto'}
                 </button>

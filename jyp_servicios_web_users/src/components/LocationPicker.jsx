@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap, Circle } from 'react-leaflet';
 import L from 'leaflet';
-import { Search, MapPin, Check, Navigation, Target } from 'lucide-react';
+import { Search, MapPin, Check, Navigation, Target, Compass } from 'lucide-react';
 
 const RecenterMap = ({ coords }) => {
   const map = useMap();
@@ -119,20 +119,25 @@ const LocationPicker = ({ onLocationSelect, initialLocation = { lat: -12.046374,
   };
 
   return (
-    <div className="flex flex-col gap-5 font-outfit">
+    <div className="flex flex-col gap-5" style={{ fontFamily: "'Inter', sans-serif" }}>
+      {/* Search & Detect Row */}
       <div className="flex flex-col sm:flex-row gap-3">
         <form onSubmit={handleSearch} className="flex-1 flex gap-2">
           <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
             <input 
               type="text" 
               placeholder="Escribe tu dirección o distrito..." 
-              className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
+              className="w-full rounded-2xl py-3.5 pl-12 pr-4 text-sm placeholder-slate-500 outline-none transition-all shadow-inner jyp-form-input"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <button type="submit" disabled={searching} className="bg-white/5 px-6 rounded-2xl text-white font-black uppercase text-[10px] tracking-widest hover:bg-white/10 border border-white/10 transition-all cursor-pointer">
+          <button
+            type="submit"
+            disabled={searching}
+            className="jyp-btn-ghost px-6 rounded-2xl text-xs font-black uppercase tracking-wider"
+          >
             <span>{searching ? '...' : 'Buscar'}</span>
           </button>
         </form>
@@ -141,7 +146,7 @@ const LocationPicker = ({ onLocationSelect, initialLocation = { lat: -12.046374,
           type="button"
           onClick={detectLocation}
           disabled={detecting}
-          className="flex items-center justify-center gap-2 bg-primary/10 border border-primary/20 text-primary px-6 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-primary hover:text-white transition-all shadow-lg cursor-pointer"
+          className="flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 hover:bg-cyan-500/20 hover:text-cyan-300 transition-all shadow-lg shadow-cyan-500/10 cursor-pointer"
         >
           <span className="shrink-0 inline-flex items-center justify-center">
             <Target size={18} className={detecting ? 'animate-spin' : ''} />
@@ -150,7 +155,8 @@ const LocationPicker = ({ onLocationSelect, initialLocation = { lat: -12.046374,
         </button>
       </div>
 
-      <div className="h-[350px] rounded-[32px] overflow-hidden border border-white/5 relative shadow-2xl">
+      {/* Map Container */}
+      <div className="h-[350px] rounded-[32px] overflow-hidden border border-white/10 relative shadow-2xl bg-[#080d17]">
         <MapContainer center={position} zoom={13} style={{ height: '100%', width: '100%' }}>
           <TileLayer 
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -160,22 +166,26 @@ const LocationPicker = ({ onLocationSelect, initialLocation = { lat: -12.046374,
           <Circle 
             center={position} 
             radius={200} 
-            pathOptions={{ color: '#3B28FF', fillColor: '#3B28FF', fillOpacity: 0.1 }} 
+            pathOptions={{ color: '#06B6D4', fillColor: '#06B6D4', fillOpacity: 0.08, weight: 1.5, dashArray: '6,10' }} 
           />
           <Marker position={position} icon={userIcon} />
           <RecenterMap coords={position} />
         </MapContainer>
         
+        {/* HUD Badge */}
         <div className="absolute top-4 right-4 z-[1000] flex flex-col gap-2">
-           <div className="bg-background/80 backdrop-blur-md p-3 rounded-2xl border border-white/10 text-white font-black text-[10px] uppercase tracking-widest flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              Marcador Activo
-           </div>
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-[#0a101b]/90 border border-white/10 backdrop-blur-md shadow-xl">
+            <div className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#06b6d4] animate-pulse" />
+            <span className="text-[10px] font-black uppercase tracking-widest text-white">Marcador Activo</span>
+          </div>
         </div>
       </div>
 
-      <div className="p-6 bg-white/5 border border-white/10 rounded-3xl">
-        <p className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2">Dirección Seleccionada</p>
+      {/* Selected Address Display */}
+      <div className="p-6 rounded-3xl border border-white/10 bg-[#0a101b]/80 backdrop-blur-xl">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400 mb-2">
+          Dirección Seleccionada
+        </p>
         {address ? (
            <p className="text-white text-sm leading-relaxed">{address}</p>
         ) : (
@@ -183,12 +193,13 @@ const LocationPicker = ({ onLocationSelect, initialLocation = { lat: -12.046374,
         )}
       </div>
 
+      {/* Confirmation Chip */}
       {address && (
-        <div className="flex items-center gap-3 p-4 bg-success/10 border border-success/20 rounded-2xl animate-in fade-in slide-in-from-top-2 duration-500">
-          <div className="w-8 h-8 bg-success/20 rounded-full flex items-center justify-center text-success">
+        <div className="flex items-center gap-3 p-4 rounded-2xl border border-emerald-500/25 bg-emerald-500/10">
+          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-emerald-500/20 text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
              <Check size={16} />
           </div>
-          <p className="text-xs text-success font-black uppercase tracking-widest">Ubicación Confirmada</p>
+          <p className="text-xs text-emerald-300 font-black uppercase tracking-widest">Ubicación Confirmada</p>
         </div>
       )}
     </div>

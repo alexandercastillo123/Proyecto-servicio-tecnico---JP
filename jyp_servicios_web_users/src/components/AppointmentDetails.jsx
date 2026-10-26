@@ -1,19 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Calendar, Clock, MapPin, User, Phone, 
-  Mail, FileText, DollarSign, CheckCircle2, 
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Calendar, Clock, MapPin, User, Phone,
+  Mail, FileText, DollarSign, CheckCircle2,
   XCircle, ChevronLeft, AlertCircle, MessageSquare,
-  ShieldCheck, CreditCard, Truck, Navigation, Wrench, Check
-} from 'lucide-react';
-import { clientService, techService } from '../services/api';
-import { useSocket } from '../context/SocketContext';
-import { toast } from 'react-hot-toast';
-import { formatDateLong } from '../services/formatters';
-import CulqiPaymentModal from './common/CulqiPaymentModal';
+  ShieldCheck, CreditCard, Truck, Navigation, Wrench, Check,
+  Activity, Sparkles, Send, ArrowRight
+} from "lucide-react";
+import { clientService, techService } from "../services/api";
+import { useSocket } from "../context/SocketContext";
+import { toast } from "react-hot-toast";
+import { formatDateLong } from "../services/formatters";
+import CulqiPaymentModal from "./common/CulqiPaymentModal";
+import { TechLoader } from "./common/TechLoader";
 
-import { TechLoader } from './common/TechLoader';
+const TIMELINE_STEPS = [
+  { key: "pending", label: "Solicitud", icon: Calendar },
+  { key: "confirmed", label: "Confirmada", icon: ShieldCheck },
+  { key: "on_the_way", label: "En Camino", icon: Truck },
+  { key: "arrived", label: "En Sitio", icon: MapPin },
+  { key: "in_progress", label: "En Reparación", icon: Wrench },
+  { key: "completed", label: "Finalizado", icon: CheckCircle2 },
+];
 
 const AppointmentDetails = () => {
   const { id } = useParams();
@@ -22,11 +31,11 @@ const AppointmentDetails = () => {
   const [appt, setAppt] = useState(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [priceInput, setPriceInput] = useState('');
+  const [priceInput, setPriceInput] = useState("");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCulqiModal, setShowCulqiModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('yape');
-  const [currentUser] = useState(JSON.parse(localStorage.getItem('user')));
+  const [paymentMethod, setPaymentMethod] = useState("yape");
+  const [currentUser] = useState(JSON.parse(localStorage.getItem("user") || "{}"));
 
   useEffect(() => {
     fetchDetails();
@@ -35,16 +44,16 @@ const AppointmentDetails = () => {
   useEffect(() => {
     if (!socketService) return;
 
-    const unsubProgress = socketService.on('appointment_progress', (data) => {
+    const unsubProgress = socketService.on("appointment_progress", (data) => {
       if (String(data.appointment_id) === String(id)) fetchDetails();
     });
-    const unsubPrice = socketService.on('appointment_price_updated', (data) => {
+    const unsubPrice = socketService.on("appointment_price_updated", (data) => {
       if (String(data.appointment_id) === String(id)) fetchDetails();
     });
-    const unsubWaiting = socketService.on('appointment_payment_waiting', (data) => {
+    const unsubWaiting = socketService.on("appointment_payment_waiting", (data) => {
       if (String(data.appointment_id) === String(id)) fetchDetails();
     });
-    const unsubConfirmed = socketService.on('appointment_payment_confirmed', (data) => {
+    const unsubConfirmed = socketService.on("appointment_payment_confirmed", (data) => {
       if (String(data.appointment_id) === String(id)) fetchDetails();
     });
 
@@ -62,10 +71,10 @@ const AppointmentDetails = () => {
       const payload = response.data?.resultado || response.data?.data;
       if (payload || response.data?.exito || response.data?.success) {
         setAppt(payload);
-        setPriceInput(payload?.price || '');
+        setPriceInput(payload?.price || "");
       }
     } catch (error) {
-      console.error('Error fetching details:', error);
+      console.error("Error fetching details:", error);
     } finally {
       setLoading(false);
     }
@@ -76,11 +85,11 @@ const AppointmentDetails = () => {
     setActionLoading(true);
     try {
       await techService.setPrice(id, priceInput);
-      toast.success('Presupuesto enviado al cliente');
+      toast.success("Presupuesto enviado al cliente");
       fetchDetails();
     } catch (error) {
-      console.error('Error setting price:', error);
-      toast.error(error.response?.data?.mensaje || 'No se pudo guardar el presupuesto');
+      console.error("Error setting price:", error);
+      toast.error(error.response?.data?.mensaje || "No se pudo guardar el presupuesto");
     } finally {
       setActionLoading(false);
     }
@@ -90,11 +99,11 @@ const AppointmentDetails = () => {
     setActionLoading(true);
     try {
       await techService.updateStatus(id, newStatus);
-      toast.success('Estado de la cita actualizado');
+      toast.success("Estado de la cita actualizado");
       fetchDetails();
     } catch (error) {
-      console.error('Error updating status:', error);
-      toast.error(error.response?.data?.mensaje || 'No se pudo actualizar el estado');
+      console.error("Error updating status:", error);
+      toast.error(error.response?.data?.mensaje || "No se pudo actualizar el estado");
     } finally {
       setActionLoading(false);
     }
@@ -104,12 +113,12 @@ const AppointmentDetails = () => {
     setActionLoading(true);
     try {
       await clientService.payAppointment(id, paymentMethod);
-      toast.success('Pago registrado. Esperando confirmación del técnico.');
+      toast.success("Pago registrado. Esperando confirmación del técnico.");
       setShowPaymentModal(false);
       fetchDetails();
     } catch (error) {
-      console.error('Error paying:', error);
-      toast.error(error.response?.data?.mensaje || 'No se pudo registrar el pago');
+      console.error("Error paying:", error);
+      toast.error(error.response?.data?.mensaje || "No se pudo registrar el pago");
     } finally {
       setActionLoading(false);
     }
@@ -119,11 +128,11 @@ const AppointmentDetails = () => {
     setActionLoading(true);
     try {
       await techService.confirmPayment(id);
-      toast.success('Pago confirmado');
+      toast.success("Pago confirmado");
       fetchDetails();
     } catch (error) {
-      console.error('Error confirming payment:', error);
-      toast.error(error.response?.data?.mensaje || 'No se pudo confirmar el pago');
+      console.error("Error confirming payment:", error);
+      toast.error(error.response?.data?.mensaje || "No se pudo confirmar el pago");
     } finally {
       setActionLoading(false);
     }
@@ -133,24 +142,24 @@ const AppointmentDetails = () => {
     setActionLoading(true);
     try {
       await clientService.confirmCompletion(id);
-      toast.success('Trabajo confirmado. ¡Gracias por tu confianza!');
+      toast.success("Trabajo confirmado. ¡Gracias por tu confianza!");
       fetchDetails();
     } catch (error) {
-      console.error('Error confirming completion:', error);
-      toast.error(error.response?.data?.mensaje || 'No se pudo confirmar la finalización');
+      console.error("Error confirming completion:", error);
+      toast.error(error.response?.data?.mensaje || "No se pudo confirmar la finalización");
     } finally {
       setActionLoading(false);
     }
   };
 
   const handleCancel = async () => {
-    if (!window.confirm('¿Estás seguro de que deseas cancelar esta cita?')) return;
+    if (!window.confirm("¿Estás seguro de que deseas cancelar esta cita?")) return;
     setActionLoading(true);
     try {
       await clientService.cancelAppointment(id);
-      navigate('/appointments');
+      navigate("/appointments");
     } catch (error) {
-      console.error('Error cancelling:', error);
+      console.error("Error cancelling:", error);
     } finally {
       setActionLoading(false);
     }
@@ -158,21 +167,18 @@ const AppointmentDetails = () => {
 
   if (loading) {
     return (
-      <TechLoader 
-        title="Consultando Orden de Servicio" 
-        subtitle="Obteniendo telemetría y estado de la cita..." 
+      <TechLoader
+        title="Consultando Orden de Servicio"
+        subtitle="Obteniendo telemetría y estado de la cita..."
       />
     );
   }
 
   if (!appt) {
     return (
-      <div 
-        className="p-12 text-center rounded-2xl border max-w-md mx-auto mt-12"
-        style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
-      >
-        <p className="font-bold text-lg mb-4" style={{ color: 'var(--text-primary)' }}>Cita no encontrada.</p>
-        <Link to="/appointments" className="btn-primary inline-flex px-6 py-2.5 rounded-xl text-sm font-bold">
+      <div className="p-12 text-center rounded-[32px] border border-white/10 bg-[#0a101b] max-w-md mx-auto mt-12 space-y-4">
+        <p className="font-bold text-lg text-white">Cita no encontrada.</p>
+        <Link to="/appointments" className="jyp-btn-primary inline-flex px-6 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider">
           Volver a mis citas
         </Link>
       </div>
@@ -180,11 +186,9 @@ const AppointmentDetails = () => {
   }
 
   const userRole = currentUser?.role;
-  const isTech = userRole === 'tech' || userRole === 'store';
-  const isClient = userRole === 'client';
+  const isTech = userRole === "tech" || userRole === "store";
+  const isClient = userRole === "client";
 
-  /* El backend devuelve los datos del otro usuario "aplanados" (client_names, tech_names…),
-     no como objetos anidados, por eso se reconstruyen aquí. */
   const otherUser = isClient
     ? {
         id: appt.technician_id,
@@ -204,392 +208,427 @@ const AppointmentDetails = () => {
       };
 
   const otherUserName =
-    [otherUser.names, otherUser.surnames].filter(Boolean).join(' ').trim() ||
+    [otherUser.names, otherUser.surnames].filter(Boolean).join(" ").trim() ||
     otherUser.username ||
-    (isClient ? 'Técnico Especialista' : 'Cliente');
+    (isClient ? "Técnico Especialista" : "Cliente");
 
   const serviceAddress = appt.service_address || appt.address || null;
 
-  const getStatusBadge = (status) => {
-    const config = {
-      pending: { label: 'Pendiente', bg: 'rgba(234, 179, 8, 0.1)', color: '#EAB308', border: 'rgba(234, 179, 8, 0.25)' },
-      confirmed: { label: 'Confirmada', bg: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)', border: 'rgba(45, 107, 255, 0.25)' },
-      on_the_way: { label: 'En camino 🚚', bg: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6', border: 'rgba(59, 130, 246, 0.25)' },
-      arrived: { label: 'En el sitio 📍', bg: 'rgba(6, 182, 212, 0.1)', color: '#06B6D4', border: 'rgba(6, 182, 212, 0.25)' },
-      in_progress: { label: 'En progreso 🛠', bg: 'rgba(0, 229, 160, 0.1)', color: 'var(--secondary)', border: 'rgba(0, 229, 160, 0.25)' },
-      completed: { label: 'Terminado 🎉', bg: 'rgba(34, 197, 94, 0.1)', color: '#22C55E', border: 'rgba(34, 197, 94, 0.25)' },
-      cancelled: { label: 'Cancelado', bg: 'rgba(239, 68, 68, 0.1)', color: '#EF4444', border: 'rgba(239, 68, 68, 0.25)' }
-    };
-    const c = config[status] || config.pending;
-    return (
-      <span 
-        className="px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider"
-        style={{ backgroundColor: c.bg, color: c.color, border: `1px solid ${c.border}` }}
-      >
-        {c.label}
-      </span>
-    );
-  };
+  // Determine current step index in timeline
+  const stepKeys = ["pending", "confirmed", "on_the_way", "arrived", "in_progress", "completed"];
+  let activeStepIndex = stepKeys.indexOf(appt.status);
+  if (activeStepIndex === -1 && appt.status === "paid") activeStepIndex = 5;
 
   return (
-    <div className="w-full space-y-8 pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <div className="flex justify-between items-center p-6 sm:p-7 rounded-[32px] bg-gradient-to-r from-blue-900/20 via-slate-900/30 to-purple-900/20 border border-white/5 backdrop-blur-xl">
-        <Link 
-          to="/appointments" 
-          className="inline-flex items-center gap-2 font-semibold text-sm transition-colors hover:text-white px-4 py-2 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          <ChevronLeft size={18} />
-          <span>Volver a mis citas</span>
-        </Link>
-        <div>
-          {getStatusBadge(appt.status)}
+    <div className="w-full space-y-8 pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
+
+      {/* Top Cockpit Header */}
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 p-6 sm:p-7 rounded-[32px] bg-gradient-to-r from-[#0c1424] via-[#090f1a] to-[#0a1829] border border-white/10 backdrop-blur-xl shadow-2xl">
+        <div className="flex items-center gap-4">
+          <Link
+            to="/appointments"
+            className="inline-flex items-center gap-2 font-bold text-xs uppercase tracking-wider text-slate-300 hover:text-white px-4 py-2.5 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all"
+          >
+            <ChevronLeft size={16} />
+            <span>Volver</span>
+          </Link>
+          <div className="h-6 w-px bg-white/10" />
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-cyan-400 font-black text-sm">#ORD-{appt.id}</span>
+              {isConnected && (
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[10px] font-black border border-emerald-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  EN VIVO
+                </span>
+              )}
+            </div>
+            <h2 className="text-white font-black text-lg tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              {appt.serviceType || appt.service_type || "Mantenimiento Hardware"}
+            </h2>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <span className="px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider border bg-cyan-500/10 text-cyan-300 border-cyan-500/30">
+            {appt.status.replace("_", " ")}
+          </span>
         </div>
       </div>
 
+      {/* Timeline Stepper Visualizer */}
+      {appt.status !== "cancelled" && (
+        <div className="p-6 sm:p-8 rounded-[32px] bg-[#0a101b]/90 border border-white/10 shadow-xl overflow-x-auto no-scrollbar">
+          <div className="min-w-[620px] flex items-center justify-between relative">
+            {/* Connecting Track */}
+            <div className="absolute top-1/2 left-6 right-6 -translate-y-1/2 h-1 bg-white/10 -z-0" />
+            <div
+              className="absolute top-1/2 left-6 -translate-y-1/2 h-1 bg-gradient-to-r from-blue-500 via-cyan-400 to-emerald-400 transition-all duration-500 -z-0"
+              style={{
+                width: `${Math.max(0, Math.min(100, (activeStepIndex / (TIMELINE_STEPS.length - 1)) * 100))}%`,
+              }}
+            />
+
+            {TIMELINE_STEPS.map((st, idx) => {
+              const isPast = idx < activeStepIndex;
+              const isCurrent = idx === activeStepIndex;
+              const IconComp = st.icon;
+
+              return (
+                <div key={st.key} className="flex flex-col items-center gap-2 relative z-10">
+                  <div
+                    className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                      isCurrent
+                        ? "bg-gradient-to-br from-blue-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/40 ring-4 ring-cyan-500/20 scale-110"
+                        : isPast
+                        ? "bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/20"
+                        : "bg-[#0c1424] text-slate-500 border border-white/10"
+                    }`}
+                  >
+                    <IconComp size={20} />
+                  </div>
+                  <span
+                    className={`text-[11px] font-black uppercase tracking-wider whitespace-nowrap ${
+                      isCurrent ? "text-cyan-400" : isPast ? "text-emerald-400" : "text-slate-400"
+                    }`}
+                  >
+                    {st.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Main Grid: Details & Pricing Left, Interlocutor & Actions Right */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Info */}
+        {/* Left Column (2 Cols) */}
         <div className="lg:col-span-2 space-y-8">
-          <section 
-            className="p-8 sm:p-9 rounded-[32px] border shadow-xl"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
-          >
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2.5" style={{ color: 'var(--text-primary)' }}>
-              <FileText size={22} style={{ color: 'var(--primary)' }} />
-              <span>Detalles del Servicio</span>
-            </h2>
-            <div 
-              className="p-6 rounded-2xl border space-y-5"
-              style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
-            >
-              <p className="text-sm italic leading-relaxed" style={{ color: 'var(--text-secondary)' }}>
-                "{appt.description}"
+          {/* Service Specs Card */}
+          <div className="p-8 sm:p-9 rounded-[32px] border border-white/10 bg-[#0a101b]/90 shadow-xl space-y-6">
+            <div className="flex items-center justify-between">
+              <h3
+                className="text-xl font-black text-white flex items-center gap-3"
+                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              >
+                <FileText size={22} className="text-cyan-400" />
+                <span>Especificaciones del Diagnóstico</span>
+              </h3>
+              <span className="text-[10px] font-mono px-3 py-1 rounded-full bg-white/5 text-slate-400 border border-white/5">
+                Certificación ISO / JyP
+              </span>
+            </div>
+
+            <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5 space-y-4">
+              <p className="text-sm text-slate-300 leading-relaxed italic">
+                "{appt.description || "Sin descripción proporcionada."}"
               </p>
-              <div className="pt-4 border-t flex flex-wrap gap-8" style={{ borderColor: 'var(--border)' }}>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>
-                    Fecha Programada
-                  </p>
-                  <p className="font-bold text-sm flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
-                    <Calendar size={15} style={{ color: 'var(--primary)' }} />
-                    {formatDateLong(appt.scheduled_date)}
-                  </p>
+
+              <div className="pt-4 border-t border-white/5 grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                    Fecha de Atención
+                  </span>
+                  <div className="flex items-center gap-2 text-white font-bold text-sm">
+                    <Calendar size={15} className="text-blue-400" />
+                    <span>{formatDateLong(appt.scheduled_date)}</span>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>
-                    Hora
-                  </p>
-                  <p className="font-bold text-sm flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
-                    <Clock size={15} style={{ color: 'var(--primary)' }} />
-                    {appt.scheduled_time?.slice(0, 5)} hrs
-                  </p>
+
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                    Horario Estimado
+                  </span>
+                  <div className="flex items-center gap-2 text-white font-bold text-sm">
+                    <Clock size={15} className="text-cyan-400" />
+                    <span>{appt.scheduled_time?.slice(0, 5)} hrs</span>
+                  </div>
                 </div>
-                <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>
-                    Ubicación
-                  </p>
-                  <p className="font-bold text-sm flex items-center gap-1.5" style={{ color: 'var(--text-primary)' }}>
-                    <MapPin size={15} style={{ color: 'var(--primary)' }} />
-                    {serviceAddress || 'Servicio en Taller / Local'}
-                  </p>
+
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-1">
+                    Modalidad & Ubicación
+                  </span>
+                  <div className="flex items-center gap-2 text-white font-bold text-sm truncate">
+                    <MapPin size={15} className="text-emerald-400 shrink-0" />
+                    <span className="truncate">{serviceAddress || "En Taller Autorizado"}</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </section>
+          </div>
 
-          {/* Action History / Pricing */}
-          <section 
-            className="p-8 sm:p-9 rounded-[32px] border shadow-xl"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
-          >
-            <h2 className="text-xl font-bold mb-6 flex items-center gap-2.5" style={{ color: 'var(--text-primary)' }}>
-              <DollarSign size={22} style={{ color: 'var(--primary)' }} />
-              <span>Presupuesto y Pago</span>
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div 
-                className="p-6 rounded-2xl border"
-                style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
-              >
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-dim)' }}>
-                  Monto del Servicio
-                </p>
-                {isTech && appt.status === 'pending' ? (
-                  <div className="flex gap-2.5">
-                    <input 
-                      type="number" 
-                      className="w-full py-2.5 px-4 text-base font-bold rounded-2xl border outline-none"
-                      style={{ 
-                        backgroundColor: 'var(--bg-card)', 
-                        borderColor: 'var(--border)', 
-                        color: 'var(--text-primary)' 
-                      }}
-                      placeholder="0.00"
-                      value={priceInput}
-                      onChange={(e) => setPriceInput(e.target.value)}
-                    />
-                    <button 
+          {/* Pricing & Telemetry HUD */}
+          <div className="p-8 sm:p-9 rounded-[32px] border border-white/10 bg-[#0a101b]/90 shadow-xl space-y-6">
+            <h3
+              className="text-xl font-black text-white flex items-center gap-3"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              <DollarSign size={22} className="text-cyan-400" />
+              <span>Presupuesto y Certificación de Pago</span>
+            </h3>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {/* Presupuesto input or display */}
+              <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2">
+                  Costo Total del Servicio
+                </span>
+                {isTech && appt.status === "pending" ? (
+                  <div className="flex gap-2.5 mt-2">
+                    <div className="relative flex-1">
+                      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-sm">S/.</span>
+                      <input
+                        type="number"
+                        className="w-full bg-[#0c1424] border border-white/10 rounded-2xl pl-10 pr-3 py-2.5 text-white font-mono font-bold text-base focus:outline-none focus:border-cyan-400"
+                        placeholder="0.00"
+                        value={priceInput}
+                        onChange={(e) => setPriceInput(e.target.value)}
+                      />
+                    </div>
+                    <button
                       onClick={handleSetPrice}
                       disabled={actionLoading || !priceInput}
-                      className="btn-primary px-5 py-2.5 text-xs font-bold rounded-2xl disabled:opacity-50"
+                      className="jyp-btn-primary px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-2xl disabled:opacity-50"
                     >
-                      Guardar
+                      Enviar
                     </button>
                   </div>
                 ) : (
-                  <p className="text-3xl font-extrabold" style={{ color: 'var(--text-primary)' }}>
-                    S/. {Number(appt.price || 0).toFixed(2)}
-                  </p>
+                  <div className="flex items-baseline gap-2 mt-1">
+                    <span className="text-3xl font-black text-white font-mono">
+                      S/. {Number(appt.price || 0).toFixed(2)}
+                    </span>
+                    <span className="text-xs text-slate-400 font-mono">PEN</span>
+                  </div>
                 )}
               </div>
 
-              <div 
-                className="p-6 rounded-2xl border"
-                style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
-              >
-                <p className="text-[10px] font-bold uppercase tracking-wider mb-2.5" style={{ color: 'var(--text-dim)' }}>
-                  Estado del Pago
-                </p>
-                <div className="flex items-center gap-2.5 mt-2">
-                  <div 
-                    className="w-3 h-3 rounded-full shrink-0"
-                    style={{
-                      backgroundColor: appt.payment_status === 'paid' ? '#22C55E' : appt.payment_status === 'waiting_confirmation' ? '#06B6D4' : '#EAB308'
-                    }}
+              {/* Estado del Pago */}
+              <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block mb-2">
+                  Estado Financiero
+                </span>
+                <div className="flex items-center gap-3 mt-2">
+                  <span
+                    className={`w-3.5 h-3.5 rounded-full ${
+                      appt.payment_status === "paid"
+                        ? "bg-emerald-400 shadow-[0_0_12px_#10b981]"
+                        : appt.payment_status === "waiting_confirmation"
+                        ? "bg-cyan-400 shadow-[0_0_12px_#06b6d4] animate-pulse"
+                        : "bg-amber-400 shadow-[0_0_12px_#f59e0b]"
+                    }`}
                   />
-                  <p 
-                    className="font-bold text-sm uppercase tracking-wider"
+                  <span
+                    className="font-black text-sm uppercase tracking-wider"
                     style={{
-                      color: appt.payment_status === 'paid' ? '#22C55E' : appt.payment_status === 'waiting_confirmation' ? '#06B6D4' : '#EAB308'
+                      color:
+                        appt.payment_status === "paid"
+                          ? "#34d399"
+                          : appt.payment_status === "waiting_confirmation"
+                          ? "#38bdf8"
+                          : "#fbbf24",
                     }}
                   >
-                    {appt.payment_status === 'paid' ? 'PAGADO' : appt.payment_status === 'waiting_confirmation' ? 'POR CONFIRMAR' : 'PENDIENTE'}
-                  </p>
+                    {appt.payment_status === "paid"
+                      ? "PAGADO Y AUDITADO"
+                      : appt.payment_status === "waiting_confirmation"
+                      ? "VERIFICACIÓN PENDIENTE"
+                      : "PAGO PENDIENTE"}
+                  </span>
                 </div>
               </div>
             </div>
-          </section>
+          </div>
         </div>
 
-        {/* Sidebar */}
+        {/* Right Column: Interlocutor card & Operational Actions */}
         <div className="space-y-8">
-          <div 
-            className="p-8 text-center rounded-[32px] border shadow-xl relative overflow-hidden"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
-          >
-            <div 
-              className="flex flex-col items-center cursor-pointer p-2 rounded-2xl transition-all"
+          {/* User profile card */}
+          <div className="p-8 text-center rounded-[32px] border border-white/10 bg-[#0a101b]/90 shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-b from-blue-600/15 to-transparent pointer-events-none" />
+
+            <div
+              className="w-20 h-20 rounded-3xl flex items-center justify-center font-black text-2xl text-white mb-4 mx-auto shadow-xl relative z-10 cursor-pointer"
+              style={{ background: "linear-gradient(135deg, #2563EB 0%, #06B6D4 100%)" }}
               onClick={() => {
-                if (!isTech && appt.technician_id) {
-                  navigate(`/technician/${appt.technician_id}`);
-                }
+                if (!isTech && appt.technician_id) navigate(`/technician/${appt.technician_id}`);
               }}
             >
-              <div 
-                className="w-20 h-20 rounded-3xl flex items-center justify-center font-bold text-2xl text-white mb-4 shadow-lg"
-                style={{ background: 'linear-gradient(135deg, var(--primary) 0%, #00C6FF 100%)' }}
-              >
-                {otherUser?.names?.[0]?.toUpperCase() || otherUserName?.[0]?.toUpperCase() || 'U'}
-              </div>
-              <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--primary)' }}>
-                {isTech ? 'Cliente' : 'Técnico Especialista'}
-              </p>
-              <h3 className="text-lg font-bold mb-2" style={{ color: 'var(--text-primary)' }}>
-                {otherUserName}
-              </h3>
+              {otherUser?.names?.[0]?.toUpperCase() || otherUserName?.[0]?.toUpperCase() || "U"}
             </div>
-            
-            <div className="space-y-2.5 text-left pt-4 border-t text-xs" style={{ borderColor: 'var(--border)', color: 'var(--text-secondary)' }}>
+
+            <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 block mb-1">
+              {isTech ? "Cliente de la Orden" : "Especialista Certificado"}
+            </span>
+            <h3
+              className="text-lg font-black text-white mb-3"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              {otherUserName}
+            </h3>
+
+            <div className="space-y-2 text-left pt-4 border-t border-white/5 text-xs text-slate-400">
               {otherUser?.phone && (
                 <div className="flex items-center gap-2.5">
-                  <Phone size={15} style={{ color: 'var(--primary)' }} />
+                  <Phone size={14} className="text-cyan-400 shrink-0" />
                   <span>{otherUser.phone}</span>
                 </div>
               )}
               {otherUser?.email && (
                 <div className="flex items-center gap-2.5">
-                  <Mail size={15} style={{ color: 'var(--primary)' }} />
+                  <Mail size={14} className="text-blue-400 shrink-0" />
                   <span className="truncate">{otherUser.email}</span>
                 </div>
               )}
             </div>
 
-            <div className="mt-6 pt-5 border-t" style={{ borderColor: 'var(--border)' }}>
-              <Link 
-                to={`/chat?user=${otherUser?.id}`} 
-                className="w-full btn-primary py-3 flex items-center justify-center gap-2 text-xs font-bold rounded-2xl shadow-lg hover:scale-[1.02] transition-transform"
+            <div className="mt-6 pt-5 border-t border-white/5">
+              <Link
+                to={`/chat?user=${otherUser?.id}`}
+                className="w-full jyp-btn-primary py-3 flex items-center justify-center gap-2 text-xs font-black uppercase tracking-wider rounded-2xl shadow-lg shadow-blue-600/25"
               >
                 <MessageSquare size={16} />
-                <span>Ir al Chat</span>
+                <span>Iniciar Chat Seguro</span>
               </Link>
             </div>
           </div>
 
-          <div 
-            className="p-8 rounded-[32px] border space-y-4 shadow-xl"
-            style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
-          >
-            <h3 className="text-[11px] font-black uppercase tracking-wider mb-2 text-slate-400">
-              Control de Estado
+          {/* Action Cockpit Controller */}
+          <div className="p-8 rounded-[32px] border border-white/10 bg-[#0a101b]/90 shadow-xl space-y-4">
+            <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-2">
+              <Activity size={14} className="text-cyan-400" />
+              <span>Consola Operativa</span>
             </h3>
 
             {isTech ? (
               <div className="flex flex-col gap-3">
-                {appt.status === 'pending' && (
-                  <button 
-                    onClick={() => handleUpdateStatus('confirmed')}
+                {appt.status === "pending" && (
+                  <button
+                    onClick={() => handleUpdateStatus("confirmed")}
                     disabled={actionLoading || !appt.price}
-                    className="btn-primary w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider shadow-lg disabled:opacity-40"
+                    className="jyp-btn-primary w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg disabled:opacity-40"
                   >
                     Confirmar Servicio
                   </button>
                 )}
-                {appt.status === 'confirmed' && (
-                  <button 
-                    onClick={() => handleUpdateStatus('on_the_way')}
+                {appt.status === "confirmed" && (
+                  <button
+                    onClick={() => handleUpdateStatus("on_the_way")}
                     disabled={actionLoading}
-                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg transition-all hover:opacity-90"
-                    style={{ backgroundColor: '#2563EB' }}
+                    className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg bg-blue-600 hover:bg-blue-500 transition-all flex items-center justify-center gap-2"
                   >
-                    Marcar En Camino
+                    <Truck size={16} /> Marcar En Camino
                   </button>
                 )}
-                {appt.status === 'on_the_way' && (
-                  <button 
-                    onClick={() => handleUpdateStatus('arrived')}
+                {appt.status === "on_the_way" && (
+                  <button
+                    onClick={() => handleUpdateStatus("arrived")}
                     disabled={actionLoading}
-                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg transition-all hover:opacity-90"
-                    style={{ backgroundColor: '#06B6D4' }}
+                    className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg bg-cyan-600 hover:bg-cyan-500 transition-all flex items-center justify-center gap-2"
                   >
-                    Confirmar Llegada
+                    <MapPin size={16} /> Confirmar Llegada en Sitio
                   </button>
                 )}
-                {appt.status === 'arrived' && (
-                  <button 
-                    onClick={() => handleUpdateStatus('in_progress')}
+                {appt.status === "arrived" && (
+                  <button
+                    onClick={() => handleUpdateStatus("in_progress")}
                     disabled={actionLoading}
-                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-black shadow-lg transition-all hover:opacity-90"
-                    style={{ backgroundColor: 'var(--secondary)' }}
+                    className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-black shadow-lg bg-emerald-400 hover:bg-emerald-300 transition-all flex items-center justify-center gap-2"
                   >
-                    Iniciar Trabajo
+                    <Wrench size={16} /> Iniciar Reparación
                   </button>
                 )}
-                {appt.status === 'in_progress' && (
-                  <button 
-                    onClick={() => handleUpdateStatus('completed')}
+                {appt.status === "in_progress" && (
+                  <button
+                    onClick={() => handleUpdateStatus("completed")}
                     disabled={actionLoading}
-                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg transition-all hover:opacity-90"
-                    style={{ backgroundColor: '#16A34A' }}
+                    className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg bg-emerald-600 hover:bg-emerald-500 transition-all flex items-center justify-center gap-2"
                   >
-                    Finalizar Trabajo
+                    <CheckCircle2 size={16} /> Finalizar Intervención
                   </button>
                 )}
-                {appt.payment_status === 'waiting_confirmation' && (
-                  <button 
+                {appt.payment_status === "waiting_confirmation" && (
+                  <button
                     onClick={handleConfirmPayment}
                     disabled={actionLoading}
-                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg transition-all hover:opacity-90"
-                    style={{ backgroundColor: '#16A34A' }}
+                    className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg bg-emerald-600 hover:bg-emerald-500 transition-all flex items-center justify-center gap-2"
                   >
-                    Confirmar Pago Recibido
+                    <Check size={16} /> Confirmar Pago Recibido
                   </button>
                 )}
-                {appt.status !== 'completed' && appt.status !== 'cancelled' && (
-                  <button 
-                    onClick={() => handleUpdateStatus('cancelled')}
+                {appt.status !== "completed" && appt.status !== "cancelled" && (
+                  <button
+                    onClick={() => handleUpdateStatus("cancelled")}
                     disabled={actionLoading}
-                    className="w-full py-3 rounded-2xl font-bold text-xs transition-colors hover:bg-red-500/10 text-red-500 border border-transparent hover:border-red-500/20"
+                    className="w-full py-3 rounded-2xl font-bold text-xs text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all"
                   >
-                    Cancelar Cita
+                    Cancelar Orden
                   </button>
                 )}
               </div>
             ) : (
               <div className="flex flex-col gap-3">
                 {!appt.price && (
-                  <div 
-                    className="p-4 rounded-2xl border flex items-start gap-3 text-xs"
-                    style={{ 
-                      backgroundColor: 'rgba(45, 107, 255, 0.05)', 
-                      borderColor: 'rgba(45, 107, 255, 0.2)',
-                      color: 'var(--text-secondary)'
-                    }}
-                  >
-                    <AlertCircle size={18} className="shrink-0 mt-0.5" style={{ color: 'var(--primary)' }} />
-                    <span>Esperando a que el técnico proporcione el presupuesto.</span>
+                  <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-slate-300 flex items-start gap-3">
+                    <AlertCircle size={18} className="text-cyan-400 shrink-0 mt-0.5" />
+                    <span>El técnico está preparando la cotización de los repuestos y mano de obra.</span>
                   </div>
                 )}
-                {appt.price && appt.payment_status === 'pending' && appt.status !== 'cancelled' && (
+                {appt.price && appt.payment_status === "pending" && appt.status !== "cancelled" && (
                   <button
                     onClick={() => setShowPaymentModal(true)}
-                    className="w-full py-4 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-xl shadow-emerald-600/25 flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform"
-                    style={{ backgroundColor: '#16A34A' }}
+                    className="w-full py-4 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-xl shadow-emerald-600/30 bg-emerald-600 hover:bg-emerald-500 flex items-center justify-center gap-2 transition-transform hover:scale-[1.02]"
                   >
                     <CreditCard size={18} />
                     <span>Pagar S/. {Number(appt.price).toFixed(2)}</span>
                   </button>
                 )}
-                {appt.status === 'confirmed' && appt.service_type === 'local' && (
-                  <button 
-                    onClick={() => handleUpdateStatus('on_the_way')}
-                    disabled={actionLoading}
-                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg"
-                    style={{ backgroundColor: '#2563EB' }}
-                  >
-                    Estoy En Camino al Local
-                  </button>
-                )}
-                {appt.status === 'on_the_way' && appt.service_type === 'local' && (
+                {appt.status === "confirmed" && appt.service_type === "local" && (
                   <button
-                    onClick={() => handleUpdateStatus('arrived')}
+                    onClick={() => handleUpdateStatus("on_the_way")}
                     disabled={actionLoading}
-                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg"
-                    style={{ backgroundColor: '#06B6D4' }}
+                    className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg bg-blue-600 hover:bg-blue-500"
                   >
-                    He Llegado al Local
+                    Estoy en Camino al Taller
                   </button>
                 )}
-                {appt.status === 'completed' && !appt.client_confirmed_completion && (
+                {appt.status === "on_the_way" && appt.service_type === "local" && (
+                  <button
+                    onClick={() => handleUpdateStatus("arrived")}
+                    disabled={actionLoading}
+                    className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg bg-cyan-600 hover:bg-cyan-500"
+                  >
+                    He Llegado al Taller
+                  </button>
+                )}
+                {appt.status === "completed" && !appt.client_confirmed_completion && (
                   <button
                     onClick={handleConfirmCompletion}
                     disabled={actionLoading}
-                    className="w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider text-white shadow-lg transition-all hover:opacity-90"
-                    style={{ backgroundColor: '#16A34A' }}
+                    className="w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-wider text-white shadow-lg bg-emerald-600 hover:bg-emerald-500 transition-all"
                   >
-                    Confirmar Trabajo Terminado
+                    Confirmar Recepción Conforme
                   </button>
                 )}
-                {appt.status === 'completed' && appt.client_confirmed_completion && (
-                  <div
-                    className="p-4 rounded-2xl border flex items-start gap-3 text-xs"
-                    style={{
-                      backgroundColor: 'rgba(34, 197, 94, 0.08)',
-                      borderColor: 'rgba(34, 197, 94, 0.25)',
-                      color: 'var(--text-secondary)'
-                    }}
-                  >
-                    <CheckCircle2 size={18} className="shrink-0 mt-0.5" style={{ color: '#22C55E' }} />
-                    <span>Trabajo finalizado y confirmado por el cliente.</span>
+                {appt.status === "completed" && appt.client_confirmed_completion && (
+                  <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 flex items-start gap-3 text-xs text-slate-300">
+                    <CheckCircle2 size={18} className="text-emerald-400 shrink-0 mt-0.5" />
+                    <span>Servicio cerrado y certificado por ambas partes.</span>
                   </div>
                 )}
-                {appt.payment_status === 'waiting_confirmation' && (
-                  <div
-                    className="p-4 rounded-2xl border flex items-start gap-3 text-xs"
-                    style={{
-                      backgroundColor: 'rgba(6, 182, 212, 0.08)',
-                      borderColor: 'rgba(6, 182, 212, 0.25)',
-                      color: 'var(--text-secondary)'
-                    }}
-                  >
-                    <ShieldCheck size={18} className="shrink-0 mt-0.5" style={{ color: '#06B6D4' }} />
-                    <span>Tu pago fue registrado y está esperando la confirmación del técnico.</span>
+                {appt.payment_status === "waiting_confirmation" && (
+                  <div className="p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/25 flex items-start gap-3 text-xs text-slate-300">
+                    <ShieldCheck size={18} className="text-cyan-400 shrink-0 mt-0.5" />
+                    <span>Tu pago está en proceso de validación por el especialista.</span>
                   </div>
                 )}
-                {appt.status !== 'completed' && appt.status !== 'cancelled' && (
+                {appt.status !== "completed" && appt.status !== "cancelled" && (
                   <button
                     onClick={handleCancel}
                     disabled={actionLoading}
-                    className="w-full py-3 rounded-2xl font-bold text-xs text-red-500 transition-colors hover:bg-red-500/10 border border-transparent hover:border-red-500/20"
+                    className="w-full py-3 rounded-2xl font-bold text-xs text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all"
                   >
                     Cancelar Cita
                   </button>
@@ -600,107 +639,109 @@ const AppointmentDetails = () => {
         </div>
       </div>
 
-      {/* Payment Modal */}
+      {/* Cyber-Tech Payment Modal */}
       <AnimatePresence>
         {showPaymentModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm">
-            <motion.div 
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md">
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="max-w-md w-full p-8 sm:p-10 rounded-[36px] border shadow-2xl space-y-6"
-              style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border)' }}
+              className="max-w-md w-full p-8 rounded-[36px] border border-white/10 bg-[#0a101b] shadow-2xl space-y-6"
             >
               <div className="text-center">
-                <div 
-                  className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/10"
-                  style={{ backgroundColor: 'rgba(34, 197, 94, 0.15)', color: '#22C55E' }}
-                >
+                <div className="w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-4 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-lg shadow-emerald-500/10">
                   <CreditCard size={32} />
                 </div>
-                <h3 className="text-2xl font-black" style={{ color: 'var(--text-primary)' }}>Método de Pago</h3>
-                <p className="text-xs mt-1.5" style={{ color: 'var(--text-secondary)' }}>
-                  Selecciona cómo realizarás el pago de S/. {Number(appt.price).toFixed(2)}
+                <h3
+                  className="text-2xl font-black text-white tracking-tight"
+                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                >
+                  Confirmación de Pago
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Monto a liquidar: <span className="font-mono font-bold text-cyan-400">S/. {Number(appt.price).toFixed(2)}</span>
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {['yape', 'plin', 'transfer', 'cash'].map(method => {
+              {/* Payment methods selector */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {["yape", "plin", "transfer", "cash"].map((method) => {
                   const isSel = paymentMethod === method;
                   return (
                     <button
                       key={method}
                       onClick={() => setPaymentMethod(method)}
-                      className="p-3.5 rounded-2xl border text-xs font-bold uppercase tracking-wider transition-all hover:scale-[1.02]"
-                      style={{
-                        backgroundColor: isSel ? 'var(--primary)' : 'var(--bg)',
-                        borderColor: isSel ? 'var(--primary)' : 'var(--border)',
-                        color: isSel ? '#FFFFFF' : 'var(--text-primary)',
-                        boxShadow: isSel ? '0 4px 15px rgba(37,99,235,0.25)' : 'none'
-                      }}
+                      className={`p-3.5 rounded-2xl border text-xs font-black uppercase tracking-wider transition-all ${
+                        isSel
+                          ? "bg-gradient-to-r from-blue-600 to-cyan-600 border-cyan-400 text-white shadow-lg shadow-blue-600/30"
+                          : "bg-white/[0.03] border-white/10 text-slate-400 hover:text-white"
+                      }`}
                     >
-                      {method === 'transfer' ? 'Transferencia' : method === 'cash' ? 'Efectivo' : method}
+                      {method === "transfer" ? "Transferencia" : method === "cash" ? "Efectivo" : method}
                     </button>
                   );
                 })}
               </div>
 
+              {/* Culqi Gateway Trigger */}
               <button
                 onClick={() => {
                   setShowPaymentModal(false);
                   setShowCulqiModal(true);
                 }}
-                className="w-full py-3.5 rounded-2xl border border-blue-500/30 bg-blue-600/10 text-blue-300 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all hover:bg-blue-600/20"
+                className="w-full py-3.5 rounded-2xl border border-cyan-500/30 bg-cyan-600/10 text-cyan-300 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 hover:bg-cyan-600/20 transition-all"
               >
                 <CreditCard size={15} />
-                Pagar con tarjeta (Culqi)
+                <span>Pagar con Tarjeta (Pasarela Culqi)</span>
               </button>
 
-              <div 
-                className="p-6 rounded-2xl border text-center"
-                style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
-              >
-                {paymentMethod === 'yape' || paymentMethod === 'plin' ? (
-                  <div className="space-y-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>
-                      Número receptor
-                    </p>
-                    <p className="text-2xl font-black" style={{ color: 'var(--primary)' }}>987 654 321</p>
-                    <p className="text-xs font-semibold" style={{ color: 'var(--text-secondary)' }}>JyP Servicios Técnicos</p>
+              {/* Account Data Display */}
+              <div className="p-5 rounded-2xl bg-[#070c14] border border-white/5 text-center">
+                {paymentMethod === "yape" || paymentMethod === "plin" ? (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                      Número Receptor Certificado
+                    </span>
+                    <p className="text-2xl font-black text-cyan-400 font-mono tracking-wider">987 654 321</p>
+                    <p className="text-xs font-semibold text-slate-300">JyP Servicios Técnicos SAC</p>
                   </div>
-                ) : paymentMethod === 'transfer' ? (
+                ) : paymentMethod === "transfer" ? (
                   <div className="space-y-2 text-xs text-left">
-                    <div className="flex justify-between"><span style={{ color: 'var(--text-dim)' }}>Banco:</span> <span className="font-bold" style={{ color: 'var(--text-primary)' }}>BCP</span></div>
-                    <div className="flex justify-between"><span style={{ color: 'var(--text-dim)' }}>Cuenta:</span> <span className="font-bold" style={{ color: 'var(--text-primary)' }}>191-98765432-0-12</span></div>
-                    <div className="flex justify-between"><span style={{ color: 'var(--text-dim)' }}>CCI:</span> <span className="font-bold" style={{ color: 'var(--text-primary)' }}>00219119876543201254</span></div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Banco:</span>
+                      <span className="font-bold text-white">BCP Soles</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Cuenta:</span>
+                      <span className="font-mono font-bold text-white">191-98765432-0-12</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">CCI:</span>
+                      <span className="font-mono font-bold text-white">00219119876543201254</span>
+                    </div>
                   </div>
                 ) : (
                   <div>
-                    <p className="font-bold text-sm" style={{ color: 'var(--text-primary)' }}>Pago en Efectivo</p>
-                    <p className="text-xs mt-1" style={{ color: 'var(--text-secondary)' }}>Paga directamente al técnico al finalizar la visita.</p>
+                    <p className="font-bold text-sm text-white">Pago Contra Entrega</p>
+                    <p className="text-xs text-slate-400 mt-1">Paga directamente en efectivo al técnico en el sitio.</p>
                   </div>
                 )}
               </div>
 
               <div className="flex gap-3 pt-2">
-                <button 
+                <button
                   onClick={() => setShowPaymentModal(false)}
-                  className="flex-1 py-3.5 font-bold text-xs uppercase rounded-2xl border transition-colors hover:bg-white/5"
-                  style={{ 
-                    backgroundColor: 'var(--bg)', 
-                    borderColor: 'var(--border)', 
-                    color: 'var(--text-secondary)' 
-                  }}
+                  className="flex-1 py-3.5 font-bold text-xs uppercase tracking-wider rounded-2xl border border-white/10 text-slate-400 hover:text-white hover:bg-white/5 transition-all"
                 >
                   Cancelar
                 </button>
-                <button 
+                <button
                   onClick={handlePay}
                   disabled={actionLoading}
-                  className="flex-1 py-3.5 font-bold text-xs uppercase rounded-2xl text-white shadow-xl shadow-emerald-600/25 disabled:opacity-50 hover:scale-[1.02] transition-transform"
-                  style={{ backgroundColor: '#16A34A' }}
+                  className="flex-1 py-3.5 font-black text-xs uppercase tracking-wider rounded-2xl text-white bg-emerald-600 hover:bg-emerald-500 shadow-xl shadow-emerald-600/25 disabled:opacity-50 transition-transform hover:scale-[1.02]"
                 >
-                  {actionLoading ? 'Procesando...' : 'Confirmar Pago'}
+                  {actionLoading ? "Registrando..." : "Confirmar Envío"}
                 </button>
               </div>
             </motion.div>

@@ -275,30 +275,30 @@ const AppointmentScheduling = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto pb-4" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <div className="jyp-page max-w-4xl mx-auto">
       
       {/* Progress Stepper */}
-      <div className="flex items-center justify-between mb-12 px-4 sm:px-16 relative">
+      <div className="flex items-center justify-between mb-8 px-4 sm:px-12 relative">
         {[
           { num: 1, label: 'Especialista & Horario' },
           { num: 2, label: 'Diagnóstico' },
           { num: 3, label: 'Confirmación' }
         ].map(({ num, label }) => (
-          <div key={num} className="flex flex-col items-center gap-2.5 relative z-10">
+          <div key={num} className="flex flex-col items-center gap-2 relative z-10">
             <div 
-              className={`w-12 h-12 rounded-full flex items-center justify-center font-black text-sm transition-all duration-300 shadow-md ${
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-sm transition-all duration-300 shadow-md ${
                 step > num 
-                  ? 'bg-blue-600 text-white' 
+                  ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]' 
                   : step === num 
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-blue-500/30 ring-4 ring-blue-400/30' 
-                  : 'bg-slate-800 text-slate-400 border border-white/10'
+                  ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-[0_0_20px_rgba(6,182,212,0.5)] ring-4 ring-cyan-400/30' 
+                  : 'bg-slate-900 text-slate-500 border border-white/10'
               }`}
             >
               {step > num ? <Check size={20} strokeWidth={3} /> : num}
             </div>
             <span 
               className={`text-[11px] font-bold uppercase tracking-wider text-center ${
-                step >= num ? 'text-white' : 'text-slate-500'
+                step >= num ? 'text-cyan-300' : 'text-slate-500'
               }`}
             >
               {label}
@@ -308,7 +308,7 @@ const AppointmentScheduling = () => {
         {/* Connector line */}
         <div className="absolute top-6 left-1/4 right-1/4 h-[2px] -z-0 bg-white/10">
           <div 
-            className="h-full transition-all duration-500 bg-gradient-to-r from-blue-600 to-cyan-400" 
+            className="h-full transition-all duration-500 bg-gradient-to-r from-blue-600 to-cyan-400 shadow-[0_0_10px_#06B6D4]" 
             style={{ width: `${(step - 1) * 50}%` }} 
           />
         </div>
@@ -321,22 +321,21 @@ const AppointmentScheduling = () => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
-            className="glass-card p-8 sm:p-12 rounded-[32px] relative overflow-hidden space-y-8"
+            className="jyp-card p-6 sm:p-10 relative overflow-hidden space-y-8"
           >
             {/* Header */}
             <div className="flex items-center gap-4">
               <div 
-                className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
-                style={{ background: 'linear-gradient(135deg, rgba(37,99,235,0.2) 0%, rgba(6,182,212,0.2) 100%)', color: '#38BDF8' }}
+                className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br from-blue-600 to-cyan-500 text-white"
               >
-                <CalendarIcon size={28} />
+                <CalendarIcon size={26} />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                <h2 className="text-2xl font-black text-white font-heading">
                   Agendar Reparación Técnica
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-400">
-                  Selecciona el especialista asignado y tu horario de preferencia.
+                  Selecciona el especialista asignado y tu horario de preferencia en Lima.
                 </p>
               </div>
             </div>
@@ -602,9 +601,9 @@ const AppointmentScheduling = () => {
                   setError(null);
                   setStep(2);
                 }}
-                className="btn-primary py-3.5 px-8 text-xs font-bold uppercase tracking-wider rounded-2xl shadow-xl disabled:opacity-40"
+                className="jyp-btn-primary disabled:opacity-40"
               >
-                <span>Continuar</span>
+                <span>Continuar a Diagnóstico</span>
                 <ChevronRight size={16} />
               </button>
             </div>
@@ -617,21 +616,20 @@ const AppointmentScheduling = () => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
-            className="glass-card p-8 sm:p-12 rounded-[32px] space-y-8"
+            className="jyp-card p-6 sm:p-10 space-y-8"
           >
             <div className="flex items-center gap-4">
               <div 
-                className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
-                style={{ background: 'rgba(37,99,235,0.2)', color: '#38BDF8' }}
+                className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg bg-gradient-to-br from-blue-600 to-cyan-500 text-white"
               >
-                <FileText size={28} />
+                <FileText size={26} />
               </div>
               <div>
-                <h2 className="text-2xl font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+                <h2 className="text-2xl font-black text-white font-heading">
                   Descripción de la Falla
                 </h2>
                 <p className="text-xs sm:text-sm text-slate-400">
-                  Explica con el mayor detalle posible el comportamiento o falla que presenta tu equipo.
+                  Explica con el mayor detalle posible el síntoma que presenta tu equipo.
                 </p>
               </div>
             </div>
@@ -640,22 +638,17 @@ const AppointmentScheduling = () => {
               <textarea 
                 rows="5"
                 placeholder="Ejemplo: Mi laptop enciende los ventiladores pero no da video en pantalla. Comenzó tras una sobretensión eléctrica..."
-                className="input-field h-auto py-4 rounded-2xl leading-relaxed resize-none"
+                className="w-full p-4 rounded-2xl border border-white/10 bg-white/5 text-white text-xs sm:text-sm outline-none focus:border-cyan-400 leading-relaxed resize-none transition-all shadow-inner"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
               />
               
               <div 
-                className="p-5 rounded-2xl border flex items-start gap-3.5 text-xs leading-relaxed"
-                style={{ 
-                  backgroundColor: 'rgba(37, 99, 235, 0.08)', 
-                  borderColor: 'rgba(59, 130, 246, 0.25)',
-                  color: 'var(--text-secondary)'
-                }}
+                className="p-5 rounded-2xl border border-blue-500/25 bg-blue-500/10 flex items-start gap-3.5 text-xs text-slate-300 leading-relaxed"
               >
                 <ShieldCheck size={20} className="shrink-0 text-cyan-400 mt-0.5" />
                 <span>
-                  <strong>Garantía de Servicio JyP:</strong> Tu cita incluye diagnóstico preliminar y revisión técnica. Podrás acordar repuestos y presupuesto directamente con el especialista.
+                  <strong className="text-white">Garantía Escrita JyP:</strong> Tu cita incluye diagnóstico exhaustivo y revisión técnica. Podrás acordar repuestos originales y presupuesto directamente con el especialista asignado.
                 </span>
               </div>
             </div>
@@ -664,14 +657,14 @@ const AppointmentScheduling = () => {
               <button 
                 type="button"
                 onClick={() => setStep(1)}
-                className="btn-ghost py-3 px-6 text-xs font-bold rounded-2xl"
+                className="jyp-btn-ghost"
               >
-                <ChevronLeft size={16} /> Regresar
+                <ChevronLeft size={16} /> <span>Regresar</span>
               </button>
               <button 
                 disabled={!description.trim()}
                 onClick={() => setStep(3)}
-                className="btn-primary py-3.5 px-8 text-xs font-bold uppercase tracking-wider rounded-2xl shadow-xl disabled:opacity-40"
+                className="jyp-btn-primary disabled:opacity-40"
               >
                 <span>Revisar Resumen</span>
                 <ChevronRight size={16} />
@@ -686,21 +679,21 @@ const AppointmentScheduling = () => {
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
-            className="glass-card p-8 sm:p-12 rounded-[32px] space-y-8"
+            className="jyp-card p-6 sm:p-10 space-y-8"
           >
             <div className="text-center mb-6">
-              <h2 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+              <h2 className="text-2xl sm:text-3xl font-black text-white font-heading">
                 Confirmación de la Cita Técnica
               </h2>
               <p className="text-xs sm:text-sm text-slate-400 mt-1">
-                Verifica los datos del servicio antes de emitir la orden.
+                Verifica los datos del servicio antes de emitir la orden a la red técnica.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Provider Info */}
               <div className="p-5 rounded-2xl border border-white/10 bg-white/5 space-y-3">
-                <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 block">
+                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 block">
                   Especialista Asignado
                 </span>
                 <div className="flex items-center gap-3">
@@ -724,7 +717,7 @@ const AppointmentScheduling = () => {
 
               {/* Date and Time */}
               <div className="p-5 rounded-2xl border border-white/10 bg-white/5 space-y-3">
-                <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 block">
+                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 block">
                   Fecha & Horario de Atención
                 </span>
                 <div className="space-y-1.5 text-sm font-bold text-white">
@@ -741,7 +734,7 @@ const AppointmentScheduling = () => {
 
               {/* Problem Details */}
               <div className="md:col-span-2 p-5 rounded-2xl border border-white/10 bg-white/5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-blue-400 block mb-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-cyan-400 block mb-2">
                   Detalle del Requerimiento
                 </span>
                 <p className="text-xs sm:text-sm text-slate-300 italic leading-relaxed">
@@ -762,7 +755,7 @@ const AppointmentScheduling = () => {
                 type="button"
                 onClick={handleSubmit}
                 disabled={submitting}
-                className="btn-primary w-full py-4 text-xs font-black uppercase tracking-wider rounded-2xl shadow-xl flex items-center justify-center gap-2"
+                className="jyp-btn-primary w-full py-4 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2"
               >
                 {submitting ? (
                   <div className="flex items-center gap-2">
@@ -779,7 +772,7 @@ const AppointmentScheduling = () => {
               <button 
                 type="button"
                 onClick={() => setStep(2)}
-                className="text-xs font-bold text-slate-400 hover:text-white py-2"
+                className="text-xs font-bold text-slate-400 hover:text-white py-2 transition-colors cursor-pointer text-center"
               >
                 Editar Descripción
               </button>
@@ -792,31 +785,30 @@ const AppointmentScheduling = () => {
             key="success"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="glass-card p-10 sm:p-16 text-center rounded-[36px] shadow-2xl space-y-4"
+            className="jyp-card p-8 sm:p-14 text-center rounded-[32px] shadow-2xl space-y-5"
           >
             <div 
-              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 shadow-2xl"
-              style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#10B981', border: '1px solid rgba(16, 185, 129, 0.3)' }}
+              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-2 shadow-[0_0_30px_rgba(16,185,129,0.3)] bg-emerald-500/20 text-emerald-400 border border-emerald-400/40"
             >
-              <CheckCircle2 size={44} />
+              <CheckCircle2 size={40} />
             </div>
-            <h2 className="text-3xl font-black text-white" style={{ fontFamily: "'Plus Jakarta Sans',sans-serif" }}>
+            <h2 className="text-3xl font-black text-white font-heading">
               ¡Cita Técnica Solicitada!
             </h2>
-            <p className="max-w-md mx-auto mb-8 text-xs sm:text-sm text-slate-300 leading-relaxed">
-              La solicitud ha sido registrada correctamente. El técnico se comunicará contigo para confirmar el servicio.
+            <p className="max-w-md mx-auto text-xs sm:text-sm text-slate-300 leading-relaxed">
+              La solicitud ha sido registrada correctamente. El técnico revisará tu orden y se comunicará contigo vía chat para coordinar el diagnóstico.
             </p>
             
-            <div className="flex flex-col sm:flex-row gap-3.5 justify-center pt-2">
+            <div className="flex flex-col sm:flex-row gap-3.5 justify-center pt-4">
               <Link 
                 to="/appointments" 
-                className="btn-primary px-8 py-4 text-xs font-black uppercase tracking-wider rounded-2xl shadow-xl text-center"
+                className="jyp-btn-primary"
               >
                 Ver Mis Citas
               </Link>
               <Link 
                 to="/" 
-                className="btn-ghost px-8 py-4 text-xs font-bold rounded-2xl text-center"
+                className="jyp-btn-ghost"
               >
                 Volver al Panel
               </Link>
