@@ -59,8 +59,8 @@ class _CreateStoreScreenState extends State<CreateStoreScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Crear Mi Sucursal'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF0F172A) : Colors.white,
+        foregroundColor: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
         elevation: 0,
       ),
       body: SingleChildScrollView(

@@ -331,12 +331,12 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     '¡Hola!',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
                     ),
                   ),
                   Text(
@@ -567,11 +567,11 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
                       children: [
                         Text(
                           product,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 17,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -0.5,
-                            color: AppColors.textPrimary,
+                            color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -915,7 +915,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: unread > 0 ? AppColors.textPrimary : Colors.grey,
+                  color: unread > 0 ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary) : Colors.grey,
                   fontWeight: unread > 0 ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),

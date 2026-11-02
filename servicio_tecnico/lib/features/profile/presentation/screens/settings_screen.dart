@@ -11,17 +11,23 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
+      backgroundColor: AppColors.getBackgroundColor(context),
       appBar: AppBar(
         title: Text(
           'Configuración',
-          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+          style: GoogleFonts.outfit(
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : AppColors.textPrimary,
+          ),
         ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          _buildSectionHeader('Cuenta y Seguridad'),
+          _buildSectionHeader(context, 'Cuenta y Seguridad'),
           _buildSettingsTile(
             context,
             icon: Icons.person_outline_rounded,
@@ -46,7 +52,7 @@ class SettingsScreen extends StatelessWidget {
           ),
           
           const SizedBox(height: 24),
-          _buildSectionHeader('Preferencias'),
+          _buildSectionHeader(context, 'Preferencias'),
           _buildSettingsTile(
             context,
             icon: Icons.notifications_none_rounded,
@@ -64,7 +70,7 @@ class SettingsScreen extends StatelessWidget {
           ),
 
           const SizedBox(height: 24),
-          _buildSectionHeader('Legal y Soporte'),
+          _buildSectionHeader(context, 'Legal y Soporte'),
           _buildSettingsTile(
             context,
             icon: Icons.description_outlined,
@@ -120,7 +126,8 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(BuildContext context, String title) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(left: 4, bottom: 12, top: 8),
       child: Text(
@@ -128,7 +135,7 @@ class SettingsScreen extends StatelessWidget {
         style: GoogleFonts.outfit(
           fontSize: 14,
           fontWeight: FontWeight.w700,
-          color: AppColors.primary.withOpacity(0.6),
+          color: isDark ? const Color(0xFF818CF8) : AppColors.primary.withOpacity(0.7),
           letterSpacing: 1.2,
         ),
       ),

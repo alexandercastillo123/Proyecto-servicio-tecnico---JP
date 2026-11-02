@@ -262,6 +262,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
   }
 
   Widget _buildPremiumHeader(String title, String subtitle, IconData icon) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
       child: Row(
@@ -276,7 +277,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                   style: GoogleFonts.outfit(
                     fontSize: 26,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -284,7 +285,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                   subtitle,
                   style: GoogleFonts.outfit(
                     fontSize: 14,
-                    color: AppColors.textSecondary,
+                    color: isDark ? Colors.white70 : AppColors.textSecondary,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
@@ -443,19 +444,20 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
 
   // ─── TAB 2: MENSAJES RECIENTES ─────────────────────────────────────────
   Widget _buildRecentTechsTab() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return RefreshIndicator(
       color: AppColors.primary,
       onRefresh: _loadRecentChats,
       child: CustomScrollView(
         slivers: [
           SliverAppBar(
-            backgroundColor: AppColors.background,
+            backgroundColor: isDark ? const Color(0xFF0F172A) : AppColors.background,
             elevation: 0,
             floating: true,
             title: Text(
               'Mensajes',
               style: GoogleFonts.outfit(
-                color: AppColors.textPrimary,
+                color: isDark ? Colors.white : AppColors.textPrimary,
                 fontWeight: FontWeight.w800,
                 fontSize: 28,
               ),
@@ -465,7 +467,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           if (_isLoadingRecent)
             const SliverFillRemaining(child: Center(child: CircularProgressIndicator()))
           else if (_recentChats.isEmpty)
-            _buildEmptyState()
+            _buildEmptyState(isDark)
           else
             SliverPadding(
               padding: const EdgeInsets.all(16),
@@ -473,7 +475,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) => anim.FadeInUp(
                     delay: Duration(milliseconds: 100 * index),
-                    child: _buildRecentTechCard(_recentChats[index]),
+                    child: _buildRecentTechCard(_recentChats[index], isDark),
                   ),
                   childCount: _recentChats.length,
                 ),
@@ -484,7 +486,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(bool isDark) {
     return SliverFillRemaining(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -493,19 +495,25 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
           const SizedBox(height: 24),
           Text(
             'Sin conversaciones aún',
-            style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            style: GoogleFonts.outfit(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Busca técnicos cerca de ti para empezar',
-            style: GoogleFonts.outfit(color: AppColors.textSecondary),
+            style: GoogleFonts.outfit(
+              color: isDark ? Colors.white70 : AppColors.textSecondary,
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildRecentTechCard(dynamic chat) {
+  Widget _buildRecentTechCard(dynamic chat, bool isDark) {
     final unread = chat['unread_count'] ?? 0;
     final name = chat['username'] ?? chat['names'] ?? 'Técnico';
     final lastMsg = chat['last_message_text'] ?? chat['last_message'] ?? 'Toca para chatear';
@@ -516,7 +524,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
       decoration: BoxDecoration(
         color: AppColors.getSurfaceColor(context),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: Theme.of(context).brightness == Brightness.dark ? [] : AppColors.softShadow,
+        boxShadow: isDark ? [] : AppColors.softShadow,
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -531,7 +539,11 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
             Expanded(
               child: Text(
                 name,
-                style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16),
+                style: GoogleFonts.outfit(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                ),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -539,7 +551,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
               timeStr,
               style: TextStyle(
                 fontSize: 11,
-                color: unread > 0 ? AppColors.primary : Colors.grey,
+                color: unread > 0 ? AppColors.primary : (isDark ? Colors.white54 : Colors.grey),
                 fontWeight: unread > 0 ? FontWeight.bold : FontWeight.normal,
               ),
             ),
@@ -553,7 +565,7 @@ class _ClientHomeScreenState extends State<ClientHomeScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: unread > 0 ? AppColors.textPrimary : Colors.grey,
+                  color: unread > 0 ? (isDark ? Colors.white : AppColors.textPrimary) : (isDark ? Colors.white60 : Colors.grey),
                   fontWeight: unread > 0 ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),

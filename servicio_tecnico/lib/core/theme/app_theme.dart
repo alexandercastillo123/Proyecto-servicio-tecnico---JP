@@ -110,30 +110,69 @@ class AppTheme {
   }
 
   static ThemeData _buildDarkTheme() {
+    final darkColorScheme = ColorScheme.fromSeed(
+      seedColor: AppColors.primary,
+      brightness: Brightness.dark,
+      primary: AppColors.primary,
+      secondary: const Color(0xFF6366F1),
+      surface: const Color(0xFF0F172A),
+      onSurface: Colors.white,
+      onPrimary: Colors.white,
+      error: AppColors.error,
+    );
+
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
-        brightness: Brightness.dark,
-        primary: AppColors.primary,
-        secondary: AppColors.primary,
-        surface: const Color(0xFF0F172A),
-        background: const Color(0xFF020617), // Deepest slate
-        onSurface: Colors.white,
-        onBackground: Colors.white,
-      ),
+      colorScheme: darkColorScheme,
       scaffoldBackgroundColor: const Color(0xFF020617),
-      textTheme: GoogleFonts.outfitTextTheme().apply(
-        bodyColor: Colors.white,
-        displayColor: Colors.white,
-      ),
+      textTheme: GoogleFonts.outfitTextTheme(ThemeData.dark().textTheme),
       
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Color(0xFF0F172A),
+      appBarTheme: AppBarTheme(
+        backgroundColor: const Color(0xFF0F172A),
         foregroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
+        titleTextStyle: GoogleFonts.outfit(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        iconTheme: const IconThemeData(color: Colors.white),
+      ),
+
+      iconTheme: const IconThemeData(
+        color: Colors.white,
+      ),
+
+      listTileTheme: const ListTileThemeData(
+        textColor: Colors.white,
+        iconColor: Colors.white70,
+      ),
+
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+        ),
+      ),
+
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.white,
+          side: const BorderSide(color: Color(0xFF6366F1), width: 1.5),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+        ),
       ),
 
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
@@ -152,6 +191,26 @@ class AppTheme {
           side: BorderSide(color: Colors.white.withOpacity(0.05), width: 1),
         ),
       ),
+
+      dividerTheme: DividerThemeData(
+        color: Colors.white.withOpacity(0.08),
+        thickness: 1,
+        space: 24,
+      ),
+
+      dialogTheme: DialogThemeData(
+        backgroundColor: const Color(0xFF1E293B),
+        titleTextStyle: GoogleFonts.outfit(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+        contentTextStyle: GoogleFonts.outfit(
+          color: Colors.white70,
+          fontSize: 16,
+        ),
+      ),
+
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: const Color(0xFF1E293B),
@@ -173,4 +232,3 @@ class AppTheme {
     );
   }
 }
-
