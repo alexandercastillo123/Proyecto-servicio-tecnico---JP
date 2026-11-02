@@ -4,8 +4,8 @@
   "description": "Backend API for Servicio T\u00e9cnico J&P mobile application",
   "main": "server.js",
   "scripts": {
-    "start": "node api.js && node server.js",
-    "dev": "node api.js && nodemon server.js",
+    "start": "node server.js",
+    "dev": "node server.js",
     "test": "jest",
     "test:services": "jest test/services",
     "test:endpoints": "jest test/endpoints",
