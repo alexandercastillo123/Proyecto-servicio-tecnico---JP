@@ -1,4 +1,4 @@
-class Store {
+﻿class Store {
   final int id;
   final int userId;
   final String name;

@@ -1002,7 +1002,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Text(
                         'Capture su identidad para el perfil',
                         style: TextStyle(
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                         ),
@@ -1110,7 +1110,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Text(
                   '¿Desea usar esta fotografía?',
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                   ),

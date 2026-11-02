@@ -57,12 +57,12 @@ class PersonTypeSelectionScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   '¿Cómo se registra\nen el sistema?',
                   style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
                     height: 1.1,
                   ),
                 ),
@@ -159,10 +159,10 @@ class PersonTypeSelectionScreen extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
-                      color: AppColors.textPrimary,
+                      color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),

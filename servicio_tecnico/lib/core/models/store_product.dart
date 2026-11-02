@@ -1,4 +1,4 @@
-class StoreProduct {
+﻿class StoreProduct {
   final int id;
   final int sucursalId;
   final String name;

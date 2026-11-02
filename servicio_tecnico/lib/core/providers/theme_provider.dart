@@ -12,9 +12,14 @@ class ThemeProvider with ChangeNotifier {
   }
 
   Future<void> _loadTheme() async {
-    final isDark = await LocalCacheService.getData<bool>('isDarkMode') ?? false;
-    _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
-    notifyListeners();
+    try {
+      final raw = await LocalCacheService.getData<dynamic>('isDarkMode');
+      final isDark = (raw == true || raw == 1 || raw == 'true');
+      _themeMode = isDark ? ThemeMode.dark : ThemeMode.light;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading theme: $e');
+    }
   }
 
   Future<void> toggleTheme(bool isDark) async {

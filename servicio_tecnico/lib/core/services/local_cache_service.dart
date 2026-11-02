@@ -1,4 +1,4 @@
-import 'package:hive_flutter/hive_flutter.dart';
+﻿import 'package:hive_flutter/hive_flutter.dart';
 
 class LocalCacheService {
   static const String _settingsBox = 'settings';

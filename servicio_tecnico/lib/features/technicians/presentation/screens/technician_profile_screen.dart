@@ -366,7 +366,7 @@ class _TechnicianProfileScreenState extends State<TechnicianProfileScreen> {
                       style: GoogleFonts.outfit(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
