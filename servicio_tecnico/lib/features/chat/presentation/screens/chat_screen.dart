@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -346,7 +346,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   style: GoogleFonts.outfit(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -439,7 +439,7 @@ class _ChatScreenState extends State<ChatScreen> {
               style: GoogleFonts.outfit(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppColors.textPrimary,
               ),
             ),
           ],
@@ -722,7 +722,7 @@ class _ChatScreenState extends State<ChatScreen> {
                       Text(
                         _otherUserName ?? 'Usuario',
                         style: GoogleFonts.outfit(
-                          color: AppColors.textPrimary,
+                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),

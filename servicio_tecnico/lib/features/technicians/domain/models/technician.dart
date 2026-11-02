@@ -1,4 +1,4 @@
-class Technician {
+﻿class Technician {
   final String id;
   final String name;
   final String dniRuc;

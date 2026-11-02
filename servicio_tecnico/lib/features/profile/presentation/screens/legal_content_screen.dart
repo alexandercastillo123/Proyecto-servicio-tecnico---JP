@@ -52,7 +52,7 @@ class LegalContentScreen extends StatelessWidget {
               content,
               style: GoogleFonts.outfit(
                 fontSize: 16,
-                color: AppColors.textPrimary,
+                color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppColors.textPrimary,
                 height: 1.6,
               ),
             ),

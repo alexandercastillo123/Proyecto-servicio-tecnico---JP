@@ -1,4 +1,4 @@
-class AppAssets {
+﻿class AppAssets {
   static const String providerBg = 'assets/images/provider_bg.png';
   static const String clientBg = 'assets/images/client_bg.png';
   static const String naturalPersonBg = 'assets/images/natural_person_bg.jpg';

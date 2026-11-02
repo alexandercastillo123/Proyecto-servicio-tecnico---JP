@@ -1,0 +1,24 @@
+{
+  "default_branch": "main",
+  "branches": [
+    "Produccion_exaustiva",
+    "landing-proyecto",
+    "main",
+    "mejora-login",
+    "origin"
+  ],
+  "parent": {
+    "Produccion_exaustiva": "main",
+    "landing-proyecto": "main",
+    "main": null,
+    "mejora-login": "main",
+    "origin": "main"
+  },
+  "order": [
+    "main",
+    "Produccion_exaustiva",
+    "landing-proyecto",
+    "mejora-login",
+    "origin"
+  ]
+}
