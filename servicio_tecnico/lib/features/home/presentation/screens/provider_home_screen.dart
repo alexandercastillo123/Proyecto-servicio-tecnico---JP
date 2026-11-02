@@ -777,7 +777,7 @@ class _ProviderHomeScreenState extends State<ProviderHomeScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: unread > 0 ? AppColors.textPrimary : Colors.grey,
+                  color: unread > 0 ? (Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary) : Colors.grey,
                   fontWeight: unread > 0 ? FontWeight.w600 : FontWeight.normal,
                 ),
               ),

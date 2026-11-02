@@ -1,4 +1,4 @@
-import 'dart:io';
+﻿import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:servicio_tecnico_app/core/services/camera_service.dart';
 import 'package:servicio_tecnico_app/core/services/local_cache_service.dart';

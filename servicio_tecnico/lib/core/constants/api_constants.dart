@@ -1,4 +1,4 @@
-class ApiConstants {
+﻿class ApiConstants {
   // Base URL - Use 10.0.2.2 for Android Emulator, or your local IP for physical devices
   static const String baseUrl = 'http://10.0.2.2:3000/api';
   
