@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageShell from "./common/PageShell";
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import {
@@ -140,7 +141,7 @@ const StoreList = () => {
   };
 
   return (
-    <div className="w-full space-y-6 pb-6" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <PageShell gap="compact" className="pb-6">
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-[32px] p-8 border border-white/10 bg-gradient-to-br from-[#0c1322] via-[#080d17] to-[#0a1829] shadow-2xl">
         <div className="space-y-2">
@@ -322,7 +323,7 @@ const StoreList = () => {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageShell from "./common/PageShell";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Bell, BellOff, Check, CheckCheck, Calendar, MessageSquare,
@@ -107,7 +108,7 @@ const Notifications = () => {
   }
 
   return (
-    <div className="w-full space-y-8 pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <PageShell className="pb-10">
 
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-[32px] p-8 sm:p-10 border border-white/10 bg-gradient-to-br from-[#0c1322] via-[#080d17] to-[#0a1829] shadow-2xl flex flex-col md:flex-row justify-between md:items-center gap-6">
@@ -274,7 +275,7 @@ const Notifications = () => {
           })}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

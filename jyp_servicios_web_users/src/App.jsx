@@ -39,8 +39,6 @@ import AdminUsers from './components/admin/AdminUsers';
 import AdminOrders from './components/admin/AdminOrders';
 import AdminStores from './components/admin/AdminStores';
 
-import './index.css';
-
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);

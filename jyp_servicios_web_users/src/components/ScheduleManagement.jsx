@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageShell from "./common/PageShell";
 import { motion } from "framer-motion";
 import {
   Clock, Save, AlertCircle, CheckCircle2, Calendar,
@@ -105,7 +106,7 @@ const ScheduleManagement = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <PageShell width="md" className="pb-10">
 
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-[32px] p-8 sm:p-10 border border-white/10 bg-gradient-to-br from-[#0c1322] via-[#080d17] to-[#0a1829] shadow-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-6">
@@ -246,7 +247,7 @@ const ScheduleManagement = () => {
           Las modificaciones en tu franja horaria se sincronizan al instante en el motor de agendamiento satelital. Los clientes únicamente podrán seleccionar bloques disponibles dentro de los intervalos activos configurados.
         </p>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

@@ -4,7 +4,7 @@ import { Lock, ArrowLeft, RefreshCw, Eye, EyeOff, AlertCircle, CheckCircle2, Cpu
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
-import './Login.css';
+import '../styles/pages/auth.css';
 
 const ResetPassword = () => {
   const [password, setPassword] = useState('');

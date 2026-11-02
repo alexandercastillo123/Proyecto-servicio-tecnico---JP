@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageShell from "./common/PageShell";
 import {
   Package, ShoppingBag, Clock, ChevronRight,
   MessageSquare, MapPin, Truck, CheckCircle2,
@@ -10,6 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { TechLoader } from "./common/TechLoader";
 import CulqiPaymentModal from "./common/CulqiPaymentModal";
 import toast from "react-hot-toast";
+import { getOrderStatus, getPaymentStatus } from "../config/status";
 
 const OrderList = () => {
   const navigate = useNavigate();
@@ -89,33 +91,6 @@ const OrderList = () => {
     }
   };
 
-  const getStatusInfo = (status) => {
-    switch (status) {
-      case "pending":
-        return { label: "Pendiente", color: "text-amber-400", bg: "bg-amber-400/10 border-amber-400/25", icon: Clock };
-      case "paid":
-        return { label: "Pagado", color: "text-emerald-400", bg: "bg-emerald-400/10 border-emerald-400/25", icon: CheckCircle2 };
-      case "confirmed":
-        return { label: "Confirmado", color: "text-blue-400", bg: "bg-blue-400/10 border-blue-400/25", icon: CheckCircle2 };
-      case "in_preparation":
-        return { label: "En Preparación", color: "text-cyan-400", bg: "bg-cyan-400/10 border-cyan-400/25", icon: Package };
-      case "shipped":
-        return { label: "En Despacho", color: "text-indigo-400", bg: "bg-indigo-400/10 border-indigo-400/25", icon: Truck };
-      case "delivered":
-        return { label: "Entregado", color: "text-emerald-400", bg: "bg-emerald-400/10 border-emerald-400/25", icon: CheckCircle2 };
-      case "cancelled":
-        return { label: "Cancelado", color: "text-rose-400", bg: "bg-rose-400/10 border-rose-400/25", icon: XCircle };
-      default:
-        return { label: status || "Registrado", color: "text-slate-400", bg: "bg-slate-500/10 border-slate-500/20", icon: Package };
-    }
-  };
-
-  const PAYMENT_STATUS = {
-    pending: { label: "Pago pendiente", color: "text-amber-400" },
-    waiting_confirmation: { label: "Por confirmar", color: "text-cyan-400" },
-    paid: { label: "Pago confirmado", color: "text-emerald-400" },
-  };
-
   const handlePayOrder = async () => {
     if (!payTarget) return;
     setPayingId(payTarget.id);
@@ -140,7 +115,7 @@ const OrderList = () => {
   const filteredOrders = filter === "all" ? orders : orders.filter((o) => o.status === filter);
 
   return (
-    <div className="w-full space-y-8 pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <PageShell className="pb-10">
 
       {/* Hero Header */}
       <div className="relative overflow-hidden rounded-[32px] p-8 sm:p-10 border border-white/10 bg-gradient-to-br from-[#0c1322] via-[#080d17] to-[#0a1829] shadow-2xl flex flex-col md:flex-row justify-between md:items-center gap-6">
@@ -208,7 +183,8 @@ const OrderList = () => {
           <TechLoader compact title="Cargando Pedidos" subtitle="Sincronizando órdenes con el servidor central..." />
         ) : filteredOrders.length > 0 ? (
           filteredOrders.map((order) => {
-            const status = getStatusInfo(order.status);
+            const status = getOrderStatus(order.status);
+            const payment = getPaymentStatus(order.payment_status);
             const dateStr = order.created_at
               ? new Date(order.created_at).toLocaleDateString("es-PE", {
                   day: "2-digit",
@@ -258,9 +234,9 @@ const OrderList = () => {
                         <Clock size={12} />
                         <span>{dateStr}</span>
                       </div>
-                      {order.payment_status && PAYMENT_STATUS[order.payment_status] && (
-                        <span className={`font-mono font-bold text-[11px] ${PAYMENT_STATUS[order.payment_status].color}`}>
-                          · {PAYMENT_STATUS[order.payment_status].label}
+                      {order.payment_status && (
+                        <span className={`font-mono font-bold text-[11px] ${payment.textClass}`}>
+                          · {payment.label}
                         </span>
                       )}
                     </div>
@@ -497,7 +473,7 @@ const OrderList = () => {
         entityId={culqiTarget?.id}
         onSuccess={fetchOrders}
       />
-    </div>
+    </PageShell>
   );
 };
 

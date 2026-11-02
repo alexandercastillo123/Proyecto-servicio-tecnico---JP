@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PageShell from './common/PageShell';
 import { motion } from 'framer-motion';
 import { Scale, ShieldCheck, FileText, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -76,7 +77,7 @@ const Legal = () => {
   const Icon = current.icon;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-7 pb-4">
+    <PageShell width="md" className="pb-4">
       <button
         onClick={() => navigate(-1)}
         className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white transition-colors"
@@ -156,7 +157,7 @@ const Legal = () => {
           );
         })}
       </section>
-    </div>
+    </PageShell>
   );
 };
 

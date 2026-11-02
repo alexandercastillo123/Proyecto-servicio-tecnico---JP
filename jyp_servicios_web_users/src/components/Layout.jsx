@@ -188,7 +188,7 @@ const Layout = ({ user, onLogout }) => {
   const roleBadge = roleLabels[user?.role] || roleLabels.client;
 
   return (
-    <div className="flex min-h-screen overflow-hidden jyp-page bg-[#080d17] text-[#f8fafc]">
+    <div className="app-shell">
       {/* ══════════ MOBILE OVERLAY DRAWER ══════════════════════ */}
       <AnimatePresence>
         {mobileOpen && (
@@ -205,7 +205,7 @@ const Layout = ({ user, onLogout }) => {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed left-0 top-0 bottom-0 w-[280px] z-50 flex flex-col bg-[#0b1220]/95 border-r border-white/10 backdrop-blur-2xl md:hidden"
+              className="fixed left-0 top-0 bottom-0 w-[280px] z-50 flex flex-col app-drawer md:hidden"
             >
               <div className="flex items-center justify-between px-5 h-[72px] border-b border-white/10">
                 <JyPLogo collapsed={false} />
@@ -271,7 +271,7 @@ const Layout = ({ user, onLogout }) => {
         initial={false}
         animate={{ width: SIDEBAR_W }}
         transition={{ duration: 0.3, ease: [0.2, 0.8, 0.2, 1] }}
-        className="fixed left-0 top-0 h-full hidden md:flex flex-col z-40 select-none bg-[#090f1d]/90 border-r border-white/10 backdrop-blur-2xl overflow-x-hidden"
+        className="fixed left-0 top-0 h-full hidden md:flex flex-col z-40 select-none app-sidebar overflow-x-hidden"
       >
         {/* Brand Header */}
         <div
@@ -384,19 +384,11 @@ const Layout = ({ user, onLogout }) => {
 
       {/* ══════════ MAIN WORKSPACE AREA ══════════════════════════ */}
       <main
-        className="flex-1 flex flex-col min-h-screen transition-all duration-300 pb-20 md:pb-0"
-        style={{
-          marginLeft: typeof window !== 'undefined' && window.innerWidth >= 768 ? SIDEBAR_W : 0,
-          background: isDark
-            ? "radial-gradient(ellipse at 85% 5%, rgba(37, 99, 235, 0.12) 0%, transparent 45%), radial-gradient(ellipse at 15% 40%, rgba(6, 182, 212, 0.08) 0%, transparent 40%), #080d17"
-            : "#F8FAFC"
-        }}
+        className="app-main pb-20 md:pb-0"
+        style={{ '--sidebar-w': `${SIDEBAR_W}px` }}
       >
         {/* ──── STICKY HEADER ─────────────────────────────────── */}
-        <header
-          className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 md:px-8 border-b border-white/10 bg-[#080d17]/85 backdrop-blur-2xl"
-          style={{ height: 72 }}
-        >
+        <header className="app-header px-4 sm:px-6 md:px-8">
           {/* Mobile menu button + Brand for mobile */}
           <div className="flex items-center gap-3">
             <button
@@ -432,7 +424,7 @@ const Layout = ({ user, onLogout }) => {
             <button
               type="button"
               onClick={toggleTheme}
-              className="-btn"
+              className="topbar-btn"
               title={isDark ? "Activar modo claro" : "Activar modo oscuro"}
               aria-label={isDark ? "Activar modo claro" : "Activar modo oscuro"}
             >
@@ -451,7 +443,7 @@ const Layout = ({ user, onLogout }) => {
                   setShowNotifications(!showNotifications);
                   if (!showNotifications) fetchNotifications();
                 }}
-                className="-btn relative"
+                className="topbar-btn relative"
                 title="Notificaciones"
               >
                 <Bell size={18} />
@@ -620,7 +612,7 @@ const Layout = ({ user, onLogout }) => {
         </div>
 
         {/* ══════════ MOBILE BOTTOM DOCK ════════════════════════ */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#080d17]/95 border-t border-white/10 backdrop-blur-2xl px-4 py-2 flex items-center justify-around md:hidden shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+        <div className="fixed bottom-0 left-0 right-0 z-40 app-dock px-4 py-2 flex items-center justify-around md:hidden shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
           {[
             { path: "/", icon: Home, label: "Inicio" },
             { path: "/appointments", icon: Calendar, label: "Citas" },

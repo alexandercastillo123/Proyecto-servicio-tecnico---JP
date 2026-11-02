@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageShell from "./common/PageShell";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -220,7 +221,7 @@ const AppointmentDetails = () => {
   if (activeStepIndex === -1 && appt.status === "paid") activeStepIndex = 5;
 
   return (
-    <div className="w-full space-y-8 pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <PageShell className="pb-10">
 
       {/* Top Cockpit Header */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 p-6 sm:p-7 rounded-[32px] bg-gradient-to-r from-[#0c1424] via-[#090f1a] to-[#0a1829] border border-white/10 backdrop-blur-xl shadow-2xl">
@@ -757,7 +758,7 @@ const AppointmentDetails = () => {
         entityId={id}
         onSuccess={fetchDetails}
       />
-    </div>
+    </PageShell>
   );
 };
 

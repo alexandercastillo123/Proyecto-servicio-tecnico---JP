@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageShell from "./common/PageShell";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -147,7 +148,7 @@ const StoreProfile = () => {
   }
 
   return (
-    <div className="w-full space-y-8 pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <PageShell className="pb-10">
       {/* Back button */}
       <div>
         <Link
@@ -518,7 +519,7 @@ const StoreProfile = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

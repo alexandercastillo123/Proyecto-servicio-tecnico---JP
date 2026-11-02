@@ -2,17 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Package, Search, Eye, MapPin, Filter } from 'lucide-react';
 import { adminService } from '../../services/api';
+import { getOrderStatus } from '../../config/status';
 
-const ORDER_STATUS_LABELS = {
-  pending: 'Pendiente', confirmed: 'Confirmado', shipped: 'En camino',
-  delivered: 'Entregado', completed: 'Completado', cancelled: 'Cancelado'
+const StatusBadge = ({ status }) => {
+  const info = getOrderStatus(status);
+  return <span className={info.badgeClass}>{info.label}</span>;
 };
-
-const StatusBadge = ({ status }) => (
-  <span className={`status-badge status-${status}`}>
-    {ORDER_STATUS_LABELS[status] || status}
-  </span>
-);
 
 /* ─── Order Detail Modal ─────────────────────────────── */
 const OrderModal = ({ order, onClose }) => {

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useTheme } from "../context/ThemeContext";
 import { authService } from "../services/api";
 import { toast } from "react-hot-toast";
-import "./Login.css";
+import "../styles/pages/auth.css";
 import {
   ShieldCheck,
   Mail,

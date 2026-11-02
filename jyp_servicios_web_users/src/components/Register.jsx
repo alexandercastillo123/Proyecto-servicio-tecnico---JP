@@ -8,7 +8,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
-import './Login.css';
+import '../styles/pages/auth.css';
 
 const Register = ({ onLogin }) => {
   const navigate = useNavigate();

@@ -1,0 +1,196 @@
+/* =============================================================
+   Superficies — glass, tarjetas y paneles.
+   ============================================================= */
+
+@layer components {
+  .glass {
+    background: var(--bg-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+  }
+
+  .glass-panel {
+    background: rgba(11, 17, 32, 0.92);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-xl);
+  }
+
+  [data-theme='light'] .glass-panel {
+    background: rgba(255, 255, 255, 0.94);
+  }
+
+  .glass-card {
+    background: var(--bg-card);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    transition: all 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    position: relative;
+  }
+
+  .glass-card:hover {
+    border-color: var(--border-primary);
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg), 0 0 30px rgba(37, 99, 235, 0.12);
+  }
+
+  .bg-tech-circuit {
+    background-image:
+      radial-gradient(
+        circle at 10% 20%,
+        rgba(37, 99, 235, 0.08) 0%,
+        transparent 25%
+      ),
+      radial-gradient(
+        circle at 90% 80%,
+        rgba(6, 182, 212, 0.08) 0%,
+        transparent 25%
+      ),
+      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size:
+      100% 100%,
+      100% 100%,
+      48px 48px,
+      48px 48px;
+  }
+
+  .tech-border {
+    position: relative;
+  }
+
+  .tech-border::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    border: 1px solid rgba(37, 99, 235, 0.25);
+    box-shadow: inset 0 0 15px rgba(37, 99, 235, 0.05);
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 28px;
+    transition: all 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    backdrop-filter: blur(12px);
+  }
+
+  .card-hover:hover {
+    border-color: var(--border-primary);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg), 0 0 35px rgba(37, 99, 235, 0.1);
+  }
+
+  .admin-stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 28px;
+    transition: all 300ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .admin-stat-card:hover {
+    border-color: var(--border-primary);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg), 0 0 25px rgba(37, 99, 235, 0.1);
+  }
+
+  /* ── Tarjetas del design system JYP ──────────────────────── */
+  .jyp-card {
+    background: var(--jyp-bg-card);
+    border: 1px solid var(--jyp-border);
+    border-radius: 22px;
+    padding: 1.5rem;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: var(--jyp-shadow-card);
+    transition: all 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    position: relative;
+  }
+
+  .jyp-card:hover {
+    border-color: var(--jyp-border-hover);
+    transform: translateY(-3px);
+    box-shadow: var(--jyp-shadow-hover);
+  }
+
+  .jyp-panel {
+    background: var(--jyp-bg-panel);
+    border: 1px solid var(--jyp-border);
+    border-radius: 24px;
+    padding: 1.75rem;
+    backdrop-filter: blur(24px);
+    box-shadow: var(--jyp-shadow-card);
+  }
+
+  .jyp-stat-card {
+    background: var(--jyp-bg-card);
+    border: 1px solid var(--jyp-border);
+    border-radius: 20px;
+    padding: 1.25rem 1.4rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    backdrop-filter: blur(14px);
+    box-shadow: var(--jyp-shadow-card);
+    transition: all 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .jyp-stat-card:hover {
+    border-color: var(--jyp-border-hover);
+    transform: translateY(-3px);
+    box-shadow: var(--jyp-shadow-hover);
+  }
+
+  .jyp-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  }
+
+  .jyp-stat-body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .jyp-stat-label {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--jyp-text-dim);
+    margin: 0 0 0.25rem;
+    line-height: 1.3;
+  }
+
+  .jyp-stat-value {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--jyp-text-title);
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .jyp-stat-sublabel {
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--jyp-text-dim);
+    margin: 0.2rem 0 0;
+  }
+}

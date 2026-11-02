@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageShell from "./common/PageShell";
 import {
   Package, Search, ShoppingCart, Store, MapPin,
   Tag, ShieldCheck, ArrowRight, Check, X, Filter,
@@ -154,7 +155,7 @@ const StoreMarketplace = () => {
   });
 
   return (
-    <div className="w-full space-y-8 pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <PageShell className="pb-10">
 
       {/* Cyber-Tech Marketplace Hero */}
       <div className="relative overflow-hidden rounded-[32px] p-8 sm:p-12 border border-white/10 bg-gradient-to-br from-[#0c1322] via-[#080d17] to-[#0a1829] shadow-2xl">
@@ -485,7 +486,7 @@ const StoreMarketplace = () => {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

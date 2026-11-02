@@ -64,7 +64,7 @@ export const SocketProvider = ({ user, children }) => {
                 💬
               </div>
               <div className="flex-1">
-                <p className="text-xs font-black uppercase tracking-wider text-primary">Nuevo Mensaje</p>
+                <p className="text-xs font-black uppercase tracking-wider text-blue-400">Nuevo Mensaje</p>
                 <p className="text-sm font-semibold text-white truncate max-w-[200px]">
                   {data.message_text || (data.message_type === 'offer' ? `Oferta por S/ ${data.offer_price}` : 'Nuevo mensaje')}
                 </p>

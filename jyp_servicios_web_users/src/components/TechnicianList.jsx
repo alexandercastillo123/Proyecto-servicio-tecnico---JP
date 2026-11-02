@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageShell from "./common/PageShell";
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMapEvents, useMap } from "react-leaflet";
 import L from "leaflet";
 import {
@@ -150,7 +151,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate, isStandalone = true })
   });
 
   return (
-    <div className="space-y-6 pb-6" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <PageShell gap="compact" className="pb-6">
       {isStandalone && (
         <div className="relative overflow-hidden rounded-[32px] p-8 border border-white/10 bg-gradient-to-br from-[#0c1322] via-[#080d17] to-[#0a1829] shadow-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-6">
           <div className="space-y-2">
@@ -474,7 +475,7 @@ const TechnicianList = ({ userLocation, onLocationUpdate, isStandalone = true })
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

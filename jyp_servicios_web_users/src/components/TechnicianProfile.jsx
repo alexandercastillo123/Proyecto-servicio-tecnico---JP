@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageShell from "./common/PageShell";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -102,7 +103,7 @@ const TechnicianProfile = () => {
   const canReview = user.role === "client";
 
   return (
-    <div className="w-full space-y-8 pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <PageShell className="pb-10">
       {/* Back button */}
       <div>
         <Link
@@ -404,7 +405,7 @@ const TechnicianProfile = () => {
           </section>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

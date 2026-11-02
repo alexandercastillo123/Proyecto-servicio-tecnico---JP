@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import PageShell from "./common/PageShell";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Store, MapPin, Phone, FileText,
@@ -73,7 +74,7 @@ const StoreCreate = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <PageShell width="md" className="pb-10">
       {/* Wizard Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -374,7 +375,7 @@ const StoreCreate = () => {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 };
 

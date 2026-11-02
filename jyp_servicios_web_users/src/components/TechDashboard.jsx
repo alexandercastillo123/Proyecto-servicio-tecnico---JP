@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageShell from "./common/PageShell";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar, CheckCircle2, Clock, AlertCircle,
@@ -15,18 +16,7 @@ import { useSocket } from "../context/SocketContext";
 import { TechLoader } from "./common/TechLoader";
 import { formatDateShort } from "../services/formatters";
 import { toast } from "react-hot-toast";
-
-/* ── Status color map ──────────────────────────────────────────── */
-const STATUS = {
-  pending:    { label: "Pendiente",   cls: "status-badge status-pending" },
-  confirmed:  { label: "Confirmada",  cls: "status-badge status-confirmed" },
-  completed:  { label: "Completada",  cls: "status-badge status-completed" },
-  cancelled:  { label: "Cancelada",   cls: "status-badge status-cancelled" },
-  in_progress:{ label: "En progreso", cls: "status-badge status-in_progress" },
-  on_the_way: { label: "En camino",   cls: "status-badge status-on_the_way" },
-  arrived:    { label: "En sitio",    cls: "status-badge status-arrived" },
-  paid:       { label: "Pagada",      cls: "status-badge status-completed" },
-};
+import { getAppointmentStatus } from "../config/status";
 
 /* ── Stat Card Component ───────────────────────────────────────── */
 /* ── Stat Card Component ───────────────────────────────────────── */
@@ -68,7 +58,7 @@ const StatCard = ({ icon: Icon, label, value, sublabel, color, delay }) => (
 
 /* ── Appointment Row Component ─────────────────────────────────── */
 const ApptRow = ({ appt, navigate }) => {
-  const st = STATUS[appt.status] || { label: appt.status, cls: "status-badge" };
+  const st = getAppointmentStatus(appt.status);
   const clientName =
     [appt.client_names, appt.client_surnames].filter(Boolean).join(" ").trim() ||
     appt.client_username ||
@@ -102,7 +92,7 @@ const ApptRow = ({ appt, navigate }) => {
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
-          <span className={`${st.cls} rounded-full px-3 py-1 text-xs font-bold`}>{st.label}</span>
+          <span className={`${st.badgeClass} rounded-full px-3 py-1 text-xs font-bold`}>{st.label}</span>
           <ChevronRight size={18} className="text-slate-500 group-hover:translate-x-1 group-hover:text-blue-400 transition-transform" />
         </div>
       </div>
@@ -218,7 +208,7 @@ const TechDashboard = () => {
   }
 
   return (
-    <div className="jyp-page">
+    <PageShell gap="loose">
 
       {/* ── 1. WORKSTATION HERO BANNER ─────────────────────── */}
       <section className="jyp-hero-card">
@@ -414,12 +404,12 @@ const TechDashboard = () => {
                 <YAxis stroke="#64748B" fontSize={12} tickLine={false} />
                 <Tooltip 
                   contentStyle={{ 
-                    backgroundColor: '#0B1120', 
-                    borderColor: 'rgba(59, 130, 246, 0.4)', 
+                    backgroundColor: 'var(--bg-surface)', 
+                    borderColor: 'var(--border-primary)', 
                     borderRadius: '16px',
                     fontSize: '12px',
-                    color: '#fff',
-                    boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+                    color: 'var(--text-primary)',
+                    boxShadow: 'var(--shadow-lg)'
                   }} 
                 />
                 <Area 
@@ -525,7 +515,7 @@ const TechDashboard = () => {
           )}
         </div>
       </section>
-    </div>
+    </PageShell>
   );
 };
 

@@ -36,9 +36,7 @@ const AdminLayout = ({ user, onLogout }) => {
   const SIDEBAR_W = collapsed ? 80 : 268;
 
   return (
-    <div
-      className="flex min-h-screen overflow-hidden bg-[#080d17] text-[#f8fafc] font-sans"
-    >
+    <div className="app-shell">
       {/* Mobile Drawer */}
       <AnimatePresence>
         {mobileOpen && (
@@ -55,7 +53,7 @@ const AdminLayout = ({ user, onLogout }) => {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed left-0 top-0 bottom-0 w-[280px] z-50 flex flex-col bg-[#0b1220]/95 border-r border-white/10 backdrop-blur-2xl md:hidden"
+              className="fixed left-0 top-0 bottom-0 w-[280px] z-50 flex flex-col app-drawer md:hidden"
             >
               <div className="flex items-center justify-between px-5 h-[72px] border-b border-white/10">
                 <div className="flex items-center gap-3">
@@ -116,7 +114,7 @@ const AdminLayout = ({ user, onLogout }) => {
         initial={false}
         animate={{ width: SIDEBAR_W }}
         transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
-        className="fixed left-0 top-0 h-full z-40 hidden md:flex flex-col overflow-hidden bg-[#090f1d]/90 border-r border-white/10 backdrop-blur-2xl"
+        className="fixed left-0 top-0 h-full z-40 hidden md:flex flex-col overflow-hidden app-sidebar"
       >
         {/* Logo */}
         <div className="p-5 flex items-center gap-3 h-[72px] shrink-0 border-b border-white/10">
@@ -266,16 +264,11 @@ const AdminLayout = ({ user, onLogout }) => {
 
       {/* Main Content */}
       <main
-        className="flex-1 min-h-screen flex flex-col overflow-x-hidden transition-all duration-300"
-        style={{
-          marginLeft: typeof window !== 'undefined' && window.innerWidth >= 768 ? SIDEBAR_W : 0,
-          background: "radial-gradient(ellipse at 85% 5%, rgba(37, 99, 235, 0.12) 0%, transparent 45%), radial-gradient(ellipse at 15% 40%, rgba(6, 182, 212, 0.08) 0%, transparent 40%), #080d17"
-        }}
+        className="app-main"
+        style={{ '--sidebar-w': `${SIDEBAR_W}px` }}
       >
         {/* Topbar */}
-        <header
-          className="h-[72px] px-4 sm:px-6 md:px-8 flex items-center justify-between border-b border-white/10 sticky top-0 z-30 shrink-0 bg-[#080d17]/85 backdrop-blur-2xl"
-        >
+        <header className="app-header px-4 sm:px-6 md:px-8 shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}

@@ -2,24 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, Search, Eye, Filter } from 'lucide-react';
 import { adminService } from '../../services/api';
+import { getAppointmentStatus } from '../../config/status';
 
 /* ─── Constants ─────────────────────────────────────── */
-const STATUS_LABELS = {
-  pending: 'Pendiente', on_the_way: 'En camino 🚚', arrived: 'En sitio 📍',
-  in_progress: 'En progreso 🛠', confirmed: 'Confirmada', completed: 'Terminado 🎉',
-  cancelled: 'Cancelada', cancellation_pending: 'Cancel. Pend.', expired: 'Expirada'
+const StatusBadge = ({ status }) => {
+  const info = getAppointmentStatus(status);
+  return <span className={info.badgeClass}>{info.label}</span>;
 };
-
-const ORDER_STATUS_LABELS = {
-  pending: 'Pendiente', confirmed: 'Confirmado', shipped: 'En camino',
-  delivered: 'Entregado', completed: 'Completado', cancelled: 'Cancelado'
-};
-
-const StatusBadge = ({ status }) => (
-  <span className={`status-badge status-${status}`}>
-    {STATUS_LABELS[status] || ORDER_STATUS_LABELS[status] || status}
-  </span>
-);
 
 /* ─── Detail Modal ───────────────────────────────────── */
 const ApptModal = ({ appt, onClose }) => {

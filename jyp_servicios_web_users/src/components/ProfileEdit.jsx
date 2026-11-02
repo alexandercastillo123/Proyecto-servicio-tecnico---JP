@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import PageShell from "./common/PageShell";
 import { motion } from "framer-motion";
 import {
   User, Mail, Phone, MapPin, Save, Camera,
@@ -252,7 +253,7 @@ const ProfileEdit = () => {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto pb-10 space-y-8" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <PageShell width="md" className="pb-10">
 
       <input
         type="file"
@@ -600,7 +601,7 @@ const ProfileEdit = () => {
           </div>
         </motion.form>
       )}
-    </div>
+    </PageShell>
   );
 };
 

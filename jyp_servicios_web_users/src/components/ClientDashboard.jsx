@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PageShell from './common/PageShell';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Search, MapPin, Star, Calendar, ArrowRight, ShieldCheck, 
@@ -193,7 +194,7 @@ const ClientDashboard = () => {
   const clientFirstName = user?.names?.split(' ')[0] || user?.username || 'Cliente';
 
   return (
-    <div className="jyp-page">
+    <PageShell gap="loose">
       
       {/* ── 1. HERO INSTITUCIONAL (Look & Feel Idéntico al Login) ── */}
       <section className="jyp-hero-card">
@@ -339,7 +340,7 @@ const ClientDashboard = () => {
         </motion.div>
       )}
 
-      {/* ── 3. RESUMEN DE INDICADORES / METRICAS (Estilo Login.css) ── */}
+      {/* ── 3. RESUMEN DE INDICADORES / METRICAS (Estilo auth.css) ── */}
       <section className="jyp-stats-grid">
         <div className="jyp-stat-card">
           <div className="jyp-stat-icon" style={{ background: 'rgba(37, 99, 235, 0.14)', color: '#60a5fa', border: '1px solid rgba(37, 99, 235, 0.28)' }}>
@@ -677,7 +678,7 @@ const ClientDashboard = () => {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </PageShell>
   );
 };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PageShell from './common/PageShell';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Package, ShoppingCart, TrendingUp, Plus, 
@@ -13,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../context/SocketContext';
 import { TechLoader } from './common/TechLoader';
 import toast from 'react-hot-toast';
+import { getOrderStatus } from '../config/status';
 
 const StoreDashboard = () => {
   const navigate = useNavigate();
@@ -217,24 +219,8 @@ const StoreDashboard = () => {
   const displayedOrders = orderFilter === 'all' ? orders : orders.filter(o => o.status === orderFilter);
 
   const getStatusBadge = (status) => {
-    switch(status) {
-      case 'pending':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ backgroundColor: 'rgba(234, 179, 8, 0.1)', color: '#EAB308' }}>Pendiente</span>;
-      case 'paid':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10B981' }}>Pagado</span>;
-      case 'confirmed':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ backgroundColor: 'rgba(45, 107, 255, 0.1)', color: 'var(--primary)' }}>Confirmado</span>;
-      case 'in_preparation':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ backgroundColor: 'rgba(6, 182, 212, 0.1)', color: '#06B6D4' }}>En preparación</span>;
-      case 'shipped':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ backgroundColor: 'rgba(168, 85, 247, 0.1)', color: '#A855F7' }}>Despachado</span>;
-      case 'delivered':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', color: '#22C55E' }}>Entregado</span>;
-      case 'cancelled':
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#EF4444' }}>Cancelado</span>;
-      default:
-        return <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ backgroundColor: 'rgba(148, 163, 184, 0.1)', color: '#94A3B8' }}>{status}</span>;
-    }
+    const info = getOrderStatus(status);
+    return <span className={info.badgeClass}>{info.label}</span>;
   };
 
   if (isLoading) {
@@ -248,7 +234,7 @@ const StoreDashboard = () => {
 
   if (!hasStore) {
     return (
-      <div className="w-full space-y-8 pb-4">
+      <PageShell className="pb-4">
         <section className="p-12 text-center rounded-[32px] border jyp-card">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 bg-blue-500/10 text-blue-400">
             <Store size={32} />
@@ -266,12 +252,12 @@ const StoreDashboard = () => {
             Registrar mi sucursal
           </button>
         </section>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="jyp-page">
+    <PageShell gap="loose">
       {/* ── 1. WORKSHOP HERO BANNER ─────────────────────────── */}
       <section className="jyp-hero-card">
         <div className="jyp-hero-glow-1" />
@@ -839,7 +825,7 @@ const StoreDashboard = () => {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </PageShell>
   );
 };
 

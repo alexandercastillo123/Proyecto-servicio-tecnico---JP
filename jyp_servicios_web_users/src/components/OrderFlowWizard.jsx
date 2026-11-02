@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import PageShell from "./common/PageShell";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ShoppingCart, MapPin, CreditCard, Package, Check, ChevronLeft,
@@ -147,7 +148,7 @@ const OrderFlowWizard = () => {
   }
 
   return (
-    <div className="w-full space-y-8 pb-16" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <PageShell className="pb-16">
 
       {/* Header Stepper */}
       <header className="space-y-6">
@@ -505,7 +506,7 @@ const OrderFlowWizard = () => {
           </div>
         </footer>
       )}
-    </div>
+    </PageShell>
   );
 };
 

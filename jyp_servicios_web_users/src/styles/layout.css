@@ -1,0 +1,329 @@
+/* =============================================================
+   Layout — shell de la aplicación y contenedores de página.
+   ============================================================= */
+
+@layer components {
+  /* ── App shell ───────────────────────────────────────────── */
+  .app-shell {
+    display: flex;
+    min-height: 100vh;
+    overflow-x: hidden;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  .app-sidebar {
+    background: var(--app-sidebar-bg);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .app-drawer {
+    background: var(--app-drawer-bg);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .app-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 72px;
+    background: var(--app-header-bg);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  .app-main {
+    flex: 1;
+    min-width: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background:
+      radial-gradient(
+        ellipse at 85% 5%,
+        rgba(37, 99, 235, 0.12) 0%,
+        transparent 45%
+      ),
+      radial-gradient(
+        ellipse at 15% 40%,
+        rgba(6, 182, 212, 0.08) 0%,
+        transparent 40%
+      ),
+      var(--bg);
+    transition: margin-left 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  [data-theme='light'] .app-main {
+    background:
+      radial-gradient(
+        ellipse at 85% 5%,
+        rgba(37, 99, 235, 0.06) 0%,
+        transparent 45%
+      ),
+      radial-gradient(
+        ellipse at 15% 40%,
+        rgba(6, 182, 212, 0.045) 0%,
+        transparent 40%
+      ),
+      var(--bg);
+  }
+
+  @media (min-width: 768px) {
+    .app-main {
+      margin-left: var(--sidebar-w, 264px);
+    }
+  }
+
+  .app-dock {
+    background: var(--app-dock-bg);
+    border-top: 1px solid var(--border);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+  }
+
+  /* ── Contenedores de página reutilizables ─────────────────── */
+  .page-shell {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--text-body);
+  }
+
+  .page-shell--gap-none {
+    gap: 0;
+  }
+
+  .page-shell--gap-compact {
+    gap: 1.5rem;
+  }
+
+  .page-shell--gap-loose {
+    gap: 3rem;
+  }
+
+  .page-header {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .page-header__content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .page-header__title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .page-header__title {
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: clamp(1.75rem, 2.5vw, 2.75rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.15;
+    color: var(--text-title);
+  }
+
+  .page-header__description {
+    max-width: 680px;
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    line-height: 1.7;
+  }
+
+  .page-header__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 1024px) {
+    .page-header {
+      flex-direction: row;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .page-header__actions {
+      justify-content: flex-end;
+    }
+  }
+
+  /* ── Contenedores de página y sección ────────────────────── */
+  .jyp-page {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    font-family: 'Inter', system-ui, sans-serif;
+    color: var(--jyp-text-body);
+  }
+
+  .jyp-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .jyp-container {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+
+  /* ── Encabezado de sección ───────────────────────────────── */
+  .jyp-section-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  @media (min-width: 640px) {
+    .jyp-section-header-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+  }
+
+  .jyp-section-title {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.2;
+    color: var(--jyp-text-title);
+    margin: 0;
+  }
+
+  .jyp-section-subtitle {
+    font-size: 0.875rem;
+    color: var(--jyp-text-dim);
+    line-height: 1.6;
+    margin: 0;
+    font-weight: 400;
+  }
+
+  /* ── Hero institucional (look Login) ─────────────────────── */
+  .jyp-hero-card {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    border-radius: 28px;
+    padding: clamp(28px, 4vw, 44px);
+    background: linear-gradient(
+      135deg,
+      rgba(15, 23, 42, 0.82) 0%,
+      rgba(11, 18, 32, 0.94) 100%
+    );
+    border: 1px solid var(--jyp-border);
+    box-shadow: var(--jyp-shadow-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  [data-theme='light'] .jyp-hero-card {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.95) 0%,
+      rgba(241, 245, 249, 0.95) 100%
+    );
+    border: 1px solid rgba(15, 23, 42, 0.1);
+  }
+
+  .jyp-hero-glow-1 {
+    position: absolute;
+    top: -120px;
+    right: -100px;
+    width: 420px;
+    height: 420px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(
+      circle,
+      rgba(37, 99, 235, 0.22) 0%,
+      transparent 68%
+    );
+    filter: blur(60px);
+    z-index: 0;
+  }
+
+  .jyp-hero-glow-2 {
+    position: absolute;
+    bottom: -100px;
+    left: -80px;
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    pointer-events: none;
+    background: radial-gradient(
+      circle,
+      rgba(6, 182, 212, 0.16) 0%,
+      transparent 68%
+    );
+    filter: blur(60px);
+    z-index: 0;
+  }
+
+  .jyp-hero-title {
+    margin: 0;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: clamp(2rem, 3.2vw, 2.75rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.15;
+    color: var(--jyp-text-title);
+  }
+
+  .jyp-gradient-text {
+    background: linear-gradient(100deg, #60a5fa 8%, #22d3ee 94%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .jyp-hero-desc {
+    max-width: 580px;
+    margin: 0;
+    color: var(--jyp-text-body);
+    font-size: 0.9375rem;
+    line-height: 1.7;
+  }
+
+  /* ── Rejilla de KPIs ─────────────────────────────────────── */
+  .jyp-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+  }
+
+  @media (min-width: 1024px) {
+    .jyp-stats-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 2rem;
+    }
+  }
+}

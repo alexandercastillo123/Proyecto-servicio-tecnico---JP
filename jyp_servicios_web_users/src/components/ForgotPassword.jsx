@@ -4,7 +4,7 @@ import { Mail, ArrowLeft, Send, AlertCircle, Cpu, Sun, Moon, ShieldCheck, CheckC
 import { Link, useNavigate } from 'react-router-dom';
 import { authService } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
-import './Login.css';
+import '../styles/pages/auth.css';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');

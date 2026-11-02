@@ -1,0 +1,85 @@
+/* =============================================================
+   Tablas — admin y JYP.
+   ============================================================= */
+
+@layer components {
+  .admin-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .admin-table thead th {
+    padding: 12px 18px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+    white-space: nowrap;
+  }
+
+  [data-theme='light'] .admin-table thead th {
+    background: rgba(15, 23, 42, 0.03);
+  }
+
+  .admin-table tbody td {
+    padding: 15px 18px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+    color: var(--text-primary);
+    vertical-align: middle;
+  }
+
+  .admin-table tbody tr {
+    transition: background 0.15s ease;
+  }
+
+  .admin-table tbody tr:hover {
+    background: var(--bg-hover);
+    cursor: pointer;
+  }
+
+  .jyp-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid var(--jyp-border);
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--jyp-bg-card);
+    backdrop-filter: blur(16px);
+  }
+
+  .jyp-table thead th {
+    padding: 0.875rem 1.15rem;
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--jyp-text-dim);
+    border-bottom: 1px solid var(--jyp-border);
+    background: rgba(255, 255, 255, 0.02);
+    white-space: nowrap;
+  }
+
+  .jyp-table tbody td {
+    padding: 0.875rem 1.15rem;
+    border-bottom: 1px solid var(--jyp-border);
+    font-size: 0.875rem;
+    color: var(--jyp-text-body);
+    vertical-align: middle;
+  }
+
+  .jyp-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .jyp-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.04);
+  }
+}

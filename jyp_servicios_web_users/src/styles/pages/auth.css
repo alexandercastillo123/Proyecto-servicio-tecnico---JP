@@ -1,3 +1,4 @@
+@layer pages {
 .login-page {
   min-height: 100vh;
   min-height: 100svh;
@@ -134,7 +135,7 @@
 }
 
 .login-eyebrow-location::before {
-  content: "·";
+  content: "Â·";
   margin: 0 5px 0 1px;
   color: #64748b;
 }
@@ -544,7 +545,7 @@
 }
 
 /* ===================================================
-   MODO CLARO (LIGHT MODE) - IMAGEN VISIBLE Y NÍTIDA
+   MODO CLARO (LIGHT MODE) - IMAGEN VISIBLE Y NÃTIDA
    =================================================== */
 
 [data-theme="light"] .login-page {
@@ -688,7 +689,7 @@
 }
 
 /* ===================================================
-   RESPONSIVE DESIGN (DISPOSITIVOS MÓVILES Y TABLETS)
+   RESPONSIVE DESIGN (DISPOSITIVOS MÃ“VILES Y TABLETS)
    =================================================== */
 
 @media (max-width: 1050px) and (min-width: 961px) {
@@ -844,4 +845,6 @@
   .login-section-label {
     font-size: 9px;
   }
+}
+
 }

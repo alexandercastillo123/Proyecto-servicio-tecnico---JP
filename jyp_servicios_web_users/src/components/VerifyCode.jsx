@@ -5,7 +5,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authService } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { toast } from 'react-hot-toast';
-import './Login.css';
+import '../styles/pages/auth.css';
 
 const VerifyCode = () => {
   const [code, setCode] = useState('');

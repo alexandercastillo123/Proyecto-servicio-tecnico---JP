@@ -1,0 +1,124 @@
+/* =============================================================
+   Formularios — inputs base, admin y JYP.
+   ============================================================= */
+
+@layer components {
+  .input-field {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 0 16px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    font-family: 'Inter', sans-serif;
+    font-size: 14.5px;
+    font-weight: 500;
+    outline: none;
+    transition: all 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    appearance: none;
+  }
+
+  .input-field::placeholder {
+    color: var(--text-dim);
+    font-weight: 400;
+  }
+
+  .input-field:focus {
+    border-color: var(--primary-light);
+    background: rgba(37, 99, 235, 0.08);
+    box-shadow:
+      0 0 0 3px rgba(37, 99, 235, 0.2),
+      0 0 15px rgba(37, 99, 235, 0.15);
+  }
+
+  .admin-input {
+    width: 100%;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 12px 16px;
+    border-radius: var(--radius-md);
+    outline: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+  }
+
+  .admin-input:focus {
+    border-color: var(--primary-light);
+    background: rgba(37, 99, 235, 0.06);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+  }
+
+  .admin-input::placeholder {
+    color: var(--text-dim);
+  }
+
+  .admin-select {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 11px 14px;
+    border-radius: var(--radius-md);
+    outline: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .admin-select:focus {
+    border-color: var(--primary);
+  }
+
+  .admin-select option {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+  }
+
+  .jyp-form-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--jyp-text-dim);
+    margin-bottom: 0.5rem;
+  }
+
+  .jyp-form-input {
+    width: 100%;
+    background: var(--jyp-bg-input);
+    border: 1px solid var(--jyp-border);
+    color: var(--jyp-text-title);
+    padding: 0.75rem 1rem;
+    height: 3rem;
+    border-radius: 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    outline: none;
+    transition: all 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    appearance: none;
+  }
+
+  .jyp-form-input::placeholder {
+    color: var(--jyp-text-dim);
+    font-weight: 400;
+  }
+
+  .jyp-form-input:focus {
+    border-color: #3b82f6;
+    background: rgba(37, 99, 235, 0.08);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  }
+
+  .jyp-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

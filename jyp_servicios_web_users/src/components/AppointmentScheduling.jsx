@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import PageShell from './common/PageShell';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -275,7 +276,7 @@ const AppointmentScheduling = () => {
   }
 
   return (
-    <div className="jyp-page max-w-4xl mx-auto">
+    <PageShell width="md" gap="loose">
       
       {/* Progress Stepper */}
       <div className="flex items-center justify-between mb-8 px-4 sm:px-12 relative">
@@ -816,7 +817,7 @@ const AppointmentScheduling = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </PageShell>
   );
 };
 

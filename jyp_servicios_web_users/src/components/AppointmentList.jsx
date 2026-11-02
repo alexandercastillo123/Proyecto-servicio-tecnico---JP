@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import PageShell from "./common/PageShell";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar, Clock, MapPin, ChevronRight, Filter,
@@ -10,54 +11,7 @@ import { clientService, techService } from "../services/api";
 import { formatDateShort } from "../services/formatters";
 import { useNavigate } from "react-router-dom";
 import { TechLoader } from "./common/TechLoader";
-
-const STATUS = {
-  pending: {
-    label: "Pendiente",
-    badgeCls: "bg-amber-500/10 text-amber-300 border-amber-500/25",
-    dotCls: "bg-amber-400 shadow-[0_0_8px_#f59e0b]",
-  },
-  confirmed: {
-    label: "Confirmada",
-    badgeCls: "bg-blue-500/10 text-blue-300 border-blue-500/30",
-    dotCls: "bg-blue-400 shadow-[0_0_8px_#3b82f6]",
-  },
-  on_the_way: {
-    label: "En camino",
-    badgeCls: "bg-cyan-500/15 text-cyan-300 border-cyan-500/35 animate-pulse",
-    dotCls: "bg-cyan-400 shadow-[0_0_10px_#06b6d4]",
-  },
-  arrived: {
-    label: "En sitio",
-    badgeCls: "bg-indigo-500/15 text-indigo-300 border-indigo-500/35",
-    dotCls: "bg-indigo-400 shadow-[0_0_8px_#6366f1]",
-  },
-  in_progress: {
-    label: "En progreso",
-    badgeCls: "bg-teal-500/15 text-teal-300 border-teal-500/35 animate-pulse",
-    dotCls: "bg-teal-400 shadow-[0_0_10px_#14b8a6]",
-  },
-  completed: {
-    label: "Completada",
-    badgeCls: "bg-emerald-500/10 text-emerald-300 border-emerald-500/25",
-    dotCls: "bg-emerald-400 shadow-[0_0_8px_#10b981]",
-  },
-  paid: {
-    label: "Pagada",
-    badgeCls: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",
-    dotCls: "bg-emerald-400 shadow-[0_0_8px_#10b981]",
-  },
-  cancelled: {
-    label: "Cancelada",
-    badgeCls: "bg-rose-500/10 text-rose-300 border-rose-500/25",
-    dotCls: "bg-rose-400",
-  },
-  cancellation_pending: {
-    label: "Por cancelar",
-    badgeCls: "bg-orange-500/10 text-orange-300 border-orange-500/25",
-    dotCls: "bg-orange-400",
-  },
-};
+import { getAppointmentStatus } from "../config/status";
 
 const TABS = [
   { id: "Todas", label: "Todas" },
@@ -133,7 +87,7 @@ const AppointmentList = () => {
   };
 
   return (
-    <div className="w-full space-y-8 pb-10" style={{ fontFamily: "'Inter', sans-serif" }}>
+    <PageShell className="pb-10">
 
       {/* Hero Header */}
       <div className="relative overflow-hidden rounded-[32px] p-8 sm:p-10 border border-white/10 bg-gradient-to-br from-[#0c1322] via-[#080d17] to-[#0d1b2a] shadow-2xl">
@@ -300,11 +254,7 @@ const AppointmentList = () => {
         <div className="space-y-4">
           <AnimatePresence>
             {filtered.map((appt, i) => {
-              const st = STATUS[appt.status] || {
-                label: appt.status,
-                badgeCls: "bg-slate-500/15 text-slate-300 border-white/10",
-                dotCls: "bg-slate-400",
-              };
+              const st = getAppointmentStatus(appt.status);
 
               const clientName = [appt.client_names, appt.client_surnames].filter(Boolean).join(" ").trim() ||
                                  appt.client_username || appt.clientName || appt.client_name || "Cliente";
@@ -409,7 +359,7 @@ const AppointmentList = () => {
           </AnimatePresence>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 };
 

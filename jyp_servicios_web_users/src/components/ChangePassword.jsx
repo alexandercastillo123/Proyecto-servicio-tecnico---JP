@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PageShell from './common/PageShell';
 import { motion } from 'framer-motion';
 import { KeyRound, ShieldCheck, Eye, EyeOff, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { authService } from '../services/api';
@@ -50,7 +51,7 @@ const ChangePassword = () => {
   };
 
   return (
-    <div className="max-w-xl mx-auto space-y-6 pb-4">
+    <PageShell width="xs" gap="compact" className="pb-4">
       <button
         onClick={() => navigate(-1)}
         className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white transition-colors"
@@ -127,7 +128,7 @@ const ChangePassword = () => {
           </button>
         </form>
       </motion.div>
-    </div>
+    </PageShell>
   );
 };
 

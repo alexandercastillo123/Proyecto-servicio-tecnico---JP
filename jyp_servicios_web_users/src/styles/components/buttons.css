@@ -1,0 +1,269 @@
+/* =============================================================
+   Botones — sistema base y variantes institucionales JYP.
+   ============================================================= */
+
+@layer components {
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    padding: 12px 24px;
+    border-radius: var(--radius-md);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    cursor: pointer;
+    transition: all 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: var(--shadow-primary);
+    white-space: nowrap;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.2),
+      transparent
+    );
+    transition: left 0.6s ease;
+  }
+
+  .btn-primary:hover::before {
+    left: 100%;
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    box-shadow: var(--shadow-primary-lg), 0 0 25px rgba(37, 99, 235, 0.4);
+    transform: translateY(-2px);
+  }
+
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .btn-cyan {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #0891b2 0%, #0e7490 100%);
+    color: #ffffff;
+    padding: 12px 24px;
+    border-radius: var(--radius-md);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    cursor: pointer;
+    transition: all 250ms ease;
+    box-shadow: var(--shadow-cyan);
+  }
+
+  .btn-cyan:hover {
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(6, 182, 212, 0.45);
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    padding: 11px 22px;
+    border-radius: var(--radius-md);
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: all 200ms ease;
+    text-decoration: none;
+  }
+
+  .btn-ghost:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-hover);
+    color: var(--text-title);
+  }
+
+  /* ── Botones JYP ─────────────────────────────────────────── */
+  .jyp-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    padding: 0.75rem 1.4rem;
+    border-radius: 14px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    cursor: pointer;
+    transition: all 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 10px 26px rgba(37, 99, 235, 0.35);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .jyp-btn-primary:hover {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    box-shadow:
+      0 14px 34px rgba(37, 99, 235, 0.45),
+      0 0 25px rgba(37, 99, 235, 0.25);
+    transform: translateY(-2px);
+    color: #ffffff;
+  }
+
+  .jyp-btn-cyan {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: rgba(6, 182, 212, 0.12);
+    border: 1px solid var(--jyp-border-cyan);
+    color: #22d3ee;
+    padding: 0.75rem 1.35rem;
+    border-radius: 14px;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: all 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    box-shadow: 0 6px 20px rgba(6, 182, 212, 0.18);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .jyp-btn-cyan:hover {
+    background: rgba(6, 182, 212, 0.22);
+    border-color: rgba(6, 182, 212, 0.6);
+    color: #67e8f9;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(6, 182, 212, 0.3);
+  }
+
+  .jyp-btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: var(--jyp-bg-subtle);
+    color: var(--jyp-text-body);
+    padding: 0.75rem 1.35rem;
+    border-radius: 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: 1px solid var(--jyp-border);
+    cursor: pointer;
+    transition: all 200ms ease;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .jyp-btn-ghost:hover {
+    background: rgba(148, 163, 184, 0.14);
+    border-color: var(--jyp-border-hover);
+    color: var(--jyp-text-title);
+    transform: translateY(-1px);
+  }
+
+  .jyp-btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    padding: 0.6875rem 1.35rem;
+    border-radius: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border: 1px solid rgba(239, 68, 68, 0.28);
+    cursor: pointer;
+    transition: all 200ms ease;
+    text-decoration: none;
+  }
+
+  .jyp-btn-danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.45);
+    transform: translateY(-1px);
+  }
+
+  /* ── Botón de topbar ─────────────────────────────────────── */
+  .topbar-btn {
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: var(--jyp-bg-card);
+    border: 1px solid var(--jyp-border);
+    color: var(--jyp-text-dim);
+    cursor: pointer;
+    transition: all 180ms ease;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .topbar-btn:hover {
+    background: rgba(148, 163, 184, 0.14);
+    border-color: var(--jyp-border-hover);
+    color: var(--jyp-text-title);
+    transform: translateY(-1px);
+  }
+
+  /* ── Toggle de tema ──────────────────────────────────────── */
+  .theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 200ms ease;
+  }
+
+  .theme-toggle:hover {
+    color: var(--text-primary);
+    border-color: var(--border-hover);
+    background: var(--bg-hover);
+    transform: scale(1.04);
+  }
+}

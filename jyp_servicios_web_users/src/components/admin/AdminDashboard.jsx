@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PageShell from '../common/PageShell';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -7,29 +8,20 @@ import {
 } from 'lucide-react';
 import { adminService } from '../../services/api';
 import { useTheme } from '../../context/ThemeContext';
+import { getAppointmentStatus } from '../../config/status';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from 'recharts';
 
 /* ─── Constants ─────────────────────────────────────── */
-const STATUS_LABELS = {
-  pending: 'Pendiente', on_the_way: 'En camino', arrived: 'En sitio',
-  in_progress: 'En progreso', confirmed: 'Confirmada', completed: 'Completado',
-  cancelled: 'Cancelada', cancellation_pending: 'Cancel.Pend.', expired: 'Expirada'
-};
-const STATUS_COLORS = {
-  pending: '#FBBF24', on_the_way: '#3B82F6', arrived: '#06B6D4',
-  in_progress: '#00E5A0', confirmed: '#2D6BFF', completed: '#10B981',
-  cancelled: '#EF4444', cancellation_pending: '#FB923C', expired: '#94A3B8'
-};
 const ROLE_COLORS = ['#2D6BFF', '#00E5A0', '#8B5CF6', '#F59E0B'];
 const ROLE_LABELS = { client: 'Clientes', tech: 'Técnicos', store: 'Tiendas', admin: 'Admins' };
 
 /* ─── Helper Components ──────────────────────────────── */
 const StatusBadge = ({ status }) => {
-  const cls = `status-badge status-${status}`;
-  return <span className={cls}>{STATUS_LABELS[status] || status}</span>;
+  const info = getAppointmentStatus(status);
+  return <span className={info.badgeClass}>{info.label}</span>;
 };
 
 const StatCard = ({ icon, label, value, desc, color, bg }) => (
@@ -142,7 +134,10 @@ const AdminDashboard = () => {
 
   const apptByStatus = Object.entries(
     appointments.reduce((a, x) => { a[x.status] = (a[x.status] || 0) + 1; return a; }, {})
-  ).map(([status, count]) => ({ name: STATUS_LABELS[status] || status, count, fill: STATUS_COLORS[status] || '#94A3B8' }));
+  ).map(([status, count]) => {
+    const info = getAppointmentStatus(status);
+    return { name: info.label, count, fill: info.chartColor };
+  });
 
   const usersByRole = Object.entries(
     users.reduce((a, u) => { a[u.role] = (a[u.role] || 0) + 1; return a; }, {})
@@ -161,7 +156,7 @@ const AdminDashboard = () => {
   const recentAppts = appointments.slice(0, 8);
 
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="w-full space-y-6 pb-4">
+    <PageShell as={motion.div} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} gap="compact" className="pb-4">
       {/* Page title */}
       <div>
         <p className="text-[10px] font-bold uppercase tracking-wider mb-1 flex items-center gap-1.5" style={{ color: 'var(--primary)' }}>
@@ -350,7 +345,7 @@ const AdminDashboard = () => {
       <AnimatePresence>
         {selectedAppt && <ApptModal appt={selectedAppt} onClose={() => setSelectedAppt(null)} />}
       </AnimatePresence>
-    </motion.div>
+    </PageShell>
   );
 };
 
