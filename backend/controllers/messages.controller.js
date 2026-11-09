@@ -46,7 +46,8 @@ const getMessages = asyncHandler(async (req, res) => {
     const [rows] = await pool.query(
         `SELECT
             cm.id, cm.sender_id, cm.receiver_id, cm.message_text,
-            cm.message_type, cm.offer_price, cm.offer_status, cm.cancelled_by,
+            cm.message_type, cm.offer_price, cm.offer_status,
+            cm.offer_payment_status, cm.offer_payment_method, cm.cancelled_by,
             cm.created_at, cm.is_read, cm.deleted_at, cm.is_edited,
             cm.appointment_id, cm.order_id,
             a.status as appointment_status,
@@ -206,13 +207,14 @@ const sendOffer = asyncHandler(async (req, res) => {
     const { receiverId, offerPrice, messageText, appointmentId } = req.body;
 
     const [userRows] = await pool.query('SELECT role FROM users WHERE id = ?', [senderId]);
-    if (userRows.length === 0 || userRows[0].role !== 'tech') {
-        throw new AppError('Solo los prestadores de servicio autorizados pueden enviar propuestas.', 403);
+    const allowedRoles = ['tech', 'technician', 'provider', 'store', 'sucursal', 'admin'];
+    if (userRows.length === 0 || !allowedRoles.includes(userRows[0].role)) {
+        throw new AppError('Solo los prestadores de servicio o tiendas autorizadas pueden enviar propuestas o cobros adicionales.', 403);
     }
 
     const [result] = await pool.query(
-        `INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, offer_price, offer_status, appointment_id)
-         VALUES (?, ?, ?, 'offer', ?, 'pending', ?)`,
+        `INSERT INTO chat_messages (sender_id, receiver_id, message_text, message_type, offer_price, offer_status, offer_payment_status, appointment_id)
+         VALUES (?, ?, ?, 'offer', ?, 'pending', 'pending', ?)`,
         [senderId, receiverId, messageText || `Oferta de servicio: S/.${offerPrice}`, offerPrice, appointmentId || null]
     );
 
@@ -228,6 +230,8 @@ const sendOffer = asyncHandler(async (req, res) => {
             message_type: 'offer',
             offer_price: parseFloat(offerPrice),
             offer_status: 'pending',
+            offer_payment_status: 'pending',
+            offer_payment_method: null,
             appointment_id: appointmentId || null,
             created_at: new Date().toISOString(),
             is_read: false
@@ -237,15 +241,15 @@ const sendOffer = asyncHandler(async (req, res) => {
     } catch (_) { /* Socket.IO not yet initialized */ }
 
     const [techProfile] = await pool.query('SELECT names, company_name FROM user_profiles WHERE user_id = ?', [senderId]);
-    const techName = techProfile[0]?.company_name || techProfile[0]?.names || 'Un técnico';
+    const techName = techProfile[0]?.company_name || techProfile[0]?.names || 'Tu prestador de servicio';
 
     await notificationService.createNotification(
-        receiverId, 'Propuesta de Servicio Recibida',
-        `${techName} te ha enviado una oferta por S/.${offerPrice}`,
+        receiverId, 'Cobro Adicional / Propuesta Recibida',
+        `${techName} te ha enviado un cobro adicional / propuesta por S/.${offerPrice}`,
         'offer', { senderId: senderId.toString(), offerId: offerId.toString(), price: offerPrice.toString() }
     );
 
-    res.status(201).json(Respuesta.ok({ offerId }, '¡Tu propuesta ha sido enviada al cliente!', 201));
+    res.status(201).json(Respuesta.ok({ offerId }, '¡Cobro adicional / propuesta enviada correctamente!', 201));
 });
 
 /**
@@ -254,24 +258,76 @@ const sendOffer = asyncHandler(async (req, res) => {
 const acceptOffer = asyncHandler(async (req, res) => {
     const userId = req.user.id;
     const { id } = req.params;
+    const { paymentMethod } = req.body || {};
 
     const [rows] = await pool.query(
-        'SELECT sender_id, receiver_id, offer_status FROM chat_messages WHERE id = ? AND message_type = "offer"',
+        'SELECT sender_id, receiver_id, offer_status, offer_price FROM chat_messages WHERE id = ? AND message_type = "offer"',
         [id]
     );
     if (rows.length === 0) throw new AppError('No se pudo localizar la propuesta solicitada.', 404);
     if (rows[0].receiver_id !== userId) throw new AppError('No autorizado para aceptar esta oferta.', 403);
     if (rows[0].offer_status !== 'pending') throw new AppError('Esta propuesta ya ha sido procesada o ha expirado.', 400);
 
-    await pool.query('UPDATE chat_messages SET offer_status = "accepted" WHERE id = ?', [id]);
+    const isDirectOnline = paymentMethod === 'culqi';
+    const paymentStatus = isDirectOnline ? 'paid' : (paymentMethod ? 'waiting_confirmation' : 'paid');
+
+    await pool.query(
+        'UPDATE chat_messages SET offer_status = "accepted", offer_payment_status = ?, offer_payment_method = ? WHERE id = ?',
+        [paymentStatus, paymentMethod || 'manual', id]
+    );
 
     try {
-        const updatePayload = { offerId: parseInt(id), offerStatus: 'accepted' };
+        const updatePayload = {
+            offerId: parseInt(id),
+            offerStatus: 'accepted',
+            offerPaymentStatus: paymentStatus,
+            offerPaymentMethod: paymentMethod || 'manual'
+        };
         getIO().to(`user_${rows[0].sender_id}`).emit('offer_updated', updatePayload);
         getIO().to(`user_${userId}`).emit('offer_updated', updatePayload);
     } catch (_) {}
 
-    res.json(Respuesta.ok(null, '¡Has aceptado la propuesta correctamente!'));
+    res.json(Respuesta.ok(null, '¡Has aceptado y registrado el pago de la propuesta correctamente!'));
+});
+
+/**
+ * PUT /api/messages/offers/:id/confirm-payment
+ */
+const confirmOfferPayment = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const [rows] = await pool.query(
+        'SELECT sender_id, receiver_id, offer_status, offer_payment_status, offer_price FROM chat_messages WHERE id = ? AND message_type = "offer"',
+        [id]
+    );
+    if (rows.length === 0) throw new AppError('Cobro no encontrado.', 404);
+    if (rows[0].sender_id !== userId) throw new AppError('Solo el prestador que envió el cobro puede confirmar el pago.', 403);
+
+    await pool.query(
+        'UPDATE chat_messages SET offer_status = "accepted", offer_payment_status = "paid" WHERE id = ?',
+        [id]
+    );
+
+    try {
+        const updatePayload = {
+            offerId: parseInt(id),
+            offerStatus: 'accepted',
+            offerPaymentStatus: 'paid'
+        };
+        getIO().to(`user_${rows[0].receiver_id}`).emit('offer_updated', updatePayload);
+        getIO().to(`user_${userId}`).emit('offer_updated', updatePayload);
+    } catch (_) {}
+
+    await notificationService.createNotification(
+        rows[0].receiver_id,
+        'Pago de Cobro Adicional Confirmado',
+        `El prestador ha validado la recepción de tu pago de S/.${rows[0].offer_price}.`,
+        'offer_confirmed',
+        { offerId: id.toString() }
+    );
+
+    res.json(Respuesta.ok(null, '¡Pago del cobro adicional validado con éxito!'));
 });
 
 /**
@@ -382,5 +438,5 @@ const deleteMessage = asyncHandler(async (req, res) => {
 
 module.exports = {
     getConversations, getMessages, sendMessage, sendMediaMessage, sendOffer,
-    acceptOffer, rejectOffer, cancelOffer, markAsRead, updateMessage, deleteMessage
+    acceptOffer, confirmOfferPayment, rejectOffer, cancelOffer, markAsRead, updateMessage, deleteMessage
 };

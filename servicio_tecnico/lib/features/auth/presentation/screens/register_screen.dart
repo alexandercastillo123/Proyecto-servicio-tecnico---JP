@@ -230,7 +230,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             );
             if (!res.success) {
               if (mounted)
-                _showError(res.message ?? 'El correo ingresado no es válido o ya se encuentra registrado.');
+                _showError(res.message ??
+                    'El correo ingresado no es válido o ya se encuentra registrado.');
               return;
             }
           } else if (_currentStep == 1) {
@@ -238,13 +239,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
               _userController.text.trim(),
             );
             if (!res.success) {
-              if (mounted) _showError(res.message ?? 'Este nombre de usuario ya está en uso. Por favor, elige otro.');
+              if (mounted)
+                _showError(res.message ??
+                    'Este nombre de usuario ya está en uso. Por favor, elige otro.');
               return;
             }
             // Validar password minimo 6 caracteres
             if (_passwordController.text.length < 6) {
               if (mounted)
-                _showError('Tu contraseña es muy corta. Asegúrate de que tenga al menos 6 caracteres.');
+                _showError(
+                    'Tu contraseña es muy corta. Asegúrate de que tenga al menos 6 caracteres.');
               return;
             }
           }
@@ -255,7 +259,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             });
           }
         } catch (e) {
-          if (mounted) _showError('No logramos validar tus datos. Verifica tu conexión.');
+          if (mounted)
+            _showError('No logramos validar tus datos. Verifica tu conexión.');
         } finally {
           if (mounted) setState(() => _isGeocoding = false);
         }
@@ -383,7 +388,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             _surnamesController.text.trim().isEmpty ||
             _dniController.text.trim().isEmpty ||
             _emailController.text.trim().isEmpty) {
-          _showError('Por favor, completa todos los campos de información personal.');
+          _showError(
+              'Por favor, completa todos los campos de información personal.');
           return false;
         }
 
@@ -395,7 +401,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (_namesController.text.trim().isEmpty ||
             _rucController.text.trim().isEmpty ||
             _emailController.text.trim().isEmpty) {
-          _showError('Por favor, ingresa los datos correspondientes a la empresa.');
+          _showError(
+              'Por favor, ingresa los datos correspondientes a la empresa.');
           return false;
         }
 
@@ -667,7 +674,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (!_validateLocalFields()) return;
 
     if (!_policiesAccepted) {
-      _showError('Es necesario aceptar los términos y condiciones para continuar.');
+      _showError(
+          'Es necesario aceptar los términos y condiciones para continuar.');
       return;
     }
 
@@ -694,26 +702,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
         companyName: isJuridical ? _namesController.text : null,
         ruc: isJuridical ? _rucController.text : null,
         phone: widget.role == 'tech' ? _phoneController.text : null,
-        referenceAddress: widget.role == 'tech'
-            ? _referenceAddressController.text
-            : null,
+        referenceAddress:
+            widget.role == 'tech' ? _referenceAddressController.text : null,
         latitude: widget.role == 'tech' ? _techLat : null,
         longitude: widget.role == 'tech' ? _techLng : null,
         schedules: (widget.role == 'tech' && isJuridical)
             ? _schedules
-                  .map(
-                    (s) => {
-                      'dayOfWeek': s['dayEn'],
-                      'startTime': _to24h(
-                        s['startH'],
-                        s['startM'],
-                        s['startP'],
-                      ),
-                      'endTime': _to24h(s['endH'], s['endM'], s['endP']),
-                      'isActive': true,
-                    },
-                  )
-                  .toList()
+                .map(
+                  (s) => {
+                    'dayOfWeek': s['dayEn'],
+                    'startTime': _to24h(
+                      s['startH'],
+                      s['startM'],
+                      s['startP'],
+                    ),
+                    'endTime': _to24h(s['endH'], s['endM'], s['endP']),
+                    'isActive': true,
+                  },
+                )
+                .toList()
             : null,
         policiesAccepted: _policiesAccepted,
       );
@@ -742,7 +749,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           }
         } else {
           if (context.mounted)
-            _showError(response.message ?? 'Hubo un inconveniente al crear tu cuenta. Por favor, intenta de nuevo.');
+            _showError(response.message ??
+                'Hubo un inconveniente al crear tu cuenta. Por favor, intenta de nuevo.');
         }
       }
     } catch (e) {
@@ -984,7 +992,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           else
             Column(
               children: [
-                const Padding(
+                Padding(
                   padding: EdgeInsets.symmetric(horizontal: 40),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1002,9 +1010,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Text(
                         'Capture su identidad para el perfil',
                         style: TextStyle(
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : AppColors.textPrimary,
                         ),
                       ),
                     ],
@@ -1033,7 +1043,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           Container(
                             decoration: BoxDecoration(
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 width: 2,
                               ),
                               borderRadius: BorderRadius.circular(200),
@@ -1047,7 +1057,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               gradient: RadialGradient(
                                 colors: [
                                   Colors.transparent,
-                                  Colors.black.withOpacity(0.4),
+                                  Colors.black.withValues(alpha: 0.4),
                                 ],
                                 stops: const [0.6, 1.0],
                               ),
@@ -1092,7 +1102,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
         ] else ...[
           // Preview state
-          const Padding(
+          Padding(
             padding: EdgeInsets.symmetric(horizontal: 40),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1110,9 +1120,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Text(
                   '¿Desea usar esta fotografía?',
                   style: TextStyle(
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -1131,7 +1143,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     width: double.infinity,
                     decoration: BoxDecoration(
                       border: Border.all(
-                        color: AppColors.primary.withOpacity(0.1),
+                        color: AppColors.primary.withValues(alpha: 0.1),
                         width: 1,
                       ),
                       boxShadow: AppColors.premiumShadow,
@@ -1152,7 +1164,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         vertical: 12,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: AppColors.softShadow,
                       ),
@@ -1240,14 +1252,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final url = Uri.parse(
         'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(address)}&format=json&limit=1',
       );
-      final response = await http
-          .get(
-            url,
-            headers: {
-              'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
-            },
-          )
-          .timeout(const Duration(seconds: 15));
+      final response = await http.get(
+        url,
+        headers: {
+          'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
+        },
+      ).timeout(const Duration(seconds: 15));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
@@ -1293,14 +1303,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         final uri = Uri.parse(
           'https://nominatim.openstreetmap.org/reverse?format=json&lat=${latLng.latitude}&lon=${latLng.longitude}&zoom=18&addressdetails=1',
         );
-        final response = await http
-            .get(
-              uri,
-              headers: {
-                'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
-              },
-            )
-            .timeout(const Duration(seconds: 5));
+        final response = await http.get(
+          uri,
+          headers: {
+            'User-Agent': 'com.jp.serviciotecnico.servicio_tecnico_app',
+          },
+        ).timeout(const Duration(seconds: 5));
 
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);

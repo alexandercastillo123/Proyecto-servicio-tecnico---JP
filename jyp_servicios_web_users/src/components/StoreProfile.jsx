@@ -6,7 +6,7 @@ import {
   Store, MapPin, Phone, Info, ShoppingCart,
   ArrowLeft, Search, Filter, Box, ArrowRight,
   Clock, ShieldCheck, Check, Star, MessageCircle,
-  Package, Zap, Sparkles
+  Package, Zap, Sparkles, ExternalLink, ShoppingBag
 } from "lucide-react";
 import { storeService } from "../services/api";
 import { mediaUrl } from "../services/formatters";
@@ -250,19 +250,63 @@ const StoreProfile = () => {
 
         {/* Product Grid & Reviews */}
         <div className="lg:col-span-3 space-y-6">
+          {/* Banner Tienda Virtual J&P */}
+          <div className="p-6 rounded-[28px] border border-cyan-500/30 bg-gradient-to-r from-blue-900/40 via-cyan-900/30 to-[#0a101b] shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 text-cyan-300 font-black text-xs uppercase tracking-wider">
+                <ExternalLink size={15} />
+                <span>Tienda Virtual Oficial J&P</span>
+              </div>
+              <p className="text-xs text-slate-300 max-w-lg leading-relaxed">
+                Adquiere componentes, herramientas y repuestos originales con garantía y envío seguro en nuestra plataforma web oficial.
+              </p>
+            </div>
+            <a
+              href="https://jypsac.com/tienda/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="jyp-btn-primary px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shrink-0"
+            >
+              <span>Comprar en jypsac.com/tienda</span>
+              <ExternalLink size={14} />
+            </a>
+          </div>
+
           <div className="flex justify-between items-center px-1">
             <h2
               className="text-xl font-black text-white tracking-tight"
               style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             >
-              Inventario de Repuestos & Suministros
+              {store?.catalog_enabled === false
+                ? 'Catálogo Exclusivo en Línea'
+                : 'Inventario de Repuestos & Suministros en Sucursal'}
             </h2>
             <span className="text-xs font-mono font-bold text-slate-400 px-3 py-1 rounded-full bg-white/5 border border-white/5">
               {filteredProducts.length} productos
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {store?.catalog_enabled === false ? (
+            <div className="p-12 text-center rounded-[32px] border border-white/10 bg-[#0a101b]/80 space-y-4">
+              <div className="w-16 h-16 rounded-3xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center mx-auto border border-cyan-500/20">
+                <ShoppingBag size={28} />
+              </div>
+              <h3 className="text-lg font-black text-white">Venta Centralizada en Web</h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+                Esta sucursal está enfocada en diagnóstico y servicio técnico presencial. Todas las compras de piezas y repuestos se realizan directamente a través de nuestra tienda online oficial.
+              </p>
+              <a
+                href="https://jypsac.com/tienda/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="jyp-btn-primary inline-flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider shadow-xl"
+              >
+                <span>Ir al Catálogo Virtual J&P</span>
+                <ExternalLink size={14} />
+              </a>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {filteredProducts.length > 0 ? (
               filteredProducts.map((p) => (
                 <div
@@ -335,6 +379,7 @@ const StoreProfile = () => {
               </div>
             )}
           </div>
+          )}
 
           {/* Branch Reviews Section */}
           <section className="p-7 sm:p-8 rounded-[32px] border border-white/10 bg-[#0a101b]/90 shadow-xl space-y-5">

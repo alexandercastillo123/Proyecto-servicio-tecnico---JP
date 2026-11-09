@@ -11,6 +11,7 @@ import '../../../../core/providers/auth_provider.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 import '../../../../core/widgets/custom_avatar.dart';
 import '../../../../core/utils/date_formatter.dart';
@@ -946,6 +947,7 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
 
   Widget _buildCatalog() {
     if (_loadingProducts) return const Center(child: CircularProgressIndicator());
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -977,6 +979,143 @@ class _StoreHomeScreenState extends State<StoreHomeScreen> {
             ],
           ),
         ),
+
+        // Control de Venta en la App vs Redirección Web (jypsac.com/tienda)
+        if (_myStore != null)
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: _myStore!.catalogEnabled
+                    ? Colors.green.withValues(alpha: 0.3)
+                    : const Color(0xFF2563EB).withValues(alpha: 0.3),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        children: [
+                          Icon(
+                            _myStore!.catalogEnabled
+                                ? Icons.storefront_rounded
+                                : Icons.public_rounded,
+                            color: _myStore!.catalogEnabled ? Colors.green : const Color(0xFF2563EB),
+                            size: 22,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Venta de productos en la app',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                Text(
+                                  _myStore!.catalogEnabled
+                                      ? 'Activado: Productos visibles y vendibles en la app'
+                                      : 'Desactivado: Redirige a clientes a jypsac.com/tienda',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: isDark ? Colors.white70 : Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch.adaptive(
+                      value: _myStore!.catalogEnabled,
+                      activeColor: Colors.green,
+                      onChanged: (val) async {
+                        setState(() {
+                          _myStore = Store(
+                            id: _myStore!.id,
+                            userId: _myStore!.userId,
+                            name: _myStore!.name,
+                            description: _myStore!.description,
+                            address: _myStore!.address,
+                            city: _myStore!.city,
+                            state: _myStore!.state,
+                            zipCode: _myStore!.zipCode,
+                            country: _myStore!.country,
+                            phone: _myStore!.phone,
+                            email: _myStore!.email,
+                            whatsapp: _myStore!.whatsapp,
+                            websiteUrl: _myStore!.websiteUrl,
+                            imageUrl: _myStore!.imageUrl,
+                            latitude: _myStore!.latitude,
+                            longitude: _myStore!.longitude,
+                            rating: _myStore!.rating,
+                            reviewsCount: _myStore!.reviewsCount,
+                            specialties: _myStore!.specialties,
+                            socialMedia: _myStore!.socialMedia,
+                            openingTime: _myStore!.openingTime,
+                            closingTime: _myStore!.closingTime,
+                            openDays: _myStore!.openDays,
+                            status: _myStore!.status,
+                            distanceKm: _myStore!.distanceKm,
+                            catalogEnabled: val,
+                          );
+                        });
+                        await _storeService.updateStore(_myStore!.id, {'catalog_enabled': val});
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(val
+                                  ? 'Venta en app activada: El catálogo interno está habilitado.'
+                                  : 'Venta en app desactivada: Clientes serán dirigidos a la tienda virtual J&P.'),
+                              backgroundColor: Colors.blueAccent,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ],
+                ),
+                if (!_myStore!.catalogEnabled) ...[
+                  const Divider(height: 18),
+                  Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF2563EB)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'El sistema se enfoca en servicio técnico. Los clientes verán la invitación a comprar en la tienda virtual de J&P con enlace directo.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? Colors.white60 : Colors.blueGrey,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        const SizedBox(height: 8),
         Expanded(
           child: _products.isEmpty
               ? Center(child: _buildEmptyState(Icons.inventory_2_outlined, 'Aún no tienes productos\nAgrega uno para comenzar'))

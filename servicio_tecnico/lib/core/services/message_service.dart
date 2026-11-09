@@ -1,4 +1,4 @@
-﻿import 'api_service.dart';
+import 'api_service.dart';
 import '../constants/api_constants.dart';
 
 class MessageService {
@@ -83,10 +83,22 @@ class MessageService {
     );
   }
 
-  /// Accept offer
-  Future<ApiResponse<Map<String, dynamic>>> acceptOffer(int offerId) async {
+  /// Accept offer / pay additional charge
+  Future<ApiResponse<Map<String, dynamic>>> acceptOffer(int offerId, {String? paymentMethod}) async {
     return await _apiService.put<Map<String, dynamic>>(
       ApiConstants.acceptOffer(offerId),
+      {
+        if (paymentMethod != null) 'paymentMethod': paymentMethod,
+      },
+      requiresAuth: true,
+      fromJson: (data) => data as Map<String, dynamic>,
+    );
+  }
+
+  /// Confirm payment for additional charge / offer (by tech)
+  Future<ApiResponse<Map<String, dynamic>>> confirmOfferPayment(int offerId) async {
+    return await _apiService.put<Map<String, dynamic>>(
+      ApiConstants.confirmOfferPayment(offerId),
       {},
       requiresAuth: true,
       fromJson: (data) => data as Map<String, dynamic>,

@@ -1,4 +1,4 @@
-﻿class Store {
+class Store {
   final int id;
   final int userId;
   final String name;
@@ -24,6 +24,7 @@
   final String? openDays;
   final String status;
   final double? distanceKm;
+  final bool catalogEnabled;
 
   Store({
     required this.id,
@@ -51,6 +52,7 @@
     this.openDays,
     required this.status,
     this.distanceKm,
+    this.catalogEnabled = true,
   });
 
   factory Store.fromJson(Map<String, dynamic> json) {
@@ -86,6 +88,11 @@
       distanceKm: json['distance_km'] != null
           ? double.tryParse(json['distance_km'].toString())
           : null,
+      catalogEnabled: json['catalog_enabled'] == null
+          ? true
+          : (json['catalog_enabled'] == true ||
+              json['catalog_enabled'] == 1 ||
+              json['catalog_enabled'] == '1'),
     );
   }
 
@@ -102,6 +109,7 @@
       'email': email,
       'whatsapp': whatsapp,
       'website_url': websiteUrl,
+      'catalog_enabled': catalogEnabled,
       'latitude': latitude,
       'longitude': longitude,
       'specialties': specialties,

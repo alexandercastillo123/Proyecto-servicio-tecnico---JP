@@ -4,20 +4,31 @@
 
 USE servicio_tecnico_db;
 
--- Limpiar datos existentes
+-- Limpiar datos existentes de forma segura
 SET FOREIGN_KEY_CHECKS = 0;
-TRUNCATE TABLE store_orders;
-TRUNCATE TABLE store_schedules;
-TRUNCATE TABLE store_reviews;
-TRUNCATE TABLE store_products;
-TRUNCATE TABLE sucursales_citas;
-TRUNCATE TABLE sucursales;
-TRUNCATE TABLE reviews;
-TRUNCATE TABLE chat_messages;
-TRUNCATE TABLE appointments;
-TRUNCATE TABLE technician_schedules;
-TRUNCATE TABLE user_profiles;
-TRUNCATE TABLE users;
+DELETE FROM payment_logs;
+DELETE FROM store_order_products;
+DELETE FROM store_orders;
+DELETE FROM store_schedules;
+DELETE FROM store_reviews;
+DELETE FROM store_products;
+DELETE FROM sucursales_citas;
+DELETE FROM sucursales;
+DELETE FROM reviews;
+DELETE FROM chat_messages;
+DELETE FROM appointments;
+DELETE FROM technician_schedules;
+DELETE FROM user_profiles;
+DELETE FROM users;
+
+-- Reiniciar autoincrementables
+ALTER TABLE users AUTO_INCREMENT = 1;
+ALTER TABLE user_profiles AUTO_INCREMENT = 1;
+ALTER TABLE sucursales AUTO_INCREMENT = 1;
+ALTER TABLE store_products AUTO_INCREMENT = 1;
+ALTER TABLE store_orders AUTO_INCREMENT = 1;
+ALTER TABLE appointments AUTO_INCREMENT = 1;
+ALTER TABLE chat_messages AUTO_INCREMENT = 1;
 SET FOREIGN_KEY_CHECKS = 1;
 
 -- ===== USUARIO CLIENTE =====

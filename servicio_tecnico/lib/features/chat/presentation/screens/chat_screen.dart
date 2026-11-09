@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -38,6 +37,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   StreamSubscription? _messageSubscription;
   StreamSubscription? _typingSubscription;
+  StreamSubscription? _offerSubscription;
   bool _isOtherTyping = false;
   Timer? _typingDebounce;
   final ImagePicker _picker = ImagePicker();
@@ -53,16 +53,15 @@ class _ChatScreenState extends State<ChatScreen> {
   bool _otherUserAvailable = true;
   int? _otherStoreId;
   int? _currentUserId;
-  final Record _recorder = Record();
+  final AudioRecorder _recorder = AudioRecorder();
   bool _isRecordingAudio = false;
 
   String _formatTime(String? timestamp) {
     if (timestamp == null) return '';
     try {
       final date = DateTime.parse(timestamp).toLocal();
-      final hour = date.hour > 12
-          ? date.hour - 12
-          : (date.hour == 0 ? 12 : date.hour);
+      final hour =
+          date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
       final period = date.hour >= 12 ? 'pm' : 'am';
       final minute = date.minute.toString().padLeft(2, '0');
       return '$hour:$minute $period';
@@ -134,6 +133,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _typingDebounce?.cancel();
     _typingSubscription?.cancel();
     _messageSubscription?.cancel();
+    _offerSubscription?.cancel();
     if (_isRecordingAudio) {
       _recorder.stop();
     }
@@ -161,7 +161,10 @@ class _ChatScreenState extends State<ChatScreen> {
       final receiverId = data['receiver_id']?.toString();
       final me = (_currentUserId ?? LocalCacheService.getUserId())?.toString();
       final other = _otherUserId?.toString();
-      if (senderId == null || receiverId == null || me == null || other == null) {
+      if (senderId == null ||
+          receiverId == null ||
+          me == null ||
+          other == null) {
         return;
       }
 
@@ -185,10 +188,11 @@ class _ChatScreenState extends State<ChatScreen> {
       }
 
       setState(() {
-        _messages = List.from(_messages)..add({
-          ...data,
-          'is_me': isMine,
-        });
+        _messages = List.from(_messages)
+          ..add({
+            ...data,
+            'is_me': isMine,
+          });
       });
       _scrollToBottom();
     });
@@ -206,17 +210,27 @@ class _ChatScreenState extends State<ChatScreen> {
         }
       }
     });
+
+    _offerSubscription?.cancel();
+    _offerSubscription = _socketService.onOfferUpdated.listen((data) {
+      if (_isDisposed) return;
+      if (_otherUserId != null) {
+        _loadMessages(_otherUserId!);
+      }
+    });
   }
 
   Future<void> _loadInitialData(int userId) async {
     try {
       _currentUserId = LocalCacheService.getUserId();
       _userRole = LocalCacheService.getRole();
-      
+
       final profileRes = await _userService.getProfile();
       if (profileRes.success) {
         _userRole = profileRes.data?['role'] ?? _userRole;
-        _currentUserId = profileRes.data?['id'] ?? profileRes.data?['user_id'] ?? _currentUserId;
+        _currentUserId = profileRes.data?['id'] ??
+            profileRes.data?['user_id'] ??
+            _currentUserId;
         // Restablece la conexión si el socket se perdió por segundo plano o
         // cambio de red. Antes solo comprobaba isConnected, pero init() salía
         // de inmediato porque _initialized ya estaba en true.
@@ -294,13 +308,14 @@ class _ChatScreenState extends State<ChatScreen> {
 
     // Optimistic update
     setState(() {
-      _messages = List.from(_messages)..add({
-        'message_text': text,
-        'message_type': 'text',
-        'sender_id': 'me',
-        'created_at': DateTime.now().toIso8601String(),
-        'is_me': true,
-      });
+      _messages = List.from(_messages)
+        ..add({
+          'message_text': text,
+          'message_type': 'text',
+          'sender_id': 'me',
+          'created_at': DateTime.now().toIso8601String(),
+          'is_me': true,
+        });
     });
     _scrollToBottom();
 
@@ -346,7 +361,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   style: GoogleFonts.outfit(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -371,33 +388,33 @@ class _ChatScreenState extends State<ChatScreen> {
                         _pickAndSendImage(ImageSource.gallery);
                       },
                     ),
-                     _buildMediaOption(
-                       icon: Icons.videocam,
-                       label: 'Video',
-                       color: Colors.deepOrange,
-                       onTap: () {
-                         Navigator.pop(ctx);
-                         _pickAndSendVideo(ImageSource.gallery);
-                       },
-                     ),
-                     _buildMediaOption(
-                       icon: Icons.video_call,
-                       label: 'Grabar',
-                       color: Colors.red,
-                       onTap: () {
-                         Navigator.pop(ctx);
-                         _pickAndSendVideo(ImageSource.camera);
-                       },
-                     ),
-                     _buildMediaOption(
-                       icon: Icons.mic,
-                       label: 'Grabar Audio',
-                       color: Colors.green,
-                       onTap: () {
-                         Navigator.pop(ctx);
-                         _recordAndSendAudio();
-                       },
-                     ),
+                    _buildMediaOption(
+                      icon: Icons.videocam,
+                      label: 'Video',
+                      color: Colors.deepOrange,
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _pickAndSendVideo(ImageSource.gallery);
+                      },
+                    ),
+                    _buildMediaOption(
+                      icon: Icons.video_call,
+                      label: 'Grabar',
+                      color: Colors.red,
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _pickAndSendVideo(ImageSource.camera);
+                      },
+                    ),
+                    _buildMediaOption(
+                      icon: Icons.mic,
+                      label: 'Grabar Audio',
+                      color: Colors.green,
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _recordAndSendAudio();
+                      },
+                    ),
                   ],
                 ),
                 const SizedBox(height: 12),
@@ -439,7 +456,9 @@ class _ChatScreenState extends State<ChatScreen> {
               style: GoogleFonts.outfit(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Theme.of(context).brightness == Brightness.dark ? Colors.white70 : AppColors.textPrimary,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white70
+                    : AppColors.textPrimary,
               ),
             ),
           ],
@@ -491,7 +510,8 @@ class _ChatScreenState extends State<ChatScreen> {
     if (!hasPermission) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Permiso de grabación de audio denegado')),
+          const SnackBar(
+              content: Text('Permiso de grabación de audio denegado')),
         );
       }
       return;
@@ -504,10 +524,12 @@ class _ChatScreenState extends State<ChatScreen> {
     final path = '${dir.path}/audio_$timestamp.m4a';
 
     await _recorder.start(
+      RecordConfig(
+        encoder: AudioEncoder.aacLc,
+        bitRate: 128000,
+        sampleRate: 44100,
+      ),
       path: path,
-      encoder: AudioEncoder.aacLc,
-      bitRate: 128000,
-      samplingRate: 44100,
     );
 
     if (!mounted) return;
@@ -584,14 +606,15 @@ class _ChatScreenState extends State<ChatScreen> {
 
     setState(() {
       _isUploadingMedia = true;
-      _messages = List.from(_messages)..add({
-        'message_text': filePath,
-        'message_type': type,
-        'sender_id': 'me',
-        'created_at': DateTime.now().toIso8601String(),
-        'is_me': true,
-        'is_uploading': true,
-      });
+      _messages = List.from(_messages)
+        ..add({
+          'message_text': filePath,
+          'message_type': type,
+          'sender_id': 'me',
+          'created_at': DateTime.now().toIso8601String(),
+          'is_me': true,
+          'is_uploading': true,
+        });
     });
     _scrollToBottom();
 
@@ -606,7 +629,9 @@ class _ChatScreenState extends State<ChatScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(res.message.isNotEmpty ? res.message : 'Error al enviar archivo'),
+              content: Text(res.message?.isNotEmpty == true
+                  ? res.message!
+                  : 'Error al enviar archivo'),
             ),
           );
         }
@@ -663,9 +688,8 @@ class _ChatScreenState extends State<ChatScreen> {
     } catch (_) {}
 
     return CustomAvatar(
-      imageUrl: profileUrl != null
-          ? ApiConstants.getStorageUrl(profileUrl)
-          : null,
+      imageUrl:
+          profileUrl != null ? ApiConstants.getStorageUrl(profileUrl) : null,
       name: _otherUserName ?? '?',
       size: 36,
       fontSize: 14,
@@ -676,7 +700,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF020617) : const Color(0xFFF1F1F1),
+      backgroundColor:
+          isDark ? const Color(0xFF020617) : const Color(0xFFF1F1F1),
       appBar: AppBar(
         backgroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
         elevation: 0.5,
@@ -722,7 +747,9 @@ class _ChatScreenState extends State<ChatScreen> {
                       Text(
                         _otherUserName ?? 'Usuario',
                         style: GoogleFonts.outfit(
-                          color: Theme.of(context).brightness == Brightness.dark ? Colors.white : AppColors.textPrimary,
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? Colors.white
+                              : AppColors.textPrimary,
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
@@ -753,7 +780,9 @@ class _ChatScreenState extends State<ChatScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              _otherUserAvailable ? 'En línea' : 'Fuera de línea',
+                              _otherUserAvailable
+                                  ? 'En línea'
+                                  : 'Fuera de línea',
                               style: GoogleFonts.outfit(
                                 color: AppColors.textSecondary,
                                 fontSize: 11,
@@ -822,236 +851,250 @@ class _ChatScreenState extends State<ChatScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
-          ? Center(child: Text(_errorMessage!))
-          : Column(
-              children: [
-                if (_buildActiveOrderBar() != null) _buildActiveOrderBar()!,
-                Expanded(
-                  child: ListView.builder(
-                    controller: _scrollController,
-                    padding: const EdgeInsets.all(16),
-                    itemCount: _getFilteredMessages().length,
-                    itemBuilder: (context, index) {
-                      final messages = _getFilteredMessages();
-                      final msg = messages[index];
-                      final isMe =
-                          msg['is_me'] == true ||
-                          msg['sender_id'] == 'me' ||
-                          (msg['sender_id'] != null &&
-                              msg['sender_id'].toString() !=
-                                  _otherUserId?.toString());
+              ? Center(child: Text(_errorMessage!))
+              : Column(
+                  children: [
+                    if (_buildActiveOrderBar() != null) _buildActiveOrderBar()!,
+                    Expanded(
+                      child: ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _getFilteredMessages().length,
+                        itemBuilder: (context, index) {
+                          final messages = _getFilteredMessages();
+                          final msg = messages[index];
+                          final isMe = msg['is_me'] == true ||
+                              msg['sender_id'] == 'me' ||
+                              (msg['sender_id'] != null &&
+                                  msg['sender_id'].toString() !=
+                                      _otherUserId?.toString());
 
-                      final time = _formatTime(msg['created_at']);
+                          final time = _formatTime(msg['created_at']);
 
-                      // Date separator logic
-                      bool showDateSeparator = false;
-                      String dateLabel = '';
+                          // Date separator logic
+                          bool showDateSeparator = false;
+                          String dateLabel = '';
 
-                      if (msg['created_at'] != null) {
-                        try {
-                          final DateTime currentDate = DateTime.parse(
-                            msg['created_at'],
-                          ).toLocal();
-                          final DateTime pureDate = DateTime(
-                            currentDate.year,
-                            currentDate.month,
-                            currentDate.day,
-                          );
-
-                          if (index == 0) {
-                            showDateSeparator = true;
-                          } else {
-                            final prevMsg = _messages[index - 1];
-                            if (prevMsg['created_at'] != null) {
-                              final DateTime prevDate = DateTime.parse(
-                                prevMsg['created_at'],
+                          if (msg['created_at'] != null) {
+                            try {
+                              final DateTime currentDate = DateTime.parse(
+                                msg['created_at'],
                               ).toLocal();
-                              final DateTime purePrevDate = DateTime(
-                                prevDate.year,
-                                prevDate.month,
-                                prevDate.day,
+                              final DateTime pureDate = DateTime(
+                                currentDate.year,
+                                currentDate.month,
+                                currentDate.day,
                               );
-                              if (pureDate.isAfter(purePrevDate)) {
+
+                              if (index == 0) {
                                 showDateSeparator = true;
+                              } else {
+                                final prevMsg = _messages[index - 1];
+                                if (prevMsg['created_at'] != null) {
+                                  final DateTime prevDate = DateTime.parse(
+                                    prevMsg['created_at'],
+                                  ).toLocal();
+                                  final DateTime purePrevDate = DateTime(
+                                    prevDate.year,
+                                    prevDate.month,
+                                    prevDate.day,
+                                  );
+                                  if (pureDate.isAfter(purePrevDate)) {
+                                    showDateSeparator = true;
+                                  }
+                                }
                               }
+
+                              if (showDateSeparator) {
+                                final now = DateTime.now();
+                                final today = DateTime(
+                                  now.year,
+                                  now.month,
+                                  now.day,
+                                );
+                                final yesterday = today.subtract(
+                                  const Duration(days: 1),
+                                );
+
+                                if (pureDate == today) {
+                                  dateLabel = 'Hoy';
+                                } else if (pureDate == yesterday) {
+                                  dateLabel = 'Ayer';
+                                } else {
+                                  final months = [
+                                    'Enero',
+                                    'Febrero',
+                                    'Marzo',
+                                    'Abril',
+                                    'Mayo',
+                                    'Junio',
+                                    'Julio',
+                                    'Agosto',
+                                    'Septiembre',
+                                    'Octubre',
+                                    'Noviembre',
+                                    'Diciembre',
+                                  ];
+                                  dateLabel =
+                                      '${pureDate.day} de ${months[pureDate.month - 1]}';
+                                  if (pureDate.year != now.year) {
+                                    dateLabel += ' de ${pureDate.year}';
+                                  }
+                                }
+                              }
+                            } catch (e) {
+                              // Ignore parsing errors for separator
                             }
+                          }
+
+                          Widget bubble;
+                          if (msg['message_type'] == 'offer') {
+                            bubble = _buildOfferBubble(
+                              messageId: msg['id'],
+                              price: msg['offer_price']?.toString() ?? '0.00',
+                              messageText: msg['message_text'],
+                              status: msg['offer_status'] ?? 'pending',
+                              paymentStatus:
+                                  msg['offer_payment_status'] ?? 'pending',
+                              paymentMethod: msg['offer_payment_method'],
+                              isCanceled: msg['offer_status'] == 'cancelled',
+                              time: time,
+                              isMe: isMe,
+                              appointmentId: msg['appointment_id'],
+                            );
+                          } else if (msg['message_type'] ==
+                              'appointment_progress') {
+                            bubble = _buildAppointmentProgressBubble(
+                              message: msg['message_text'] ?? '',
+                              status: msg['appointment_status'] ?? 'pending',
+                              time: time,
+                              isMe: isMe,
+                            );
+                          } else if (msg['message_type'] == 'appointment') {
+                            bubble = _buildAppointmentBubble(
+                              appointmentId: msg['appointment_id'],
+                              message: msg['message_text'] ?? '',
+                              description: msg['appointment_description'],
+                              time: time,
+                              isMe: isMe,
+                              appointmentStatus: msg['appointment_status'],
+                              cancellerRole: msg['canceller_role'],
+                              price: double.tryParse(
+                                msg['appointment_price']?.toString() ?? '',
+                              ),
+                              paymentStatus: msg['appointment_payment_status'],
+                              paymentMethod: msg['appointment_payment_method'],
+                            );
+                          } else if (msg['message_type'] == 'order') {
+                            bubble = _buildOrderBubble(
+                              orderId: msg['order_id'],
+                              productName:
+                                  msg['order_product_name'] ?? 'Producto',
+                              status: msg['order_status'] ?? 'pending',
+                              orderAddress: msg['order_address'],
+                              orderLat: msg['order_lat'],
+                              orderLng: msg['order_lng'],
+                              message: msg['message_text'] ?? '',
+                              time: time,
+                              isMe: isMe,
+                              paymentStatus: msg['order_payment_status'],
+                              paymentMethod: msg['order_payment_method'],
+                              price: double.tryParse(
+                                msg['order_price']?.toString() ?? '',
+                              ),
+                            );
+                          } else {
+                            bubble = _buildMessageBubble(msg: msg, isMe: isMe);
                           }
 
                           if (showDateSeparator) {
-                            final now = DateTime.now();
-                            final today = DateTime(
-                              now.year,
-                              now.month,
-                              now.day,
+                            return Column(
+                              children: [
+                                _buildDateSeparator(dateLabel),
+                                bubble
+                              ],
                             );
-                            final yesterday = today.subtract(
-                              const Duration(days: 1),
-                            );
-
-                            if (pureDate == today) {
-                              dateLabel = 'Hoy';
-                            } else if (pureDate == yesterday) {
-                              dateLabel = 'Ayer';
-                            } else {
-                              final months = [
-                                'Enero',
-                                'Febrero',
-                                'Marzo',
-                                'Abril',
-                                'Mayo',
-                                'Junio',
-                                'Julio',
-                                'Agosto',
-                                'Septiembre',
-                                'Octubre',
-                                'Noviembre',
-                                'Diciembre',
-                              ];
-                              dateLabel =
-                                  '${pureDate.day} de ${months[pureDate.month - 1]}';
-                              if (pureDate.year != now.year) {
-                                dateLabel += ' de ${pureDate.year}';
-                              }
-                            }
                           }
-                        } catch (e) {
-                          // Ignore parsing errors for separator
-                        }
-                      }
-
-                      Widget bubble;
-                      if (msg['message_type'] == 'offer') {
-                        bubble = _buildOfferBubble(
-                          messageId: msg['id'],
-                          price: msg['offer_price'].toString(),
-                          isCanceled: msg['offer_status'] == 'cancelled',
-                          time: time,
-                          isMe: isMe,
-                        );
-                      } else if (msg['message_type'] ==
-                          'appointment_progress') {
-                        bubble = _buildAppointmentProgressBubble(
-                          message: msg['message_text'] ?? '',
-                          status: msg['appointment_status'] ?? 'pending',
-                          time: time,
-                          isMe: isMe,
-                        );
-                      } else if (msg['message_type'] == 'appointment') {
-                        bubble = _buildAppointmentBubble(
-                          appointmentId: msg['appointment_id'],
-                          message: msg['message_text'] ?? '',
-                          description: msg['appointment_description'],
-                          time: time,
-                          isMe: isMe,
-                          appointmentStatus: msg['appointment_status'],
-                          cancellerRole: msg['canceller_role'],
-                          price: double.tryParse(
-                            msg['appointment_price']?.toString() ?? '',
-                          ),
-                          paymentStatus: msg['appointment_payment_status'],
-                          paymentMethod: msg['appointment_payment_method'],
-                        );
-                      } else if (msg['message_type'] == 'order') {
-                        bubble = _buildOrderBubble(
-                          orderId: msg['order_id'],
-                          productName: msg['order_product_name'] ?? 'Producto',
-                          status: msg['order_status'] ?? 'pending',
-                          orderAddress: msg['order_address'],
-                          orderLat: msg['order_lat'],
-                          orderLng: msg['order_lng'],
-                          message: msg['message_text'] ?? '',
-                          time: time,
-                          isMe: isMe,
-                          paymentStatus: msg['order_payment_status'],
-                          paymentMethod: msg['order_payment_method'],
-                          price: double.tryParse(
-                            msg['order_price']?.toString() ?? '',
-                          ),
-                        );
-                      } else {
-                        bubble = _buildMessageBubble(msg: msg, isMe: isMe);
-                      }
-
-                      if (showDateSeparator) {
-                        return Column(
-                          children: [_buildDateSeparator(dateLabel), bubble],
-                        );
-                      }
-                      return bubble;
-                    },
-                  ),
-                ),
-if (!_otherUserAvailable &&
-                     (_otherUserRole == 'tech' || _otherUserRole == 'store'))
-                   Container(
-                     width: double.infinity,
-                     padding: const EdgeInsets.symmetric(
-                       vertical: 10,
-                       horizontal: 16,
-                     ),
-                     color: isDark ? Colors.orange.shade900.withOpacity(0.3) : Colors.orange.shade50,
-                     child: Row(
-                       children: [
-                         Icon(
-                           Icons.info_outline,
-                           color: isDark ? Colors.orange.shade200 : Colors.orange.shade900,
-                           size: 18,
-                         ),
-                         const SizedBox(width: 10),
-                         Expanded(
-                           child: Text(
-                             '⚠️ El técnico se encuentra fuera de servicio o de vacaciones. Las respuestas pueden tardar.',
-                             style: TextStyle(
-                               color: isDark ? Colors.orange.shade200 : Colors.orange.shade900,
-                               fontSize: 12,
-                               fontWeight: FontWeight.w500,
-                             ),
-                           ),
-                         ),
-                       ],
-                     ),
-                   ),
-                // Burbuja de "escribiendo..."
-                if (_isOtherTyping)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 4),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? const Color(0xFF1E293B)
-                            : Colors.white,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          topRight: Radius.circular(16),
-                          bottomRight: Radius.circular(16),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          _TypingDot(delayMs: 0),
-                          SizedBox(width: 4),
-                          _TypingDot(delayMs: 200),
-                          SizedBox(width: 4),
-                          _TypingDot(delayMs: 400),
-                        ],
+                          return bubble;
+                        },
                       ),
                     ),
-                  ),
-                _buildInputArea(),
-              ],
-            ),
+                    if (!_otherUserAvailable &&
+                        (_otherUserRole == 'tech' || _otherUserRole == 'store'))
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                          horizontal: 16,
+                        ),
+                        color: isDark
+                            ? Colors.orange.shade900.withOpacity(0.3)
+                            : Colors.orange.shade50,
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: isDark
+                                  ? Colors.orange.shade200
+                                  : Colors.orange.shade900,
+                              size: 18,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                '⚠️ El técnico se encuentra fuera de servicio o de vacaciones. Las respuestas pueden tardar.',
+                                style: TextStyle(
+                                  color: isDark
+                                      ? Colors.orange.shade200
+                                      : Colors.orange.shade900,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    // Burbuja de "escribiendo..."
+                    if (_isOtherTyping)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Container(
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          decoration: BoxDecoration(
+                            color:
+                                isDark ? const Color(0xFF1E293B) : Colors.white,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16),
+                              bottomRight: Radius.circular(16),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.06),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _TypingDot(delayMs: 0),
+                              SizedBox(width: 4),
+                              _TypingDot(delayMs: 200),
+                              SizedBox(width: 4),
+                              _TypingDot(delayMs: 400),
+                            ],
+                          ),
+                        ),
+                      ),
+                    _buildInputArea(),
+                  ],
+                ),
     );
   }
 
@@ -1102,8 +1145,7 @@ if (!_otherUserAvailable &&
 
     final bool isPaid = paymentStatus == 'paid';
     final bool isWaiting = paymentStatus == 'waiting_confirmation';
-    final bool isTech =
-        _userRole == 'tech' ||
+    final bool isTech = _userRole == 'tech' ||
         _userRole == 'technician' ||
         _userRole == 'provider' ||
         _userRole == 'store';
@@ -1112,19 +1154,18 @@ if (!_otherUserAvailable &&
     return Align(
       alignment: !isMe ? Alignment.centerLeft : Alignment.centerRight,
       child: Column(
-        crossAxisAlignment: !isMe
-            ? CrossAxisAlignment.start
-            : CrossAxisAlignment.end,
+        crossAxisAlignment:
+            !isMe ? CrossAxisAlignment.start : CrossAxisAlignment.end,
         children: [
           Container(
             margin: const EdgeInsets.symmetric(vertical: 8),
             padding: const EdgeInsets.all(16),
             width: 280,
             decoration: BoxDecoration(
-              color: isMe 
-                  ? AppColors.primary 
-                  : isDark 
-                      ? const Color(0xFF1E293B) 
+              color: isMe
+                  ? AppColors.primary
+                  : isDark
+                      ? const Color(0xFF1E293B)
                       : const Color(0xFFEBEBEB),
               borderRadius: BorderRadius.circular(16),
               border: isPaid ? Border.all(color: Colors.green, width: 2) : null,
@@ -1140,16 +1181,15 @@ if (!_otherUserAvailable &&
                         appointmentStatus == 'cancelled'
                             ? '❌ Cita Cancelada$cancelText'
                             : appointmentStatus == 'completed'
-                            ? '✅ Chamba Terminada'
-                            : appointmentStatus == 'expired'
-                            ? '⌛ Cita Expirada'
-                            : '📅 Cita', // Simplificado a "Cita" por solicitud del usuario
+                                ? '✅ Chamba Terminada'
+                                : appointmentStatus == 'expired'
+                                    ? '⌛ Cita Expirada'
+                                    : '📅 Cita', // Simplificado a "Cita" por solicitud del usuario
                         style: TextStyle(
                           color: isMe ? Colors.white : AppColors.primary,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
-                          decoration:
-                              (appointmentId == -1 ||
+                          decoration: (appointmentId == -1 ||
                                   appointmentId == null ||
                                   appointmentStatus == 'cancelled' ||
                                   appointmentStatus == 'expired')
@@ -1183,9 +1223,8 @@ if (!_otherUserAvailable &&
                         Text(
                           'PAGADO',
                           style: TextStyle(
-                            color: isMe
-                                ? Colors.greenAccent
-                                : Colors.green[700],
+                            color:
+                                isMe ? Colors.greenAccent : Colors.green[700],
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -1204,6 +1243,17 @@ if (!_otherUserAvailable &&
                       label: '💰 Establecer Monto',
                       onPressed: () => _showSetPriceDialog(appointmentId),
                       bgColor: AppColors.primary,
+                      fgColor: Colors.white,
+                    ),
+
+                  // 1.1 Technician Adds Extra Charge / Spare Part (Aumento de pago)
+                  if (isTech &&
+                      appointmentStatus != 'cancelled' &&
+                      appointmentStatus != 'expired')
+                    _buildActionButton(
+                      label: '➕ Cobro Adicional / Repuesto',
+                      onPressed: () => _showAddExtraChargeDialog(appointmentId),
+                      bgColor: const Color(0xFF2563EB),
                       fgColor: Colors.white,
                     ),
 
@@ -1245,8 +1295,8 @@ if (!_otherUserAvailable &&
                               isPaid
                                   ? '✅ Cita Pagada y Asegurada'
                                   : (isTech
-                                        ? '⏳ Cliente pagó vía ${(paymentMethod ?? '').toUpperCase()} — Confirma el pago'
-                                        : '⏳ Esperando confirmación del técnico...'),
+                                      ? '⏳ Cliente pagó vía ${(paymentMethod ?? '').toUpperCase()} — Confirma el pago'
+                                      : '⏳ Esperando confirmación del técnico...'),
                               style: TextStyle(
                                 color: isPaid
                                     ? Colors.green[800]
@@ -1488,14 +1538,14 @@ if (!_otherUserAvailable &&
                           child: TextButton(
                             onPressed: () async {
                               if (_otherUserId != null) {
-                                final response = await _technicianService
-                                    .addReview(
-                                      technicianId: _otherUserId!,
-                                      rating: selectedStars,
-                                      comment:
-                                          'Calificación de servicio finalizado',
-                                      appointmentId: appointmentId,
-                                    );
+                                final response =
+                                    await _technicianService.addReview(
+                                  technicianId: _otherUserId!,
+                                  rating: selectedStars,
+                                  comment:
+                                      'Calificación de servicio finalizado',
+                                  appointmentId: appointmentId,
+                                );
 
                                 if (context.mounted) {
                                   Navigator.pop(context);
@@ -1668,6 +1718,312 @@ if (!_otherUserAvailable &&
         ),
       ),
     );
+  }
+
+  void _showAddExtraChargeDialog(int appointmentId) {
+    final nameController = TextEditingController();
+    final descController = TextEditingController();
+    final priceController = TextEditingController();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2563EB).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.add_shopping_cart_rounded,
+                      color: Color(0xFF2563EB),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Cobro Adicional / Repuesto',
+                          style: TextStyle(
+                            color: isDark ? Colors.white : AppColors.primary,
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          'Aumento por nuevo repuesto o servicio',
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : Colors.grey[600],
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Nombre del repuesto o producto *',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(
+                  hintText: 'Ej. Pantalla OLED iPhone 11',
+                  filled: true,
+                  fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Descripción u observaciones (Opcional)',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: descController,
+                maxLines: 2,
+                decoration: InputDecoration(
+                  hintText: 'Ej. Repuesto nuevo clase A con 3 meses de garantía',
+                  filled: true,
+                  fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                'Monto adicional a cobrar (S/.) *',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13,
+                  color: isDark ? Colors.white70 : Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextField(
+                controller: priceController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2563EB),
+                ),
+                decoration: InputDecoration(
+                  hintText: '0.00',
+                  prefixText: 'S/. ',
+                  filled: true,
+                  fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Cancelar'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final name = nameController.text.trim();
+                        final desc = descController.text.trim();
+                        final price = double.tryParse(priceController.text.trim()) ?? 0;
+                        if (name.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Por favor ingresa el nombre del repuesto o producto')),
+                          );
+                          return;
+                        }
+                        if (price <= 0) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Por favor ingresa un monto válido mayor a 0')),
+                          );
+                          return;
+                        }
+
+                        Navigator.pop(context);
+
+                        final formattedText = '📦 *Repuesto / Adicional:* $name' +
+                            (desc.isNotEmpty ? '\n📝 *Detalle:* $desc' : '');
+
+                        final response = await _messageService.sendOffer(
+                          receiverId: _otherUserId!,
+                          offerPrice: price,
+                          messageText: formattedText,
+                          appointmentId: appointmentId,
+                        );
+
+                        if (response.success) {
+                          _loadMessages(_otherUserId!);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('¡Cobro adicional enviado al cliente con éxito!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } else {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(response.message ?? 'No se pudo enviar el cobro adicional'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Enviar Cobro', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showOfferPaymentMethodDialog(int offerId, double price) {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Pagar Cobro Adicional',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Monto a cancelar: S/. ${price.toStringAsFixed(2)}',
+                style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.black87),
+              ),
+              const SizedBox(height: 16),
+              _offerPaymentOption(Icons.qr_code, 'Yape', 'yape', offerId),
+              _offerPaymentOption(Icons.qr_code_scanner, 'Plin', 'plin', offerId),
+              _offerPaymentOption(Icons.account_balance, 'Transferencia Bancaria', 'transfer', offerId),
+              _offerPaymentOption(Icons.payments, 'Efectivo', 'cash', offerId),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.credit_card, color: Colors.blueAccent),
+                title: const Text('Culqi (Tarjeta Débito/Crédito)', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push(
+                    '/culqi-payment',
+                    extra: {
+                      'entityId': offerId,
+                      'paymentType': 'offer',
+                      'amount': price,
+                      'description': 'Pago de Adicional #$offerId',
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _offerPaymentOption(IconData icon, String label, String value, int offerId) {
+    return ListTile(
+      leading: Icon(icon, color: AppColors.primary),
+      title: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+      onTap: () async {
+        Navigator.pop(context);
+        final response = await _messageService.acceptOffer(offerId, paymentMethod: value);
+        if (response.success) {
+          _loadMessages(_otherUserId!);
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Pago de adicional registrado. Espera validación del técnico.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Future<void> _handleConfirmOfferPayment(int offerId) async {
+    final response = await _messageService.confirmOfferPayment(offerId);
+    if (response.success) {
+      _loadMessages(_otherUserId!);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Pago de adicional confirmado con éxito!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   void _showPaymentMethodDialog(int appointmentId, double price) {
@@ -2242,8 +2598,7 @@ if (!_otherUserAvailable &&
     final messageType = msg['message_type'] ?? 'text';
 
     // Detección mejorada de mensaje eliminado
-    final isDeleted =
-        msg['deleted_at'] != null ||
+    final isDeleted = msg['deleted_at'] != null ||
         message.contains('🚫') ||
         message.toLowerCase().contains('mensaje eliminado');
     final isEdited = msg['is_edited'] == true || msg['is_edited'] == 1;
@@ -2251,9 +2606,8 @@ if (!_otherUserAvailable &&
 
     // ──────────── Burbuja multimedia ────────────
     if (!isDeleted && messageType == 'image') {
-      final imgUrl = isUploading
-          ? message
-          : ApiConstants.getStorageUrl(message);
+      final imgUrl =
+          isUploading ? message : ApiConstants.getStorageUrl(message);
       return Align(
         alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
         child: GestureDetector(
@@ -2319,8 +2673,8 @@ if (!_otherUserAvailable &&
                   bottom: 6,
                   right: 8,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 6, vertical: 2),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
                       color: Colors.black45,
                       borderRadius: BorderRadius.circular(10),
@@ -2404,9 +2758,8 @@ if (!_otherUserAvailable &&
                             Text(
                               'Video',
                               style: TextStyle(
-                                color: isMe
-                                    ? Colors.white
-                                    : AppColors.textPrimary,
+                                color:
+                                    isMe ? Colors.white : AppColors.textPrimary,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),
@@ -2509,9 +2862,8 @@ if (!_otherUserAvailable &&
                             Text(
                               'Nota de Audio',
                               style: TextStyle(
-                                color: isMe
-                                    ? Colors.white
-                                    : AppColors.textPrimary,
+                                color:
+                                    isMe ? Colors.white : AppColors.textPrimary,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),
@@ -2570,9 +2922,8 @@ if (!_otherUserAvailable &&
 
     if (!isDeleted && messageType == 'file') {
       final fileUrl = ApiConstants.getStorageUrl(message);
-      final fileName = message.contains('/')
-          ? message.split('/').last
-          : message;
+      final fileName =
+          message.contains('/') ? message.split('/').last : message;
       return Align(
         alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
         child: GestureDetector(
@@ -2641,9 +2992,8 @@ if (!_otherUserAvailable &&
                             Text(
                               time,
                               style: TextStyle(
-                                color: isMe
-                                    ? Colors.white70
-                                    : AppColors.textLight,
+                                color:
+                                    isMe ? Colors.white70 : AppColors.textLight,
                                 fontSize: 10,
                               ),
                             ),
@@ -2670,9 +3020,8 @@ if (!_otherUserAvailable &&
       child: GestureDetector(
         onLongPress: isDeleted ? null : () => _showMessageOptions(msg, isMe),
         child: Column(
-          crossAxisAlignment: isMe
-              ? CrossAxisAlignment.end
-              : CrossAxisAlignment.start,
+          crossAxisAlignment:
+              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
             Container(
               margin: const EdgeInsets.symmetric(vertical: 4),
@@ -2681,7 +3030,9 @@ if (!_otherUserAvailable &&
                 maxWidth: MediaQuery.of(context).size.width * 0.75,
               ),
               decoration: BoxDecoration(
-                color: isMe ? AppColors.primary : (isDark ? const Color(0xFF1E293B) : Colors.white),
+                color: isMe
+                    ? AppColors.primary
+                    : (isDark ? const Color(0xFF1E293B) : Colors.white),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(16),
                   topRight: const Radius.circular(16),
@@ -2706,12 +3057,11 @@ if (!_otherUserAvailable &&
                         color: isMe
                             ? (isDeleted ? Colors.white70 : Colors.white)
                             : (isDeleted
-                                  ? AppColors.textSecondary
-                                  : AppColors.textPrimary),
+                                ? AppColors.textSecondary
+                                : AppColors.textPrimary),
                         fontSize: 15,
-                        fontStyle: isDeleted
-                            ? FontStyle.italic
-                            : FontStyle.normal,
+                        fontStyle:
+                            isDeleted ? FontStyle.italic : FontStyle.normal,
                       ),
                     ),
                   ),
@@ -2737,9 +3087,8 @@ if (!_otherUserAvailable &&
                         Text(
                           time,
                           style: TextStyle(
-                            color: (isMe
-                                ? Colors.white70
-                                : AppColors.textLight),
+                            color:
+                                (isMe ? Colors.white70 : AppColors.textLight),
                             fontSize: 10,
                           ),
                         ),
@@ -2761,8 +3110,7 @@ if (!_otherUserAvailable &&
 
   void _showMessageOptions(Map<String, dynamic> msg, bool isMe) {
     final message = msg['message_text'] ?? '';
-    final bool isDeleted =
-        msg['deleted_at'] != null ||
+    final bool isDeleted = msg['deleted_at'] != null ||
         message.contains('🚫') ||
         message.toLowerCase().contains('mensaje eliminado');
     if (isDeleted) return; // No options for deleted messages
@@ -2867,98 +3215,278 @@ if (!_otherUserAvailable &&
   Widget _buildOfferBubble({
     int? messageId,
     required String price,
+    String? messageText,
+    String status = 'pending',
+    String paymentStatus = 'pending',
+    String? paymentMethod,
     required bool isCanceled,
     required String time,
     required bool isMe,
+    int? appointmentId,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isPaid = status == 'accepted' && paymentStatus == 'paid';
+    final isWaiting = paymentStatus == 'waiting_confirmation';
+    final isTech = _userRole == 'tech' ||
+        _userRole == 'technician' ||
+        _userRole == 'provider' ||
+        _userRole == 'store' ||
+        _userRole == 'sucursal';
+
+    final numPrice = double.tryParse(price) ?? 0.0;
+    final bool isSparePart = messageText != null &&
+        (messageText.contains('Repuesto') ||
+            messageText.contains('Adicional') ||
+            messageText.contains('📦'));
+
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
-        crossAxisAlignment: isMe
-            ? CrossAxisAlignment.end
-            : CrossAxisAlignment.start,
+        crossAxisAlignment:
+            isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
           Container(
             margin: const EdgeInsets.symmetric(vertical: 8),
             padding: const EdgeInsets.all(16),
-            width: 200,
+            width: 270,
             decoration: BoxDecoration(
-              color: isMe 
-                  ? const Color(0xFF3B28FF) 
-                  : isDark 
-                      ? const Color(0xFF1E293B) 
-                      : const Color(0xFFEBEBEB),
-              borderRadius: BorderRadius.circular(16),
+              color: isMe
+                  ? const Color(0xFF1E3A8A)
+                  : isDark
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: isPaid
+                    ? Colors.green
+                    : isWaiting
+                        ? Colors.orange
+                        : isMe
+                            ? Colors.blueAccent.withValues(alpha: 0.4)
+                            : Colors.blue.withValues(alpha: 0.2),
+                width: isPaid || isWaiting ? 2 : 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Tarifa de servicio:',
-                  style: TextStyle(
-                    color: (isMe ? Colors.white : Colors.blue).withOpacity(0.4),
-                    fontSize: 12,
-                  ),
-                ),
-                Text(
-                  'S/.$price',
-                  style: TextStyle(
-                    color: isMe ? Colors.white : Colors.blue,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w300,
-                    decoration: isCanceled ? TextDecoration.lineThrough : null,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: (isCanceled || (isMe && messageId == null))
-                        ? null
-                        : () async {
-                            if (isMe) {
-                              // Cancelar Oferta
-                              final response = await _messageService
-                                  .cancelOffer(messageId!);
-                              if (response.success) {
-                                _loadMessages(_otherUserId!);
-                              }
-                            } else {
-                              // Pagar (Accept)
-                              final response = await _messageService
-                                  .acceptOffer(messageId!);
-                              if (response.success) {
-                                _loadMessages(_otherUserId!);
-                              }
-                            }
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isCanceled
-                          ? const Color(0xFFBDBDBD).withOpacity(0.5)
-                          : (isMe
-                                ? Colors.transparent
-                                : const Color(0xFF3B28FF)),
-                      disabledBackgroundColor: const Color(
-                        0xFFBDBDBD,
-                      ).withOpacity(0.5),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: isMe && !isCanceled
-                            ? const BorderSide(color: Colors.white)
-                            : BorderSide.none,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: (isPaid
+                                ? Colors.green
+                                : const Color(0xFF2563EB))
+                            .withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
                       ),
+                      child: Icon(
+                        isPaid
+                            ? Icons.verified_rounded
+                            : (isSparePart
+                                ? Icons.shopping_bag_outlined
+                                : Icons.receipt_long_rounded),
+                        size: 16,
+                        color: isPaid
+                            ? Colors.green
+                            : (isMe ? Colors.white : const Color(0xFF2563EB)),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        isCanceled
+                            ? '❌ Cobro Cancelado'
+                            : isPaid
+                                ? '✅ Cobro Pagado'
+                                : (isSparePart
+                                    ? '📦 Repuesto / Adicional'
+                                    : '💰 Cotización de Servicio'),
+                        style: TextStyle(
+                          color: isMe ? Colors.white : AppColors.primary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          decoration:
+                              isCanceled ? TextDecoration.lineThrough : null,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                if (messageText != null && messageText.isNotEmpty) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isMe
+                          ? Colors.white.withValues(alpha: 0.08)
+                          : isDark
+                              ? const Color(0xFF0F172A)
+                              : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      isMe ? 'Cancelar Oferta' : 'Pagar',
+                      messageText.replaceAll('*', ''),
                       style: TextStyle(
-                        color: isCanceled
-                            ? Colors.white.withOpacity(0.6)
-                            : Colors.white,
-                        fontWeight: FontWeight.bold,
+                        color: isMe
+                            ? Colors.white.withValues(alpha: 0.95)
+                            : (isDark ? Colors.white70 : Colors.black87),
+                        fontSize: 12,
+                        height: 1.35,
                       ),
                     ),
                   ),
+                  const SizedBox(height: 10),
+                ],
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Monto a pagar:',
+                      style: TextStyle(
+                        color: isMe ? Colors.white70 : Colors.grey[600],
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      'S/. ${numPrice.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        color: isMe ? Colors.white : const Color(0xFF2563EB),
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        decoration:
+                            isCanceled ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 12),
+
+                // Estados y botones
+                if (!isCanceled && messageId != null) ...[
+                  // 1. Pagado
+                  if (isPaid)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.green.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'PAGADO Y ASEGURADO',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ),
+                    )
+                  // 2. Esperando confirmación
+                  else if (isWaiting) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        isTech
+                            ? '⏳ Cliente pagó vía ${(paymentMethod ?? "").toUpperCase()} — Confirma la recepción'
+                            : '⏳ Esperando que el técnico valide tu pago...',
+                        style: TextStyle(
+                          color: Colors.orange[800],
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (isTech &&
+                        (paymentMethod ?? '').toLowerCase() != 'culqi') ...[
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => _handleConfirmOfferPayment(messageId),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF2563EB),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                          ),
+                          child: const Text('✔ Confirmar Pago Recibido',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
+                    ],
+                  ]
+                  // 3. Pendiente de pago
+                  else if (status == 'pending') ...[
+                    if (!isMe)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => _showOfferPaymentMethodDialog(
+                              messageId, numPrice),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00C853),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                          child: Text(
+                            '💳 Pagar S/. ${numPrice.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    if (isMe)
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            final res = await _messageService.cancelOffer(messageId);
+                            if (res.success) {
+                              _loadMessages(_otherUserId!);
+                            }
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.redAccent,
+                            side: const BorderSide(color: Colors.redAccent),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                          ),
+                          child: const Text(
+                            'Cancelar Cobro',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                  ],
+                ],
               ],
             ),
           ),
@@ -2969,9 +3497,9 @@ if (!_otherUserAvailable &&
               bottom: 8,
             ),
             child: Text(
-              isCanceled ? 'El técnico ha cancelado esta oferta\n$time' : time,
+              isCanceled ? 'Cobro cancelado • $time' : time,
               style: TextStyle(
-                color: Colors.blue.withOpacity(0.6),
+                color: Colors.blue.withValues(alpha: 0.6),
                 fontSize: 10,
               ),
             ),
@@ -3064,13 +3592,13 @@ if (!_otherUserAvailable &&
                               // Use technician review service as placeholder logic for now
                               // Ideally backend should have a separate endpoint for rating clients
                               if (_otherUserId != null) {
-                                final response = await _technicianService
-                                    .addReview(
-                                      technicianId: _otherUserId!,
-                                      rating: selectedStars,
-                                      comment: '',
-                                      appointmentId: null, // Now allowed by DB
-                                    );
+                                final response =
+                                    await _technicianService.addReview(
+                                  technicianId: _otherUserId!,
+                                  rating: selectedStars,
+                                  comment: '',
+                                  appointmentId: null, // Now allowed by DB
+                                );
 
                                 if (context.mounted) {
                                   Navigator.pop(context);
@@ -3146,8 +3674,7 @@ if (!_otherUserAvailable &&
     final Color statusColor = statusInfo[0];
     final String statusText = statusInfo[1];
 
-    final bool isTechOrStore =
-        _userRole == 'tech' ||
+    final bool isTechOrStore = _userRole == 'tech' ||
         _userRole == 'technician' ||
         _userRole == 'provider' ||
         _userRole == 'store' ||
@@ -3257,7 +3784,10 @@ if (!_otherUserAvailable &&
               decoration: BoxDecoration(
                 color: isDark ? const Color(0xFF334155) : Colors.grey[50],
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: isDark ? Colors.white.withOpacity(0.1) : Colors.grey[200]!),
+                border: Border.all(
+                    color: isDark
+                        ? Colors.white.withOpacity(0.1)
+                        : Colors.grey[200]!),
               ),
               child: Row(
                 children: [
@@ -3356,8 +3886,7 @@ if (!_otherUserAvailable &&
     final bool isPaid = paymentStatus == 'paid';
     final bool isWaiting = paymentStatus == 'waiting_confirmation';
 
-    final bool isTechOrStore =
-        _userRole == 'tech' ||
+    final bool isTechOrStore = _userRole == 'tech' ||
         _userRole == 'technician' ||
         _userRole == 'provider' ||
         _userRole == 'store' ||
@@ -3367,19 +3896,18 @@ if (!_otherUserAvailable &&
     return Align(
       alignment: !isMe ? Alignment.centerLeft : Alignment.centerRight,
       child: Column(
-        crossAxisAlignment: !isMe
-            ? CrossAxisAlignment.start
-            : CrossAxisAlignment.end,
+        crossAxisAlignment:
+            !isMe ? CrossAxisAlignment.start : CrossAxisAlignment.end,
         children: [
           Container(
             margin: const EdgeInsets.symmetric(vertical: 8),
             padding: const EdgeInsets.all(12),
             width: 250,
             decoration: BoxDecoration(
-              color: isMe 
-                  ? AppColors.primary 
-                  : isDark 
-                      ? const Color(0xFF1E293B) 
+              color: isMe
+                  ? AppColors.primary
+                  : isDark
+                      ? const Color(0xFF1E293B)
                       : const Color(0xFFF5F5F5),
               borderRadius: BorderRadius.circular(15),
               boxShadow: AppColors.softShadow,
@@ -3505,9 +4033,8 @@ if (!_otherUserAvailable &&
                         Text(
                           'PAGADO',
                           style: TextStyle(
-                            color: isMe
-                                ? Colors.greenAccent
-                                : Colors.green[700],
+                            color:
+                                isMe ? Colors.greenAccent : Colors.green[700],
                             fontWeight: FontWeight.bold,
                             fontSize: 12,
                           ),
@@ -3560,14 +4087,14 @@ if (!_otherUserAvailable &&
                               isPaid
                                   ? '✅ Pedido Pagado'
                                   : (isTechOrStore
-                                        ? '⏳ Pagó vía ${(paymentMethod ?? '').toUpperCase()} — Confirma el pago'
-                                        : '⏳ Esperando confirmación de tienda...'),
+                                      ? '⏳ Pagó vía ${(paymentMethod ?? '').toUpperCase()} — Confirma el pago'
+                                      : '⏳ Esperando confirmación de tienda...'),
                               style: TextStyle(
                                 color: isPaid
                                     ? (isMe ? Colors.white : Colors.green[800])
                                     : (isMe
-                                          ? Colors.white
-                                          : Colors.orange[900]),
+                                        ? Colors.white
+                                        : Colors.orange[900]),
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -3779,7 +4306,8 @@ if (!_otherUserAvailable &&
           const SizedBox(height: 16),
           Text(
             message,
-            style: TextStyle(fontSize: 14, color: isDark ? Colors.white70 : Colors.black87),
+            style: TextStyle(
+                fontSize: 14, color: isDark ? Colors.white70 : Colors.black87),
           ),
           const SizedBox(height: 20),
           Row(
@@ -3836,9 +4364,8 @@ if (!_otherUserAvailable &&
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 8,
-                        fontWeight: isCurrent
-                            ? FontWeight.bold
-                            : FontWeight.normal,
+                        fontWeight:
+                            isCurrent ? FontWeight.bold : FontWeight.normal,
                         color: isCurrent ? AppColors.primary : Colors.grey,
                       ),
                     ),

@@ -7,6 +7,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/store.dart';
@@ -50,6 +51,99 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _launchJypStoreUrl() async {
+    final uri = Uri.parse('https://jypsac.com/tienda/');
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        await launchUrl(uri);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo abrir el enlace https://jypsac.com/tienda/')),
+        );
+      }
+    }
+  }
+
+  Widget _buildVirtualStoreCard(bool isOnlyOption) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF2563EB).withValues(alpha: 0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 10),
+              const Expanded(
+                child: Text(
+                  'Tienda Virtual Oficial J&P',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            isOnlyOption
+                ? 'Las compras y catálogo de repuestos y productos se realizan centralizadamente a través de la tienda virtual oficial de J&P.'
+                : '¿Buscas repuestos homologados o suministros oficiales? Visita nuestra plataforma web oficial.',
+            style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.35),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _launchJypStoreUrl,
+              icon: const Icon(Icons.open_in_browser_rounded, size: 18),
+              label: const Text(
+                'Comprar en jypsac.com/tienda',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF1E3A8A),
+                elevation: 0,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 11),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -173,22 +267,41 @@ class _StoreProfileScreenState extends State<StoreProfileScreen> {
                     ],
                   ),
                   const Divider(height: 40),
-                  const Text(
-                    'Catálogo de Productos',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Catálogo de Productos',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                      TextButton.icon(
+                        onPressed: _launchJypStoreUrl,
+                        icon: const Icon(Icons.open_in_new, size: 16),
+                        label: const Text('Tienda Web J&P', style: TextStyle(fontSize: 12)),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+                  if (!_store!.catalogEnabled) ...[
+                    _buildVirtualStoreCard(true),
+                  ] else ...[
+                    _buildVirtualStoreCard(false),
+                  ],
                 ],
               ),
             ),
           ),
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            sliver: _products.isEmpty
-                ? const SliverToBoxAdapter(
-                    child: Center(child: Text('No hay productos disponibles')),
-                  )
-                : SliverGrid(
+          if (_store!.catalogEnabled)
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              sliver: _products.isEmpty
+                  ? const SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(child: Text('No hay productos locales registrados para esta sucursal')),
+                      ),
+                    )
+                  : SliverGrid(
                     gridDelegate:
                         const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,

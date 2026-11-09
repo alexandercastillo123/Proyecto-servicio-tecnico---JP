@@ -69,10 +69,19 @@ router.post(
 
 /**
  * @route   PUT /api/messages/offer/:id/accept
- * @desc    Accept service offer
+ * @desc    Accept service offer / additional charge
  * @access  Private
  */
 router.put('/offer/:id/accept', authenticate, messagesController.acceptOffer);
+router.put('/offers/:id/accept', authenticate, messagesController.acceptOffer);
+
+/**
+ * @route   PUT /api/messages/offer/:id/confirm-payment
+ * @desc    Confirm payment for additional charge / offer (provider only)
+ * @access  Private
+ */
+router.put('/offer/:id/confirm-payment', authenticate, messagesController.confirmOfferPayment);
+router.put('/offers/:id/confirm-payment', authenticate, messagesController.confirmOfferPayment);
 
 /**
  * @route   PUT /api/messages/offer/:id/reject
@@ -80,6 +89,7 @@ router.put('/offer/:id/accept', authenticate, messagesController.acceptOffer);
  * @access  Private
  */
 router.put('/offer/:id/reject', authenticate, messagesController.rejectOffer);
+router.put('/offers/:id/reject', authenticate, messagesController.rejectOffer);
 
 /**
  * @route   PUT /api/messages/offer/:id/cancel
@@ -87,6 +97,7 @@ router.put('/offer/:id/reject', authenticate, messagesController.rejectOffer);
  * @access  Private
  */
 router.put('/offer/:id/cancel', authenticate, messagesController.cancelOffer);
+router.put('/offers/:id/cancel', authenticate, messagesController.cancelOffer);
 
 /**
  * @route   PUT /api/messages/:id/read

@@ -278,11 +278,7 @@ function App() {
 
   return (
     <>
-      <div className="announcement">
-        <span className="announcement-dot" />
-        Conectamos personas con soluciones técnicas en Lima Metropolitana
-        <ArrowUpRight aria-hidden="true" size={14} />
-      </div>
+
 
       <header className="site-header">
         <a className="brand" href="#inicio" aria-label="JyP Servicios Técnicos, inicio">

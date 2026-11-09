@@ -134,7 +134,8 @@ export const messageService = {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   sendOffer: (data) => api.post('/messages/offer', data),
-  acceptOffer: (id) => api.put(`/messages/offer/${id}/accept`),
+  acceptOffer: (id, data) => api.put(`/messages/offer/${id}/accept`, data || {}),
+  confirmOfferPayment: (id) => api.put(`/messages/offer/${id}/confirm-payment`),
   rejectOffer: (id) => api.put(`/messages/offer/${id}/reject`),
   cancelOffer: (id) => api.put(`/messages/offer/${id}/cancel`),
   updateMessage: (id, messageText) => api.put(`/messages/${id}`, { messageText }),

@@ -1,4 +1,4 @@
-﻿class ApiConstants {
+class ApiConstants {
   // Base URL - Use 10.0.2.2 for Android Emulator, or your local IP for physical devices
   static const String baseUrl = 'http://10.0.2.2:3000/api';
   
@@ -49,6 +49,7 @@
   static const String sendMessage = messages;
   static const String sendOffer = '$messages/offer';
   static String acceptOffer(int id) => '$baseUrl/messages/offer/$id/accept';
+  static String confirmOfferPayment(int id) => '$baseUrl/messages/offer/$id/confirm-payment';
   static String rejectOffer(int id) => '$baseUrl/messages/offer/$id/reject';
   static String cancelOffer(int id) => '$baseUrl/messages/offer/$id/cancel';
   static String markAsRead(int id) => '$baseUrl/messages/$id/read';

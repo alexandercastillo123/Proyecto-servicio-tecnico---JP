@@ -27,6 +27,7 @@ const StoreDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [branchId, setBranchId] = useState(user.branchId || null);
   const [hasStore, setHasStore] = useState(true);
+  const [catalogEnabled, setCatalogEnabled] = useState(true);
 
   useEffect(() => {
     fetchDashboardData();
@@ -84,6 +85,9 @@ const StoreDashboard = () => {
       setBranchId(branchId);
 
       if (myStore?.id) {
+        if (myStore?.catalog_enabled !== undefined) {
+          setCatalogEnabled(myStore.catalog_enabled === true || myStore.catalog_enabled === 1);
+        }
         const updatedUser = { ...user, branchId: myStore.id, branchName: myStore.name };
         localStorage.setItem('user', JSON.stringify(updatedUser));
         window.dispatchEvent(new CustomEvent('jyp:user-updated', { detail: updatedUser }));
@@ -153,6 +157,17 @@ const StoreDashboard = () => {
       toast.error(error.response?.data?.mensaje || 'No se pudo subir la imagen');
     } finally {
       setUploadingImage(false);
+    }
+  };
+
+  const handleToggleCatalog = async (e) => {
+    const nextVal = e.target.checked;
+    setCatalogEnabled(nextVal);
+    try {
+      await storeService.updateBranch(branchId, { catalog_enabled: nextVal });
+      toast.success(nextVal ? 'Venta en app activada: El catálogo interno está habilitado.' : 'Venta en app desactivada: Clientes serán dirigidos a jypsac.com/tienda');
+    } catch (err) {
+      toast.error('No se pudo actualizar la configuración del catálogo');
     }
   };
 
@@ -534,6 +549,48 @@ const StoreDashboard = () => {
 
         {/* Product Catalog Section */}
         <section className="lg:col-span-2 space-y-4">
+          {/* Catalog Mode Configuration Card */}
+          <div className="p-4 rounded-3xl border jyp-card space-y-3">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${catalogEnabled ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'}`}>
+                  <Store size={20} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Venta de Productos en la Aplicación</h3>
+                  <p className="text-xs text-slate-400">
+                    {catalogEnabled
+                      ? 'Activado: Los usuarios pueden ordenar productos directamente en la app.'
+                      : 'Desactivado: Redirige las compras a la tienda oficial online de J&P (jypsac.com/tienda).'}
+                  </p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={catalogEnabled}
+                  onChange={handleToggleCatalog}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+              </label>
+            </div>
+
+            {!catalogEnabled && (
+              <div className="pt-2 border-t border-white/5 flex items-center gap-2 text-xs text-cyan-300">
+                <span>🌐 Compras redirigen a:</span>
+                <a
+                  href="https://jypsac.com/tienda/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline font-bold hover:text-white"
+                >
+                  https://jypsac.com/tienda/
+                </a>
+              </div>
+            )}
+          </div>
+
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <h2 className="text-lg font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
               Catálogo de Inventario
