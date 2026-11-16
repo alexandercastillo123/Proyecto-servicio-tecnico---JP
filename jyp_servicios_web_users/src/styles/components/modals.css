@@ -1,0 +1,97 @@
+/* =============================================================
+   Modales — overlay base y modal institucional JYP.
+   ============================================================= */
+
+@layer components {
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 9, 19, 0.78);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .jyp-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(6, 9, 19, 0.8);
+    backdrop-filter: blur(18px);
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+
+  .jyp-modal {
+    width: 100%;
+    max-width: 32rem;
+    background: var(--jyp-bg-panel);
+    border: 1px solid var(--jyp-border);
+    border-radius: 26px;
+    padding: 2rem;
+    backdrop-filter: blur(28px);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+    position: relative;
+  }
+
+  .jyp-modal-close {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.25rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: transparent;
+    border: 1px solid var(--jyp-border);
+    color: var(--jyp-text-dim);
+    cursor: pointer;
+    transition: all 180ms ease;
+  }
+
+  .jyp-modal-close:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--jyp-text-title);
+    border-color: var(--jyp-border-hover);
+  }
+
+  .jyp-modal-header {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .jyp-modal-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+    background: rgba(37, 99, 235, 0.14);
+    border: 1px solid rgba(37, 99, 235, 0.28);
+    color: #60a5fa;
+  }
+
+  .jyp-modal-title {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--jyp-text-title);
+    margin: 0;
+  }
+
+  .jyp-modal-subtitle {
+    font-size: 0.8125rem;
+    color: var(--jyp-text-dim);
+    margin: 0.2rem 0 0;
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "J&P - Servicio Técnico a Domicilio (Web & Android)",
+  "description": "Landing page oficial de J&P Periféricos S.A.C. para solicitar servicio técnico a domicilio en Lima, descargar la app móvil Android y gestionar reparaciones de laptops, PCs, redes e impresoras.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
