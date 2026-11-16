@@ -1,0 +1,131 @@
+const express = require('express');
+const router = express.Router();
+const { body } = require('express-validator');
+const messagesController = require('../controllers/messages.controller');
+const { authenticate } = require('../middleware/auth');
+const validate = require('../middleware/validation');
+
+/**
+ * @route   GET /api/messages/conversations
+ * @desc    Get list of user conversations
+ * @access  Private
+ */
+router.get('/conversations', authenticate, messagesController.getConversations);
+
+/**
+ * @route   GET /api/messages/:otherUserId
+ * @desc    Get messages with specific user
+ * @access  Private
+ */
+router.get('/:otherUserId', authenticate, messagesController.getMessages);
+const upload = require('../middleware/upload');
+
+/**
+ * @route   POST /api/messages
+ * @desc    Send text message
+ * @access  Private
+ */
+router.post(
+    '/',
+    authenticate,
+    [
+        body('receiverId').isInt().withMessage('Valid receiver ID is required'),
+        body('messageText').notEmpty().withMessage('Message text is required'),
+        body('appointmentId').optional().isInt()
+    ],
+    validate,
+    messagesController.sendMessage
+);
+
+/**
+ * @route   POST /api/messages/media
+ * @desc    Send media message (image, audio, video, document)
+ * @access  Private
+ */
+router.post(
+    '/media',
+    authenticate,
+    upload.single('file'),
+    messagesController.sendMediaMessage
+);
+
+/**
+ * @route   POST /api/messages/offer
+ * @desc    Send service offer
+ * @access  Private (Tech only via controller validation)
+ */
+router.post(
+    '/offer',
+    authenticate,
+    [
+        body('receiverId').isInt().withMessage('Valid receiver ID is required'),
+        body('offerPrice').isFloat({ min: 0 }).withMessage('Valid offer price is required'),
+        body('messageText').optional().isString(),
+        body('appointmentId').optional().isInt()
+    ],
+    validate,
+    messagesController.sendOffer
+);
+
+/**
+ * @route   PUT /api/messages/offer/:id/accept
+ * @desc    Accept service offer / additional charge
+ * @access  Private
+ */
+router.put('/offer/:id/accept', authenticate, messagesController.acceptOffer);
+router.put('/offers/:id/accept', authenticate, messagesController.acceptOffer);
+
+/**
+ * @route   PUT /api/messages/offer/:id/confirm-payment
+ * @desc    Confirm payment for additional charge / offer (provider only)
+ * @access  Private
+ */
+router.put('/offer/:id/confirm-payment', authenticate, messagesController.confirmOfferPayment);
+router.put('/offers/:id/confirm-payment', authenticate, messagesController.confirmOfferPayment);
+
+/**
+ * @route   PUT /api/messages/offer/:id/reject
+ * @desc    Reject service offer
+ * @access  Private
+ */
+router.put('/offer/:id/reject', authenticate, messagesController.rejectOffer);
+router.put('/offers/:id/reject', authenticate, messagesController.rejectOffer);
+
+/**
+ * @route   PUT /api/messages/offer/:id/cancel
+ * @desc    Cancel service offer (sender only)
+ * @access  Private
+ */
+router.put('/offer/:id/cancel', authenticate, messagesController.cancelOffer);
+router.put('/offers/:id/cancel', authenticate, messagesController.cancelOffer);
+
+/**
+ * @route   PUT /api/messages/:id/read
+ * @desc    Mark message as read
+ * @access  Private
+ */
+router.put('/:id/read', authenticate, messagesController.markAsRead);
+
+/**
+ * @route   PUT /api/messages/:id
+ * @desc    Update message text
+ * @access  Private
+ */
+router.put(
+    '/:id',
+    authenticate,
+    [
+        body('messageText').notEmpty().withMessage('Message text is required')
+    ],
+    validate,
+    messagesController.updateMessage
+);
+
+/**
+ * @route   DELETE /api/messages/:id
+ * @desc    Delete message
+ * @access  Private
+ */
+router.delete('/:id', authenticate, messagesController.deleteMessage);
+
+module.exports = router;

@@ -1,0 +1,26 @@
+/* =============================================================
+   JyP Servicios Técnicos — CSS entry point
+   Orden de capas: theme < base < components < utilities < pages.
+   Las páginas de autenticación usan la capa `pages` porque su
+   diseño es autocontenido y debe conservar su apariencia exacta.
+   ============================================================= */
+
+@layer theme, base, components, utilities, pages;
+
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+@import './styles/tokens.css';
+@import './styles/base.css';
+@import './styles/layout.css';
+@import './styles/utilities.css';
+@import './styles/components/surfaces.css';
+@import './styles/components/buttons.css';
+@import './styles/components/forms.css';
+@import './styles/components/badges.css';
+@import './styles/components/tables.css';
+@import './styles/components/modals.css';
+@import './styles/components/feedback.css';
+@import './styles/components/animations.css';
+@import './styles/third-party/leaflet.css';
+@import './styles/theme-light.css';

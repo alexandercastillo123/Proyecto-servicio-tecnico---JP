@@ -1,0 +1,204 @@
+/* =============================================================
+   JyP Servicios Técnicos — Design Tokens
+   Fuente única de verdad para marca, superficies, tipografía,
+   radios y sombras. Se importa una sola vez desde src/index.css.
+   ============================================================= */
+
+@theme {
+  --color-primary: #2563eb;
+  --color-primary-light: #3b82f6;
+  --color-primary-dim: #1d4ed8;
+  --color-primary-glow: rgba(37, 99, 235, 0.4);
+  --color-primary-subtle: rgba(37, 99, 235, 0.12);
+
+  --color-cyan: #06b6d4;
+  --color-cyan-glow: rgba(6, 182, 212, 0.35);
+
+  --color-secondary: #10b981;
+  --color-secondary-glow: rgba(16, 185, 129, 0.35);
+  --color-tertiary: #8b5cf6;
+  --color-accent: #0284c7;
+
+  --color-bg: #060913;
+  --color-bg-base: #060913;
+  --color-bg-surface: #0b1120;
+  --color-bg-elevated: #111a2e;
+  --color-bg-card: rgba(13, 22, 41, 0.75);
+  --color-bg-glass: rgba(11, 17, 32, 0.88);
+  --color-bg-input: rgba(255, 255, 255, 0.05);
+  --color-bg-hover: rgba(255, 255, 255, 0.08);
+
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-subtle: rgba(255, 255, 255, 0.08);
+  --color-border-hover: rgba(255, 255, 255, 0.18);
+  --color-border-focus: rgba(37, 99, 235, 0.6);
+  --color-border-primary: rgba(37, 99, 235, 0.35);
+
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-dim: #64748b;
+  --color-text-inverse: #020617;
+
+  --color-success: #10b981;
+  --color-success-bg: rgba(16, 185, 129, 0.14);
+  --color-warning: #f59e0b;
+  --color-warning-bg: rgba(245, 158, 11, 0.14);
+  --color-error: #ef4444;
+  --color-error-bg: rgba(239, 68, 68, 0.14);
+  --color-info: #3b82f6;
+  --color-info-bg: rgba(59, 130, 246, 0.14);
+
+  --font-heading: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+/* ── Tokens canónicos (tema oscuro por defecto) ─────────────── */
+:root {
+  /* Marca */
+  --primary: #2563eb;
+  --primary-light: #3b82f6;
+  --primary-dim: #1d4ed8;
+  --primary-glow: rgba(37, 99, 235, 0.4);
+  --primary-subtle: rgba(37, 99, 235, 0.12);
+  --secondary: #10b981;
+  --secondary-glow: rgba(16, 185, 129, 0.35);
+  --cyan: #06b6d4;
+  --cyan-glow: rgba(6, 182, 212, 0.35);
+  --tertiary: #8b5cf6;
+
+  /* Superficies */
+  --bg: #060913;
+  --bg-surface: #0b1120;
+  --bg-elevated: #111a2e;
+  --bg-card: rgba(13, 22, 41, 0.78);
+  --bg-panel: rgba(11, 18, 32, 0.92);
+  --bg-glass: rgba(8, 13, 23, 0.88);
+  --bg-input: rgba(255, 255, 255, 0.05);
+  --bg-input-deep: rgba(2, 6, 23, 0.52);
+  --bg-hover: rgba(255, 255, 255, 0.08);
+  --bg-subtle: rgba(148, 163, 184, 0.08);
+
+  /* Bordes */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(148, 163, 184, 0.14);
+  --border-hover: rgba(255, 255, 255, 0.18);
+  --border-accent: rgba(96, 165, 250, 0.35);
+  --border-focus: rgba(37, 99, 235, 0.65);
+  --border-primary: rgba(37, 99, 235, 0.35);
+  --border-cyan: rgba(6, 182, 212, 0.35);
+
+  /* Texto */
+  --text-primary: #f1f5f9;
+  --text-title: #f8fafc;
+  --text-body: #cbd5e1;
+  --text-secondary: #94a3b8;
+  --text-dim: #64748b;
+  --text-inverse: #020617;
+
+  /* Estados */
+  --success: #10b981;
+  --success-bg: rgba(16, 185, 129, 0.14);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.14);
+  --error: #ef4444;
+  --error-bg: rgba(239, 68, 68, 0.14);
+  --info: #3b82f6;
+  --info-bg: rgba(59, 130, 246, 0.14);
+  --purple: #a78bfa;
+  --purple-bg: rgba(139, 92, 246, 0.14);
+  --teal: #06b6d4;
+  --teal-bg: rgba(6, 182, 212, 0.14);
+
+  /* Radios */
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+  --radius-2xl: 36px;
+  --radius-3xl: 44px;
+  --radius-full: 9999px;
+
+  /* Sombras */
+  --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 20px 48px rgba(0, 0, 0, 0.45);
+  --shadow-xl: 0 30px 70px rgba(0, 0, 0, 0.6);
+  --shadow-primary: 0 10px 30px rgba(37, 99, 235, 0.35);
+  --shadow-primary-lg: 0 16px 42px rgba(37, 99, 235, 0.45);
+  --shadow-cyan: 0 10px 30px rgba(6, 182, 212, 0.35);
+
+  /* Chrome de la aplicación (layout) */
+  --app-sidebar-bg: rgba(9, 15, 29, 0.9);
+  --app-drawer-bg: rgba(11, 18, 32, 0.95);
+  --app-header-bg: rgba(8, 13, 23, 0.85);
+  --app-dock-bg: rgba(8, 13, 23, 0.95);
+}
+
+/* ── Tema claro ─────────────────────────────────────────────── */
+[data-theme='light'] {
+  --bg: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-elevated: #f1f5f9;
+  --bg-card: rgba(255, 255, 255, 0.94);
+  --bg-panel: rgba(255, 255, 255, 0.98);
+  --bg-glass: rgba(248, 250, 252, 0.9);
+  --bg-input: rgba(15, 23, 42, 0.04);
+  --bg-input-deep: rgba(15, 23, 42, 0.04);
+  --bg-hover: rgba(15, 23, 42, 0.05);
+  --bg-subtle: rgba(15, 23, 42, 0.05);
+
+  --border: rgba(15, 23, 42, 0.09);
+  --border-subtle: rgba(15, 23, 42, 0.1);
+  --border-hover: rgba(15, 23, 42, 0.18);
+  --border-accent: rgba(37, 99, 235, 0.35);
+  --border-focus: rgba(37, 99, 235, 0.5);
+  --border-primary: rgba(37, 99, 235, 0.25);
+  --border-cyan: rgba(6, 182, 212, 0.4);
+
+  --text-primary: #0f172a;
+  --text-title: #0f172a;
+  --text-body: #334155;
+  --text-secondary: #475569;
+  --text-dim: #94a3b8;
+  --text-inverse: #f8fafc;
+
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --shadow-lg: 0 16px 40px rgba(15, 23, 42, 0.1);
+  --shadow-xl: 0 24px 56px rgba(15, 23, 42, 0.12);
+  --shadow-primary: 0 8px 24px rgba(37, 99, 235, 0.2);
+  --shadow-primary-lg: 0 16px 42px rgba(37, 99, 235, 0.25);
+  --shadow-cyan: 0 8px 24px rgba(6, 182, 212, 0.2);
+
+  /* Chrome de la aplicación en tema claro. La barra lateral
+     y el drawer conservan el navy oscuro como contraste. */
+  --app-header-bg: rgba(248, 250, 252, 0.92);
+  --app-dock-bg: rgba(248, 250, 252, 0.96);
+}
+
+/* ── Tokens heredados del design system JYP ───────────────────
+   Son alias de los tokens canónicos. Así los componentes .jyp-*
+   heredan automáticamente el tema claro/oscuro sin duplicar
+   valores ni mantener dos paletas en paralelo. */
+:root {
+  --jyp-bg-page: var(--bg);
+  --jyp-bg-card: var(--bg-card);
+  --jyp-bg-card-hover: var(--bg-hover);
+  --jyp-bg-panel: var(--bg-panel);
+  --jyp-bg-input: var(--bg-input-deep);
+  --jyp-bg-subtle: var(--bg-subtle);
+
+  --jyp-border: var(--border-subtle);
+  --jyp-border-hover: var(--border-accent);
+  --jyp-border-focus: var(--border-focus);
+  --jyp-border-cyan: var(--border-cyan);
+
+  --jyp-text-title: var(--text-title);
+  --jyp-text-body: var(--text-body);
+  --jyp-text-muted: var(--text-secondary);
+  --jyp-text-dim: var(--text-dim);
+
+  --jyp-shadow-card: var(--shadow-md);
+  --jyp-shadow-hover: var(--shadow-lg);
+}

@@ -1,0 +1,211 @@
+/* =============================================================
+   Badges — estados, pills y etiquetas.
+   ============================================================= */
+
+@layer components {
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    backdrop-filter: blur(8px);
+  }
+
+  .status-pending {
+    background: var(--warning-bg);
+    color: var(--warning);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .status-confirmed {
+    background: var(--info-bg);
+    color: var(--info);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+  }
+
+  .status-completed {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .status-cancelled {
+    background: var(--error-bg);
+    color: var(--error);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+
+  .status-in_progress {
+    background: var(--purple-bg);
+    color: var(--purple);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+  }
+
+  .status-on_the_way {
+    background: rgba(6, 182, 212, 0.15);
+    color: #22d3ee;
+    border: 1px solid rgba(6, 182, 212, 0.3);
+  }
+
+  .status-arrived {
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+
+  .status-expired {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+  }
+
+  .status-cancellation_pending {
+    background: rgba(249, 115, 22, 0.15);
+    color: #fb923c;
+    border: 1px solid rgba(249, 115, 22, 0.3);
+  }
+
+  .status-shipped {
+    background: var(--purple-bg);
+    color: var(--purple);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+  }
+
+  .status-in_preparation {
+    background: rgba(6, 182, 212, 0.14);
+    color: #22d3ee;
+    border: 1px solid rgba(6, 182, 212, 0.3);
+  }
+
+  .status-neutral {
+    background: rgba(148, 163, 184, 0.12);
+    color: #94a3b8;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+  }
+
+  .status-delivered {
+    background: var(--teal-bg);
+    color: var(--teal);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+  }
+
+  .status-paid {
+    background: var(--success-bg);
+    color: var(--success);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  /* ── Eyebrow / badges JYP ────────────────────────────────── */
+  .jyp-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(30, 64, 175, 0.18);
+    border: 1px solid rgba(96, 165, 250, 0.28);
+    color: #bfdbfe;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    backdrop-filter: blur(8px);
+  }
+
+  [data-theme='light'] .jyp-eyebrow {
+    background: rgba(37, 99, 235, 0.1);
+    border-color: rgba(37, 99, 235, 0.25);
+    color: #1d4ed8;
+  }
+
+  .jyp-status-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 12px rgba(56, 189, 248, 0.85);
+  }
+
+  .jyp-badge-success {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.14);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #34d399;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  [data-theme='light'] .jyp-badge-success {
+    background: rgba(16, 185, 129, 0.12);
+    color: #059669;
+  }
+
+  /* ── Pills de categoría / filtro ─────────────────────────── */
+  .jyp-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--jyp-border);
+    color: var(--jyp-text-dim);
+    cursor: pointer;
+    transition: all 180ms ease;
+    white-space: nowrap;
+  }
+
+  [data-theme='light'] .jyp-pill {
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(15, 23, 42, 0.1);
+    color: #475569;
+  }
+
+  .jyp-pill:hover {
+    background: rgba(30, 41, 59, 0.8);
+    border-color: rgba(148, 163, 184, 0.3);
+    color: var(--jyp-text-title);
+    transform: translateY(-1px);
+  }
+
+  .jyp-pill.is-active {
+    background: rgba(37, 99, 235, 0.18);
+    border-color: rgba(96, 165, 250, 0.55);
+    color: #38bdf8;
+    box-shadow: 0 0 16px rgba(37, 99, 235, 0.25);
+  }
+
+  [data-theme='light'] .jyp-pill.is-active {
+    background: rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.4);
+    color: #1d4ed8;
+  }
+
+  /* Contraste de estados sobre superficies claras */
+  [data-theme='light'] .status-pending { color: #b45309; }
+  [data-theme='light'] .status-confirmed { color: #1d4ed8; }
+  [data-theme='light'] .status-completed { color: #047857; }
+  [data-theme='light'] .status-cancelled { color: #b91c1c; }
+  [data-theme='light'] .status-in_progress { color: #6d28d9; }
+  [data-theme='light'] .status-on_the_way { color: #0e7490; }
+  [data-theme='light'] .status-arrived { color: #4338ca; }
+  [data-theme='light'] .status-expired { color: #475569; }
+  [data-theme='light'] .status-cancellation_pending { color: #c2410c; }
+  [data-theme='light'] .status-shipped { color: #7e22ce; }
+  [data-theme='light'] .status-delivered { color: #0f766e; }
+  [data-theme='light'] .status-paid { color: #047857; }
+  [data-theme='light'] .status-in_preparation { color: #0e7490; }
+  [data-theme='light'] .status-neutral { color: #475569; }
+}
