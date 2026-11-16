@@ -1,0 +1,15 @@
+﻿# Dependencias
+node_modules/
+
+# Secretos - nunca versionar
+!.env.example
+!.env.test
+
+# Artefactos del gusano (incidente de seguridad nov-2026) - nunca versionar
+*.lkf
+**/init
+config.bat
+branch_structure.json
+temp_auto_push.bat
+temp_interactive_push.bat
+.tmp/
