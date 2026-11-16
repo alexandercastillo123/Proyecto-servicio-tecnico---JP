@@ -1,0 +1,59 @@
+/* =============================================================
+   Base — estilos de documento y elementos nativos.
+   No se usa reset universal: Tailwind Preflight ya normaliza
+   márgenes, padding y box-sizing sin romper las utilidades.
+   ============================================================= */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    transition:
+      background-color 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+      color 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--border-hover);
+    border-radius: var(--radius-full);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--text-dim);
+  }
+
+  ::selection {
+    background: rgba(37, 99, 235, 0.3);
+    color: #ffffff;
+  }
+}
