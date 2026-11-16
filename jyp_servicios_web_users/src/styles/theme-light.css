@@ -1,0 +1,311 @@
+/* =============================================================
+   Puente de tema claro para los módulos heredados.
+   -------------------------------------------------------------
+   Muchos módulos todavía usan utilidades con valores oscuros
+   hardcodeados (`text-white`, `bg-[#0a101b]`, `border-white/10`).
+   Este archivo las traduce a tokens semánticos SOLO dentro de
+   `.app-main` y SOLO en tema claro.
+
+   Es una capa de compatibilidad temporal: a medida que los
+   módulos migren a tokens/PageShell, estas reglas se pueden ir
+   eliminando sin tocar el resto del sistema.
+
+   No afecta al login (está fuera de `.app-main`) ni a la barra
+   lateral, que conserva el navy oscuro como contraste.
+   ============================================================= */
+
+@layer pages {
+  /* ── Superficies oscuras hardcodeadas ─────────────────────── */
+  [data-theme='light'] .app-main [class*='bg-[#080d17]'] {
+    background-color: var(--bg);
+  }
+
+  [data-theme='light'] .app-main [class*='bg-[#090f1a]'],
+  [data-theme='light'] .app-main [class*='bg-[#0b1220]'],
+  [data-theme='light'] .app-main [class*='bg-[#070c14]'] {
+    background-color: var(--bg-surface);
+  }
+
+  [data-theme='light'] .app-main [class*='bg-[#0a101b]'],
+  [data-theme='light'] .app-main [class*='bg-[#0e1424]'],
+  [data-theme='light'] .app-main [class*='bg-[#141a26]'] {
+    background-color: var(--bg-card);
+  }
+
+  [data-theme='light'] .app-main [class*='bg-[#0b121e]'],
+  [data-theme='light'] .app-main [class*='bg-[#0c1424]'] {
+    background-color: var(--bg-input);
+  }
+
+  /* Gradientes de hero construidos con valores hex oscuros */
+  [data-theme='light'] .app-main [class*='from-[#0c13'],
+  [data-theme='light'] .app-main [class*='from-[#0c14'],
+  [data-theme='light'] .app-main [class*='via-[#080d17]'],
+  [data-theme='light'] .app-main [class*='via-[#090f1a]'],
+  [data-theme='light'] .app-main [class*='via-[#091020]'],
+  [data-theme='light'] .app-main [class*='via-[#0c1424]'],
+  [data-theme='light'] .app-main [class*='to-[#060a14]'],
+  [data-theme='light'] .app-main [class*='to-[#0a101b]'],
+  [data-theme='light'] .app-main [class*='to-[#0a1829]'],
+  [data-theme='light'] .app-main [class*='to-[#0d1b2a]'] {
+    background-image: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.98) 0%,
+      rgba(241, 245, 249, 0.98) 55%,
+      rgba(239, 246, 255, 0.98) 100%
+    );
+  }
+
+  /* ── Superficies translúcidas blancas ─────────────────────── */
+  [data-theme='light'] .app-main [class~='bg-white/[0.02]'],
+  [data-theme='light'] .app-main [class~='bg-white/[0.03]'],
+  [data-theme='light'] .app-main [class~='bg-white/[0.04]'],
+  [data-theme='light'] .app-main [class~='bg-white/5'] {
+    background-color: var(--bg-subtle);
+  }
+
+  [data-theme='light'] .app-main [class~='bg-white/10'],
+  [data-theme='light'] .app-main [class~='bg-white/15'],
+  [data-theme='light'] .app-main [class~='bg-white/20'] {
+    background-color: var(--bg-hover);
+  }
+
+  [data-theme='light'] .app-main [class~='bg-white/90'] {
+    background-color: var(--bg-surface);
+  }
+
+  [data-theme='light'] .app-main [class~='hover:bg-white/5']:hover,
+  [data-theme='light'] .app-main [class~='hover:bg-white/10']:hover,
+  [data-theme='light'] .app-main [class~='hover:bg-white/[0.03]']:hover,
+  [data-theme='light'] .app-main [class~='hover:bg-white/[0.06]']:hover,
+  [data-theme='light'] .app-main [class~='hover:bg-white/[0.07]']:hover {
+    background-color: var(--bg-hover);
+  }
+
+  /* Slate oscuro usado en selectores/toggles heredados */
+  [data-theme='light'] .app-main .bg-slate-900,
+  [data-theme='light'] .app-main [class*='bg-slate-900/'] {
+    background-color: var(--bg-surface);
+  }
+
+  [data-theme='light'] .app-main .bg-slate-800 {
+    background-color: var(--bg-subtle);
+  }
+
+  /* ── Bordes ───────────────────────────────────────────────── */
+  [data-theme='light'] .app-main [class~='border-white/5'],
+  [data-theme='light'] .app-main [class~='border-white/10'],
+  [data-theme='light'] .app-main [class~='border-white/15'] {
+    border-color: var(--border);
+  }
+
+  [data-theme='light'] .app-main [class~='border-white/30'],
+  [data-theme='light'] .app-main [class~='hover:border-white/20']:hover {
+    border-color: var(--border-hover);
+  }
+
+  [data-theme='light'] .app-main [class*='border-[#0a101b]'],
+  [data-theme='light'] .app-main [class*='border-[#0c1424]'],
+  [data-theme='light'] .app-main .border-slate-900 {
+    border-color: var(--bg-surface);
+  }
+
+  [data-theme='light'] .app-main [class*='border-slate-700'] {
+    border-color: var(--border);
+  }
+
+  /* ── Texto principal ──────────────────────────────────────── */
+  [data-theme='light'] .app-main .text-white,
+  [data-theme='light'] .app-main .text-slate-100,
+  [data-theme='light'] .app-main .text-slate-200,
+  [data-theme='light'] .app-main .text-gray-100,
+  [data-theme='light'] .app-main .text-gray-200 {
+    color: var(--text-primary);
+  }
+
+  [data-theme='light'] .app-main .text-slate-300,
+  [data-theme='light'] .app-main .text-gray-300 {
+    color: var(--text-body);
+  }
+
+  [data-theme='light'] .app-main .text-slate-400,
+  [data-theme='light'] .app-main .text-gray-400 {
+    color: var(--text-secondary);
+  }
+
+  [data-theme='light'] .app-main .text-slate-500,
+  [data-theme='light'] .app-main .text-gray-500,
+  [data-theme='light'] .app-main .text-slate-600,
+  [data-theme='light'] .app-main .text-gray-600 {
+    color: var(--text-dim);
+  }
+
+  /* ── Acentos: oscurecer tonos pensados para fondo oscuro ──── */
+  [data-theme='light'] .app-main :is(.text-cyan-300, .text-cyan-400, .text-cyan-500, .text-sky-300, .text-sky-400) {
+    color: #0e7490;
+  }
+
+  [data-theme='light'] .app-main :is(.text-blue-300, .text-blue-400, .text-blue-500) {
+    color: #1d4ed8;
+  }
+
+  [data-theme='light'] .app-main :is(.text-emerald-300, .text-emerald-400, .text-emerald-500) {
+    color: #047857;
+  }
+
+  [data-theme='light'] .app-main :is(.text-amber-300, .text-amber-400, .text-amber-500) {
+    color: #b45309;
+  }
+
+  [data-theme='light'] .app-main :is(.text-rose-300, .text-rose-400, .text-rose-500) {
+    color: #b91c1c;
+  }
+
+  [data-theme='light'] .app-main :is(.text-purple-300, .text-purple-400, .text-purple-500) {
+    color: #6d28d9;
+  }
+
+  [data-theme='light'] .app-main :is(.text-indigo-300, .text-indigo-400, .text-indigo-500) {
+    color: #4338ca;
+  }
+
+  [data-theme='light'] .app-main :is(.text-teal-300, .text-teal-400, .text-teal-500) {
+    color: #0f766e;
+  }
+
+  [data-theme='light'] .app-main :is(.text-orange-300, .text-orange-400, .text-orange-500) {
+    color: #c2410c;
+  }
+
+  /* ── Excepciones: texto blanco sobre acentos sólidos ──────── */
+  [data-theme='light'] .app-main
+    :is(
+      .bg-blue-500,
+      .bg-blue-600,
+      .bg-cyan-500,
+      .bg-cyan-600,
+      .bg-emerald-500,
+      .bg-emerald-600,
+      .bg-teal-500,
+      .bg-teal-600,
+      .bg-rose-500,
+      .bg-rose-600,
+      .bg-red-500,
+      .bg-red-600,
+      .bg-amber-500,
+      .bg-amber-600,
+      .bg-purple-500,
+      .bg-purple-600,
+      .bg-indigo-500,
+      .bg-indigo-600,
+      .bg-slate-950,
+      [class~='bg-[#2563EB]'],
+      [class~='bg-[#2563eb]'],
+      [class~='bg-[#2D6BFF]'],
+      [class~='bg-[#06B6D4]'],
+      [class~='bg-[#10B981]'],
+      [class~='bg-[#EF4444]']
+    )
+    :is(.text-white, .text-slate-100, .text-slate-200) {
+    color: #ffffff;
+  }
+
+  [data-theme='light'] .app-main
+    :is(
+      .bg-blue-500,
+      .bg-blue-600,
+      .bg-cyan-500,
+      .bg-cyan-600,
+      .bg-emerald-500,
+      .bg-emerald-600,
+      .bg-teal-500,
+      .bg-teal-600,
+      .bg-rose-500,
+      .bg-rose-600,
+      .bg-red-500,
+      .bg-red-600,
+      .bg-amber-500,
+      .bg-amber-600,
+      .bg-purple-500,
+      .bg-purple-600,
+      .bg-indigo-500,
+      .bg-indigo-600,
+      .bg-slate-950
+    ).text-white {
+    color: #ffffff;
+  }
+
+  /* Gradientes Tailwind sólidos (sin opacidad) */
+  [data-theme='light'] .app-main
+    :is(
+      .from-blue-500,
+      .from-blue-600,
+      .from-cyan-500,
+      .from-cyan-600,
+      .from-emerald-500,
+      .from-emerald-600,
+      .from-teal-500,
+      .from-teal-600,
+      .from-rose-500,
+      .from-rose-600,
+      .from-amber-500,
+      .from-amber-600,
+      .from-purple-500,
+      .from-purple-600,
+      .from-indigo-500,
+      .from-indigo-600
+    )
+    :is(.text-white, .text-slate-100, .text-slate-200) {
+    color: #ffffff;
+  }
+
+  /* Gradientes inline de marca (avatares, modales y botones) */
+  [data-theme='light'] .app-main
+    :is(
+      [style*='#2563EB'],
+      [style*='#2563eb'],
+      [style*='var(--primary)'],
+      [style*='#059669'],
+      [style*='#0d9488']
+    )
+    :is(.text-white, .text-slate-100, .text-slate-200) {
+    color: #ffffff;
+  }
+
+  /* ── Formularios ──────────────────────────────────────────── */
+  [data-theme='light'] .app-main [class~='placeholder-slate-500']::placeholder,
+  [data-theme='light'] .app-main [class~='placeholder-slate-600']::placeholder,
+  [data-theme='light'] .app-main [class~='placeholder-gray-500']::placeholder {
+    color: var(--text-dim);
+  }
+
+  [data-theme='light'] .app-main select option {
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+  }
+
+  /* ── Ajustes puntuales de componentes heredados ───────────── */
+  [data-theme='light'] .app-main .jyp-btn-cyan {
+    background: rgba(6, 182, 212, 0.1);
+    color: #0e7490;
+  }
+
+  [data-theme='light'] .app-main .jyp-btn-cyan:hover {
+    background: rgba(6, 182, 212, 0.16);
+    color: #155e75;
+  }
+
+  [data-theme='light'] .app-main .jyp-pill:hover {
+    background: rgba(241, 245, 249, 0.98);
+    border-color: rgba(15, 23, 42, 0.16);
+    color: var(--text-title);
+  }
+
+  [data-theme='light'] .app-main .bg-tech-circuit {
+    background-image:
+      radial-gradient(circle at 10% 20%, rgba(37, 99, 235, 0.06) 0%, transparent 25%),
+      radial-gradient(circle at 90% 80%, rgba(6, 182, 212, 0.06) 0%, transparent 25%),
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  }
+}

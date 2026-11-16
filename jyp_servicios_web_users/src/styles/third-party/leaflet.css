@@ -1,0 +1,45 @@
+/* =============================================================
+   Leaflet — overrides de mapas.
+   Los !important son necesarios porque leaflet.css se importa
+   sin capa y define estilos base para sus propios controles.
+   ============================================================= */
+
+@layer components {
+  .leaflet-container {
+    background: var(--bg) !important;
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border);
+    font-family: 'Inter', sans-serif !important;
+  }
+
+  :root:not([data-theme='light']) .leaflet-tile-pane,
+  [data-theme='dark'] .leaflet-tile-pane {
+    filter: brightness(0.65) invert(1) contrast(2.6) hue-rotate(200deg)
+      saturate(0.35) brightness(0.75);
+  }
+
+  [data-theme='light'] .leaflet-tile-pane {
+    filter: none;
+  }
+
+  .leaflet-popup-content-wrapper,
+  .leaflet-popup-tip {
+    background: var(--bg-elevated) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-hover);
+    box-shadow: var(--shadow-lg);
+    border-radius: 12px !important;
+  }
+
+  .leaflet-control-zoom a {
+    background: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+    transition: all 0.2s;
+  }
+
+  .leaflet-control-zoom a:hover {
+    background: var(--primary) !important;
+    color: #fff !important;
+  }
+}

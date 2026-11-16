@@ -1,0 +1,48 @@
+/* =============================================================
+   Utilities — utilidades propias que no colisionan con Tailwind.
+   ============================================================= */
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, #ffffff 0%, #38bdf8 50%, #2563eb 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+  }
+
+  .gradient-tech {
+    background: linear-gradient(135deg, #60a5fa 0%, #06b6d4 50%, #10b981 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+  }
+
+  [data-theme='light'] .gradient-text {
+    background: linear-gradient(135deg, #0f172a 0%, #2563eb 60%, #0284c7 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+  }
+
+  .bg-grid {
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  .bg-dots {
+    background-image: radial-gradient(var(--border) 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+  }
+}
